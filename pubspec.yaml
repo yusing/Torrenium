@@ -1,0 +1,56 @@
+name: torrenium
+description: Torrent Downloader
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=2.18.2'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.2
+  macos_ui: ^2.0.0
+  ffi: ^2.0.1
+  cached_network_image: ^3.2.2
+  http: ^0.13.5
+  xml: ^6.1.0
+  flutter_html: ^3.0.0-beta.2
+  path_provider: ^2.0.11
+  path: ^1.8.2
+  logger: ^1.1.0
+  intl: ^0.17.0
+  flutter_cache_manager: ^3.3.0
+  animations: ^2.0.7
+  url_launcher: ^6.1.10
+  bitsdojo_window: ^0.1.5
+  font_awesome_flutter: ^10.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^2.0.0
+  ffigen: ^7.2.0
+flutter:
+  uses-material-design: true
+
+
+ffigen:
+  name: 'TorrentGoBinding'
+  description: 'Torrent Go Binding'
+  output: 'lib/utils/torrent_binding.dart'
+  headers:
+    entry-points:
+      - 'torrent/build/windows/x64/libtorrent_go.h'
+  llvm-path:
+    - 'C:\Users\yusing\scoop\apps\llvm\current'
+  exclude-all-by-default: true
+  functions:
+    include:
+      - '[A-Z][a-zA-Z0-9]*' # include only functions starting with capital letter (Go Functions)
+  # add ignore non_constant_identifier_names
+  preamble: '// ignore_for_file: camel_case_types, non_constant_identifier_names'
