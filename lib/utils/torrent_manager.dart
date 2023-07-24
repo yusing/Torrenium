@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 import 'package:ffi/ffi.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -12,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:torrenium/classes/item.dart';
 import 'package:torrenium/utils/units.dart';
 import 'torrent_binding.dart' as torrent_binding;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Torrent implements Comparable<Torrent> {
   Torrent(
@@ -67,6 +69,7 @@ class Torrent implements Comparable<Torrent> {
         if (progress != tNewer.progress) {
           progress = tNewer.progress;
           bytesDownloaded = tNewer.bytesDownloaded;
+          _downloadedTime = DateTime.now();
           for (int i = 0; i < files.length; i++) {
             assert(files[i].name == tNewer.files[i].name);
             files[i] = tNewer.files[i];
@@ -178,27 +181,52 @@ class TorrentDownloadedFile {
 }
 
 class TorrentManager {
-  static final DynamicLibrary _dylib =
-      // DynamicLibrary.open('torrent/build/windows/x64/libtorrent_go.dll');
-      DynamicLibrary.open('libtorrent_go.dll');
+  static final DynamicLibrary _dylib = DynamicLibrary.open('libtorrent_go.dll');
   static final _torrent = torrent_binding.TorrentGoBinding(_dylib);
   static late List<Torrent> torrentList;
+  static late Directory docDir;
   static late String savePath;
+  static late SharedPreferences prefs;
 
-  static Future<void> init() async {
-    final docDir = await getDownloadsDirectory() ??
+  static Future<bool> init() async {
+    prefs = await SharedPreferences.getInstance();
+    docDir = await getDownloadsDirectory() ??
         await getApplicationDocumentsDirectory();
-    savePath = path.join(docDir.path, 'TorreniumDownloads');
-    await Directory(savePath).create(recursive: true); // create if not exists
+
+    if (!prefs.containsKey('savePath')) {
+      return false;
+    }
+    savePath = prefs.getString('savePath')!;
+    if (!await Directory(savePath).exists()) {
+      try {
+        await Directory(savePath).create(recursive: true);
+      } catch (e) {
+        Logger().e(e);
+        return false;
+      }
+    }
     _torrent.InitTorrentClient.callWith(savePath);
 
     // load last session
     torrentList = Torrent.listFromJson.callWith(_torrent.GetTorrentList());
     torrentList.sort();
     for (final torrent in torrentList) {
-      // torrent.print();
       torrent.startSelfUpdate();
     }
+    return true;
+  }
+
+  static Future<bool> selectSavePath() async {
+    String? selectedPath = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Select a save path',
+      initialDirectory: docDir.path,
+      lockParentWindow: true,
+    );
+    if (selectedPath == null) {
+      return false;
+    }
+    prefs.setString('savePath', selectedPath);
+    return true;
   }
 
   static Torrent getTorrentInfo(Torrent t) {

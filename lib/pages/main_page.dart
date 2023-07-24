@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:torrenium/utils/rss_providers.dart';
 import 'package:torrenium/utils/torrent_manager.dart';
@@ -93,8 +94,7 @@ class _MainPageState extends State<MainPage> {
                                   value: _progressUpdateNotifier.value,
                                   innerColor: Colors.indigoAccent,
                                 )
-                              : const MacosIcon(
-                                  CupertinoIcons.cloud_download_fill);
+                              : const MacosIcon(CupertinoIcons.cloud_download);
                         }),
                     onPressed: () async {
                       if (TorrentManager.torrentList.isEmpty) {
@@ -122,6 +122,13 @@ class _MainPageState extends State<MainPage> {
                       }
                     },
                   ),
+                  const SizedBox(width: 6),
+                  TextButton.icon(
+                    onPressed: () async =>
+                        await TorrentManager.selectSavePath(),
+                    icon: const MacosIcon(CupertinoIcons.folder_badge_plus),
+                    label: const Text('Change Path'),
+                  )
                 ],
               ),
               const Center(
@@ -136,21 +143,68 @@ class _MainPageState extends State<MainPage> {
       ),
       children: [
         ContentArea(
-          builder: (_, scrollController) => MacosTabView(
-            controller: _tabController,
-            tabs: rssProviders
-                .map((e) => MacosTab(
-                      label: e.name,
-                    ))
-                .toList(growable: false),
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-            position: MacosTabPosition.bottom,
-            children: rssProviders
-                .map((e) => RSSTab(
-                      provider: e,
-                    ))
-                .toList(growable: false),
-          ),
+          builder: (_, scrollController) => FutureBuilder(
+              future: TorrentManager.init(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!) {
+                  return MacosTabView(
+                    controller: _tabController,
+                    tabs: rssProviders
+                        .map((e) => MacosTab(
+                              label: e.name,
+                            ))
+                        .toList(growable: false),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    position: MacosTabPosition.bottom,
+                    children: rssProviders
+                        .map((e) => RSSTab(
+                              provider: e,
+                            ))
+                        .toList(growable: false),
+                  );
+                } else if (snapshot.hasData) {
+                  // TODO: Welcome page
+                  return Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Please select a save path'),
+                        const SizedBox(width: 16),
+                        MacosIconButton(
+                          icon: const MacosIcon(FontAwesomeIcons.folderOpen),
+                          onPressed: () async {
+                            bool result = await TorrentManager.selectSavePath();
+                            if (result) {
+                              setState(() {});
+                            } else {
+                              setState(() {
+                                showMacosAlertDialog(
+                                    context: context,
+                                    builder: (context) => MacosAlertDialog(
+                                          appIcon: const MacosIcon(
+                                              CupertinoIcons
+                                                  .exclamationmark_circle),
+                                          title: const Text('Oops'),
+                                          message: const Text(
+                                              'Failed to select a save path'),
+                                          primaryButton: PushButton(
+                                            controlSize: ControlSize.large,
+                                            child: const Text('Dismiss'),
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
+                                          ),
+                                        ));
+                              });
+                            }
+                          },
+                        )
+                      ],
+                    ),
+                  );
+                } else {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
+              }),
         ),
       ],
     );

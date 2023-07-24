@@ -41,7 +41,7 @@ class RSSProvider {
       homePageUrl +
       (keyword == null || keyword.isEmpty
           ? rssPath
-          : searchRssPath
+          : (searchRssPath
               .replaceAll('%q', keyword)
               .replaceAll(
                   '%c',
@@ -53,7 +53,8 @@ class RSSProvider {
                   '%a',
                   author == null
                       ? ''
-                      : authorParamGetter?.call(authorRssMap![author]!) ?? ''));
+                      : authorParamGetter?.call(authorRssMap![author]!) ??
+                          '')));
 
   RSSProvider(
       {this.logoPath = '/favicon.ico',

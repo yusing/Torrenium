@@ -4,6 +4,7 @@ import "C"
 import (
 	"encoding/json"
 	"log"
+	"os"
 	"path"
 
 	"github.com/anacrolix/torrent"
@@ -11,6 +12,7 @@ import (
 
 var torrentClient *torrent.Client = nil
 var savePath string
+var dataPath string
 var sessionJsonPath string
 
 func loadLastSession() {
@@ -34,11 +36,13 @@ func InitTorrentClient(savePathCStr *C.char) {
 		return // Already initialized, maybe flutter hot reload?
 	}
 	savePath = C.GoString(savePathCStr)
-	sessionJsonPath = path.Join(savePath, "session.json")
+	dataPath = path.Join(savePath, "data")
+	os.MkdirAll(dataPath, 0755)
+	sessionJsonPath = path.Join(dataPath, "session.json")
 	config := torrent.NewDefaultClientConfig()
 	config.NoDHT = false
 	config.NoUpload = true
-	config.DataDir = savePath
+	config.DataDir = dataPath
 	config.Seed = false
 	config.DisableIPv6 = true
 	torrentClient, _ = torrent.NewClient(config)

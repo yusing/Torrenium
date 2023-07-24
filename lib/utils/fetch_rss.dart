@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:torrenium/classes/item.dart';
 import 'package:http/http.dart';
@@ -18,7 +17,8 @@ Future<List<Item>> getItemsFromRSS(RSSProvider provider,
     'Accept': 'application/xml',
     'Encoding': 'UTF-8',
   });
-  final body = const Utf8Decoder().convert(response.bodyBytes);
+  final body =
+      const Utf8Decoder().convert(response.bodyBytes); // prevent encoding error
   if (response.statusCode == 200) {
     return parseRSSForItems(provider, body);
   } else {

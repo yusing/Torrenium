@@ -37,7 +37,7 @@ func SaveMetadata(t *torrent.Torrent) {
 		log.Printf("[Torrent-Go] Error saving metadata: %s", err)
 		return
 	}
-	err = os.WriteFile(path.Join(savePath, t.InfoHash().HexString()+".json"), metaInfoJson, 0644)
+	err = os.WriteFile(path.Join(dataPath, t.InfoHash().HexString()+".json"), metaInfoJson, 0644)
 	if err != nil {
 		log.Printf("[Torrent-Go] Error saving metadata: %s", err)
 	}
@@ -45,7 +45,7 @@ func SaveMetadata(t *torrent.Torrent) {
 
 func ReadMetadataAndAdd(infoHashStr string) *torrent.Torrent {
 	// fallback to AddTorrentFromInfoHash if metadata not found
-	metaInfoJsonBytes, err := os.ReadFile(path.Join(savePath, infoHashStr+".json"))
+	metaInfoJsonBytes, err := os.ReadFile(path.Join(dataPath, infoHashStr+".json"))
 	if err != nil {
 		log.Printf("[Torrent-Go] Error reading metadata: %s", err)
 		AddTorrentFromInfoHash(infoHashStr)
@@ -83,7 +83,7 @@ func AddMagnet(magnetCString *C.char) *C.char {
 //export AddTorrent
 func AddTorrent(torrentUrlCStr *C.char) *C.char {
 	torrentUrl := C.GoString(torrentUrlCStr)
-	torrentPath := path.Join(savePath, path.Base(torrentUrl))
+	torrentPath := path.Join(dataPath, path.Base(torrentUrl))
 	torrentFile, err := os.Create(torrentPath)
 	if err != nil {
 		log.Printf("[Torrent-Go] Error creating torrent file: %s", err)
@@ -149,7 +149,7 @@ func DeleteTorrent(torrentPtr unsafe.Pointer) {
 	if err != nil {
 		log.Printf("[Torrent-Go] Warning: Error deleting files: %s", err)
 	}
-	if (os.Remove(path.Join(savePath, infoHashStr+".json"))) != nil {
+	if (os.Remove(path.Join(dataPath, infoHashStr+".json"))) != nil {
 		log.Printf("[Torrent-Go] Warning: Error deleting metadata: %s", err)
 	}
 	SaveSession()

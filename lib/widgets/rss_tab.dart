@@ -57,20 +57,18 @@ class _RSSTabState extends State<RSSTab> {
                         autocorrect: false,
                         maxLines: 1,
                         controller: _searchController,
-                        placeholder: 'Search...',
+                        placeholder: 'Search for something...',
                         maxResultsToShow: 10,
-                        results: !snapshot.hasData
-                            ? []
-                            : snapshot.data!
-                                .map((e) => SearchResultItem(e.name,
-                                    child: RssSearchResult(item: e)))
-                                .toList(growable: false),
+                        results: snapshot.data
+                            ?.map((e) => SearchResultItem(e.name,
+                                child: RssSearchResult(item: e)))
+                            .toList(growable: false),
                         onResultSelected: (e) => showMacosSheet(
                             context: context,
                             builder: (context) => ItemDialog(
                                 (e.child as RssSearchResult).item,
                                 context: context)),
-                        onChanged: (value) => setState(() => _keyword = value)),
+                        onChanged: (e) => setState(() => _keyword = e)),
                   ),
                   const SizedBox(
                     width: 4,
