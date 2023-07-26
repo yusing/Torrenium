@@ -181,7 +181,9 @@ class TorrentDownloadedFile {
 }
 
 class TorrentManager {
-  static final DynamicLibrary _dylib = DynamicLibrary.open('libtorrent_go.dll');
+  static final DynamicLibrary _dylib = Platform.isWindows
+      ? DynamicLibrary.open('libtorrent_go.dll')
+      : DynamicLibrary.executable();
   static final _torrent = torrent_binding.TorrentGoBinding(_dylib);
   static late List<Torrent> torrentList;
   static late Directory docDir;
