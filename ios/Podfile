@@ -9,7 +9,7 @@ target 'Runner' do
     # pod 'Flutter', :path => '../flutter'
   
     # Add the following line to link the .a library
-    pod 'libtorrent_go_ios', :path => 'Flutter/go_torrent/build/ios'
+    pod 'libtorrent_go_ios', :path => '../go_torrent/build/ios'
   
     # Add any other dependencies you may have
   
