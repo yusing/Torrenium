@@ -1,0 +1,1 @@
+pod 'go_torrent', :path => 'flutter/go_torrent/build/ios'

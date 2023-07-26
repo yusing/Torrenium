@@ -1,0 +1,3 @@
+[submodule "go_torrent"]
+	path = go_torrent
+	url = https://github.com/yusing/go_torrent

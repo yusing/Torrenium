@@ -46,7 +46,7 @@ ffigen:
   output: 'lib/utils/torrent_binding.dart'
   headers:
     entry-points:
-      - 'torrent/build/windows/x64/libtorrent_go.h'
+      - 'go_torrent/build/windows/x64/libtorrent_go.h'
   llvm-path:
     - 'C:\Users\yusing\scoop\apps\llvm\current'
   exclude-all-by-default: true
