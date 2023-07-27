@@ -20,7 +20,7 @@ void main() async {
 }
 
 class TorreniumApp extends StatelessWidget {
-  static final dynamic view =
+  static Widget get view =>
       Platform.isMacOS || Platform.isLinux || Platform.isWindows
           ? const DesktopView()
           : const MobileView();

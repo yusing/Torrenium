@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:torrenium/classes/item.dart';
 import 'package:torrenium/utils/fetch_rss.dart';
@@ -21,11 +23,26 @@ class RSSTab extends StatefulWidget {
 }
 
 class _RSSTabState extends State<RSSTab> {
-  static String? _keyword;
+  RSSProvider get provider => widget.provider;
+
+  static var _keyword = ''; // share across all tabs (RSSProvider)
+  late var _selectedCategory = provider.categoryRssMap?.values.first; // ALL
+  late var _selectedAuthor = provider.authorRssMap?.values.first;
   final _searchController = TextEditingController();
-  late var _selectedCategory =
-      widget.provider.categoryRssMap?.keys.first; // ALL
-  late var _selectedAuthor = widget.provider.authorRssMap?.keys.first;
+
+  @override
+  void initState() {
+    _searchController.addListener(() => setState(() {
+          final e = _searchController.text;
+          debugPrint('search: $e');
+          _keyword = e;
+          if (!provider.supportAdvancedSearch) {
+            _selectedAuthor = null;
+            _selectedCategory = null;
+          }
+        }));
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -35,12 +52,11 @@ class _RSSTabState extends State<RSSTab> {
 
   @override
   Widget build(BuildContext context) {
+    final url = provider.searchUrl(
+        query: _keyword, author: _selectedAuthor, category: _selectedCategory);
     return FutureBuilder(
-        future: getItemsFromRSS(widget.provider,
-            keyword: _keyword,
-            category: _selectedCategory,
-            author: _selectedAuthor),
-        builder: (context, snapshot) {
+        future: getItemsFromRSS(provider, url),
+        builder: (_, snapshot) {
           if (snapshot.hasError) {
             debugPrintStack(
                 label: snapshot.error.toString(),
@@ -49,55 +65,116 @@ class _RSSTabState extends State<RSSTab> {
           }
           return Column(
             children: [
+              GestureDetector(
+                onLongPress: () async {
+                  await Clipboard.setData(ClipboardData(text: url))
+                      .then((value) => showMacosAlertDialog(
+                          context: context,
+                          builder: (_) => MacosAlertDialog(
+                                appIcon: const SizedBox.shrink(),
+                                title: const Text('Copied to clipboard'),
+                                message: const SizedBox.shrink(),
+                                primaryButton: PushButton(
+                                    controlSize: ControlSize.large,
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('Dismiss')),
+                              )));
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Card(
+                        color: Colors.black26,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 6.0, horizontal: 4.0),
+                          child: Text(url,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontFamily: 'monospace',
+                                  letterSpacing: 1,
+                                  fontWeight: FontWeight.w500)),
+                        )),
+                  ),
+                ),
+              ),
               Row(
                 children: [
                   Expanded(
-                    child: MacosSearchField(
-                        autofocus: false,
-                        autocorrect: false,
-                        maxLines: 1,
-                        controller: _searchController,
-                        placeholder: 'Search for something...',
-                        maxResultsToShow: 10,
-                        results: snapshot.data
-                            ?.map((e) => SearchResultItem(e.name,
-                                child: RssSearchResult(item: e)))
-                            .toList(growable: false),
-                        onResultSelected: (e) => showMacosSheet(
-                            context: context,
-                            builder: (context) => ItemDialog(
-                                (e.child as RssSearchResult).item,
-                                context: context)),
-                        onChanged: (e) => setState(() => _keyword = e)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: MacosSearchField(
+                          autofocus: false,
+                          autocorrect: false,
+                          maxLines: 1,
+                          controller: _searchController,
+                          placeholder: 'Search for something...',
+                          maxResultsToShow: 10,
+                          results: snapshot.data
+                              ?.map((e) => SearchResultItem(e.name,
+                                  child: RssSearchResult(item: e)))
+                              .toList(growable: false),
+                          onResultSelected: (e) => showMacosSheet(
+                              context: context,
+                              builder: (context) => ItemDialog(
+                                  (e.child as RssSearchResult).item,
+                                  context: context))),
+                    ),
                   ),
-                  const SizedBox(
-                    width: 4,
-                  ),
-                  MacosPopupButton<String>(
-                      value: _selectedCategory,
-                      items: widget.provider.categoryRssMap?.keys
-                          .map((e) => MacosPopupMenuItem<String>(
-                                value: e,
-                                enabled: !e.startsWith('*'),
-                                child: Text(e),
-                              ))
-                          .toList(growable: false),
-                      onChanged: (e) => setState(() => _selectedCategory = e)),
                   const SizedBox(
                     width: 4,
                   ),
                   Visibility(
-                    visible:
-                        widget.provider.authorRssMap?.keys.isNotEmpty ?? false,
+                    visible: _keyword.isNotEmpty
+                        ? provider.supportAdvancedSearch
+                            ? (provider.categoryRssMap?.isNotEmpty ?? false)
+                            : false
+                        : true,
+                    child: MacosPopupButton<String>(
+                        value: _selectedCategory,
+                        items: provider.categoryRssMap?.entries
+                            .map((e) => MacosPopupMenuItem<String>(
+                                value: e.value,
+                                enabled: !e.key.startsWith('*'),
+                                child: Text(e.key)))
+                            .toList(growable: false),
+                        onChanged: (e) => setState(() {
+                              _selectedCategory = e;
+                              if (!provider.supportAdvancedSearch) {
+                                _searchController.clear();
+                                _selectedAuthor = null;
+                              }
+                            })),
+                  ),
+                  const SizedBox(
+                    width: 4,
+                  ),
+                  Visibility(
+                    visible: _keyword.isNotEmpty
+                        ? provider.supportAdvancedSearch
+                            ? (provider.authorRssMap?.isNotEmpty ?? false)
+                            : false
+                        : true,
                     child: MacosPopupButton<String>(
                         value: _selectedAuthor,
-                        items: widget.provider.authorRssMap?.keys
+                        items: provider.authorRssMap?.entries
                             .map((e) => MacosPopupMenuItem<String>(
-                                value: e,
-                                enabled: !e.startsWith('*'),
-                                child: Text(e)))
+                                value: e.value,
+                                enabled: !e.key.startsWith('*'),
+                                child: Text(e.key)))
                             .toList(growable: false),
-                        onChanged: (e) => setState(() => _selectedAuthor = e)),
+                        onChanged: (e) => setState(() {
+                              _selectedAuthor = e;
+                              if (!provider.supportAdvancedSearch) {
+                                _searchController.clear();
+                                _selectedCategory = null;
+                              }
+                            })),
                   ),
                   MacosIconButton(
                     icon: const MacosIcon(CupertinoIcons.refresh),
@@ -110,9 +187,11 @@ class _RSSTabState extends State<RSSTab> {
               ),
               Expanded(
                 child: (snapshot.hasData
-                    ? (widget.provider.coverUrlGetter == null
-                        ? ItemListView(items: snapshot.data!)
-                        : ItemGridView(items: snapshot.data!))
+                    ? snapshot.data!.isEmpty
+                        ? const Text("No result found")
+                        : (provider.coverUrlGetter == null
+                            ? ItemListView(items: snapshot.data!)
+                            : ItemGridView(items: snapshot.data!))
                     : const Center(
                         child: CupertinoActivityIndicator(),
                       )),

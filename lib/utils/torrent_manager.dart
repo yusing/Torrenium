@@ -185,6 +185,7 @@ class TorrentManager {
       ? DynamicLibrary.open('libtorrent_go.dll')
       : DynamicLibrary.executable();
   static final _torrent = torrent_binding.TorrentGoBinding(_dylib);
+  static bool isInitialized = false;
   static late List<Torrent> torrentList;
   static late Directory docDir;
   static late String savePath;
@@ -215,6 +216,7 @@ class TorrentManager {
     for (final torrent in torrentList) {
       torrent.startSelfUpdate();
     }
+    isInitialized = true;
     return true;
   }
 
@@ -238,11 +240,11 @@ class TorrentManager {
 
   static void download(Item item,
       {required BuildContext context, bool pop = false}) {
-    if (item.magnetUrl != null) {
+    if (item.isMagnet) {
       TorrentManager.addMagnet(item.magnetUrl!);
       if (pop) Navigator.pop(context);
-    } else if (item.torrentUrl != null) {
-      TorrentManager.addTorrent(item.torrentUrl!);
+    } else if (item.magnetUrl != null) {
+      TorrentManager.addTorrent(item.magnetUrl!);
       if (pop) Navigator.pop(context);
     } else {
       Logger().w('Item has no magnet or torrent url');

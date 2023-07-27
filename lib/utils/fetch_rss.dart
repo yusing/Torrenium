@@ -7,11 +7,7 @@ import 'package:torrenium/utils/rss_providers.dart';
 import 'package:xml/xml.dart';
 import 'package:intl/intl.dart';
 
-Future<List<Item>> getItemsFromRSS(RSSProvider provider,
-    {String? keyword, String? category, String? author}) async {
-  String url = provider.searchUrl(keyword, category, author);
-  // Logger().i(
-  //     'Fetching RSS from $url\nkeyword: $keyword\ncategory: $category\nauthor: $author');
+Future<List<Item>> getItemsFromRSS(RSSProvider provider, String url) async {
   final response = await get(Uri.parse(url), headers: {
     'Content-Type': 'application/xml',
     'Accept': 'application/xml',
@@ -20,7 +16,12 @@ Future<List<Item>> getItemsFromRSS(RSSProvider provider,
   final body =
       const Utf8Decoder().convert(response.bodyBytes); // prevent encoding error
   if (response.statusCode == 200) {
-    return parseRSSForItems(provider, body);
+    try {
+      return parseRSSForItems(provider, body);
+    } catch (e) {
+      Logger().e(e);
+      return [];
+    }
   } else {
     Logger().e('${response.statusCode} $url');
     return [];
@@ -78,7 +79,6 @@ List<Item> parseRSSForItems(RSSProvider provider, String body) {
     final description =
         itemElement.findElements(provider.descriptionTag).first.innerText;
     final magnetUrl = provider.magnetUrlGetter?.call(itemElement);
-    final torrentUrl = provider.torrentUrlGetter?.call(itemElement);
     final coverUrl = provider.coverUrlGetter?.call(itemElement);
     final size = provider.fileSizeTag == null
         ? null
@@ -93,7 +93,6 @@ List<Item> parseRSSForItems(RSSProvider provider, String body) {
       category: category,
       description: description,
       magnetUrl: magnetUrl,
-      torrentUrl: torrentUrl,
       coverUrl: coverUrl,
       size: size,
     ));

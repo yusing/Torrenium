@@ -1,25 +1,48 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:torrenium/classes/item.dart';
 
 class CachedImage extends CachedNetworkImage {
   CachedImage(
-      {required String url,
+      {required String? url,
+      Future<String> Function()? fallbackGetter,
       double? width,
       double? height,
       BoxFit? fit,
       super.key})
       : super(
           alignment: Alignment.topCenter,
-          imageUrl: url,
+          imageUrl: url ?? '',
           fit: fit ?? BoxFit.cover,
-          placeholder: (context, url) => const Center(
-            child: ProgressCircle(),
+          progressIndicatorBuilder: (context, url, progress) => Center(
+            child: ProgressCircle(
+                value: progress.progress == null
+                    ? null
+                    : progress.progress! * 100),
           ),
           width: width,
           height: height,
-          errorWidget: (context, url, error) => const Icon(Icons.error),
+          errorWidget: (context, url, error) => fallbackGetter == null
+              ? const Icon(Icons.error)
+              : FutureBuilder(
+                  future: fallbackGetter(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      // Logger().i(snapshot.data);
+                      return CachedImage(
+                          url: snapshot.data!,
+                          width: width,
+                          height: height,
+                          fit: fit);
+                    } else if (snapshot.hasError) {
+                      Logger().e(snapshot.error);
+                      return const Icon(Icons.error);
+                    } else {
+                      return const Center(child: ProgressCircle());
+                    }
+                  }),
           useOldImageOnUrlChange: true,
           cacheManager: TorreniumCacheManager(),
         );

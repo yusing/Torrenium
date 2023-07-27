@@ -25,9 +25,10 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     _tabController =
-        MacosTabController(length: rssProviders.length, initialIndex: 0);
+        MacosTabController(length: kRssProviders.length, initialIndex: 0);
     _progressUpdateNotifier = ValueNotifier(0);
     _progressUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!TorrentManager.isInitialized || !mounted) return;
       final inProgress =
           TorrentManager.torrentList.map((e) => e.progress).where((p) => p < 1);
       if (inProgress.isNotEmpty) {
@@ -149,14 +150,14 @@ class _MainPageState extends State<MainPage> {
                 if (snapshot.hasData && snapshot.data!) {
                   return MacosTabView(
                     controller: _tabController,
-                    tabs: rssProviders
+                    tabs: kRssProviders
                         .map((e) => MacosTab(
                               label: e.name,
                             ))
                         .toList(growable: false),
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                     position: MacosTabPosition.bottom,
-                    children: rssProviders
+                    children: kRssProviders
                         .map((e) => RSSTab(
                               provider: e,
                             ))
