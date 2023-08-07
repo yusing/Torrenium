@@ -1,11 +1,14 @@
 import 'dart:convert';
 
-import 'package:logger/logger.dart';
-import 'package:torrenium/classes/item.dart';
 import 'package:http/http.dart';
-import 'package:torrenium/utils/rss_providers.dart';
-import 'package:xml/xml.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
+import 'package:xml/xml.dart';
+
+import '../classes/item.dart';
+import '../utils/rss_providers.dart';
+
+final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
 
 Future<List<Item>> getItemsFromRSS(RSSProvider provider, String url) async {
   final response = await get(Uri.parse(url), headers: {
@@ -52,8 +55,6 @@ DateTime parsePubdate(String pubDate) {
   return DateTime.parse('$year-$month-$day $hour');
 }
 
-final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
-
 List<Item> parseRSSForItems(RSSProvider provider, String body) {
   // title: <title>
   // author: <author>
@@ -92,7 +93,7 @@ List<Item> parseRSSForItems(RSSProvider provider, String body) {
       pubDate: _dateFormatter.format(pubDateLocal),
       category: category,
       description: description,
-      magnetUrl: magnetUrl,
+      torrentUrl: magnetUrl,
       coverUrl: coverUrl,
       size: size,
     ));

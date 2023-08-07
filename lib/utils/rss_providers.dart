@@ -1,84 +1,5 @@
 import 'package:xml/xml.dart';
 
-typedef XMLValueGetter = String? Function(XmlElement);
-typedef UrlParamGetter = String Function(String);
-
-String? enclosureMangetUrlGetter(XmlElement e) =>
-    e.findElements('enclosure').first.getAttribute('url');
-
-String? linkMangerUrlGetter(XmlElement e) =>
-    e.findElements('link').first.innerText;
-
-String? descriptionCoverUrlGetter(XmlElement e) {
-  String? desc = e.findElements('description').first.innerText;
-  return RegExp(r'<img src="(.+?)"').firstMatch(desc)?.group(1);
-}
-
-class RSSProvider {
-  final String name;
-  final String homePageUrl;
-  final String logoPath;
-  final String rssPath;
-  final String? mainPagePath;
-  final String searchParams;
-  final String itemNameTag;
-  final String? authorNameTag;
-  final String pubDateTag;
-  final String? categoryTag;
-  final String? fileSizeTag;
-  final String descriptionTag;
-  final bool supportAdvancedSearch;
-  final XMLValueGetter? magnetUrlGetter;
-  final XMLValueGetter? coverUrlGetter;
-  final Map<String, String?>? categoryRssMap;
-  final Map<String, String?>? authorRssMap;
-
-  String get rssUrl => homePageUrl + rssPath;
-  String get logoUrl => homePageUrl + logoPath;
-
-  const RSSProvider(
-      {this.logoPath = '/favicon.ico',
-      required this.name,
-      required this.homePageUrl,
-      required this.rssPath,
-      required this.searchParams,
-      this.mainPagePath,
-      this.categoryRssMap,
-      this.authorRssMap,
-      this.magnetUrlGetter = enclosureMangetUrlGetter,
-      this.coverUrlGetter = descriptionCoverUrlGetter,
-      this.fileSizeTag,
-      this.supportAdvancedSearch = true,
-      this.itemNameTag = 'title',
-      this.authorNameTag = 'author',
-      this.pubDateTag = 'pubDate',
-      this.categoryTag = 'category',
-      this.descriptionTag = 'description'});
-
-  String searchUrl({String? query, String? author, String? category}) {
-    if (query != null && query.isEmpty) {
-      query = null;
-    }
-    if (query == null) {
-      if (!supportAdvancedSearch) {
-        if (author != null) {
-          return homePageUrl + rssPath + author;
-        }
-        if (category != null) {
-          return homePageUrl + rssPath + category;
-        }
-      }
-      return homePageUrl + (mainPagePath ?? rssPath);
-    }
-    return homePageUrl +
-        rssPath +
-        searchParams
-            .replaceAll('%q', query)
-            .replaceAll('%a', author ?? '')
-            .replaceAll('%c', category ?? '');
-  }
-}
-
 // TODO: allow adding custom provider
 const List<RSSProvider> kRssProviders = [
   RSSProvider(
@@ -295,7 +216,7 @@ const List<RSSProvider> kRssProviders = [
       name: 'U9A9',
       homePageUrl: 'https://rsshub.app/u9a9',
       rssPath: '',
-      searchParams: 'search/%c',
+      searchParams: '/search/%q',
       coverUrlGetter: null,
       magnetUrlGetter: enclosureMangetUrlGetter,
       authorNameTag: null,
@@ -304,10 +225,95 @@ const List<RSSProvider> kRssProviders = [
       name: 'U3C3',
       homePageUrl: 'https://rsshub.app/u3c3',
       rssPath: '',
-      searchParams: 'search/%c',
+      searchParams: '/search/%q',
       coverUrlGetter: null,
       magnetUrlGetter: enclosureMangetUrlGetter,
       authorNameTag: null,
       categoryTag: null)
 ];
+
+final kProvidersDict = kRssProviders.fold<Map<String, RSSProvider>>(
+    {}, (prev, element) => prev..[element.name] = element);
+
+String? descriptionCoverUrlGetter(XmlElement e) {
+  String? desc = e.findElements('description').first.innerText;
+  return RegExp(r'<img src="(.+?)"').firstMatch(desc)?.group(1);
+}
+
+String? enclosureMangetUrlGetter(XmlElement e) =>
+    e.findElements('enclosure').first.getAttribute('url');
+
+String? linkMangerUrlGetter(XmlElement e) =>
+    e.findElements('link').first.innerText;
+
+typedef UrlParamGetter = String Function(String);
+
+typedef XMLValueGetter = String? Function(XmlElement);
+
+class RSSProvider {
+  final String name;
+  final String homePageUrl;
+  final String logoPath;
+  final String rssPath;
+  final String? mainPagePath;
+  final String searchParams;
+  final String itemNameTag;
+  final String? authorNameTag;
+  final String pubDateTag;
+  final String? categoryTag;
+  final String? fileSizeTag;
+  final String descriptionTag;
+  final bool supportAdvancedSearch;
+  final XMLValueGetter? magnetUrlGetter;
+  final XMLValueGetter? coverUrlGetter;
+  final Map<String, String?>? categoryRssMap;
+  final Map<String, String?>? authorRssMap;
+
+  const RSSProvider(
+      {this.logoPath = '/favicon.ico',
+      required this.name,
+      required this.homePageUrl,
+      required this.rssPath,
+      required this.searchParams,
+      this.mainPagePath,
+      this.categoryRssMap,
+      this.authorRssMap,
+      this.magnetUrlGetter = enclosureMangetUrlGetter,
+      this.coverUrlGetter = descriptionCoverUrlGetter,
+      this.fileSizeTag,
+      this.supportAdvancedSearch = true,
+      this.itemNameTag = 'title',
+      this.authorNameTag = 'author',
+      this.pubDateTag = 'pubDate',
+      this.categoryTag = 'category',
+      this.descriptionTag = 'description'});
+  String get logoUrl => homePageUrl + logoPath;
+
+  String get rssUrl => homePageUrl + rssPath;
+
+  String searchUrl({String? query, String? author, String? category}) {
+    if (query != null && query.isEmpty) {
+      query = null;
+    }
+    if (query == null) {
+      if (!supportAdvancedSearch) {
+        if (author != null) {
+          return homePageUrl + rssPath + author;
+        }
+        if (category != null) {
+          return homePageUrl + rssPath + category;
+        }
+      }
+      return homePageUrl + (mainPagePath ?? rssPath);
+    }
+    return homePageUrl +
+        rssPath +
+        searchParams
+            .replaceAll('%q', query)
+            .replaceAll('%a', author ?? '')
+            .replaceAll('%c', category ?? '');
+  }
+}
 // TODO: open in browser
+// TODO: group tags in a class
+// TODO: group paths in a class

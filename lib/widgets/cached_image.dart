@@ -37,7 +37,7 @@ class CachedImage extends CachedNetworkImage {
                           height: height,
                           fit: fit);
                     } else if (snapshot.hasError) {
-                      Logger().e(snapshot.error);
+                      Logger().e('error', snapshot.error, snapshot.stackTrace);
                       return const Icon(Icons.error);
                     } else {
                       return const Center(child: ProgressCircle());

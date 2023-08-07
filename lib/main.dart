@@ -9,7 +9,7 @@ import 'package:torrenium/view.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
-  // !await TorrentManager.init(); Moved to MainPage
+  // !await gTorrentManager.init(); Moved to MainPage
   runApp(const TorreniumApp());
   doWhenWindowReady(() {
     appWindow.size = appWindow.minSize = const Size(1280, 720);

@@ -5,10 +5,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/utils/rss_providers.dart';
-import 'package:torrenium/utils/torrent_manager.dart';
-import 'package:torrenium/widgets/download_list_dialog.dart';
-import 'package:torrenium/widgets/rss_tab.dart';
+
+import '../utils/rss_providers.dart';
+import '../utils/torrent_manager.dart';
+import '../utils/torrent_manager_ext.dart';
+import '../widgets/download_list_dialog.dart';
+import '../widgets/rss_tab.dart';
+import '../widgets/subscriptions_dialog.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -17,37 +20,39 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
+class ToolbarWindowButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  final String tooltipMessage;
+  final Color color;
+  const ToolbarWindowButton({
+    required this.color,
+    required this.tooltipMessage,
+    this.onPressed,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MacosTooltip(
+        message: tooltipMessage,
+        child: MacosIconButton(
+          semanticLabel: tooltipMessage,
+          onPressed: onPressed,
+          backgroundColor: color,
+          hoverColor: color.withOpacity(0.5),
+          shape: BoxShape.circle,
+          icon: const SizedBox.square(dimension: 12),
+          boxConstraints: const BoxConstraints.tightFor(width: 12, height: 12),
+          padding: EdgeInsets.zero,
+        ));
+  }
+}
+
 class _MainPageState extends State<MainPage> {
   late final MacosTabController _tabController;
   late final ValueNotifier<double> _progressUpdateNotifier;
   late final Timer _progressUpdateTimer;
-
-  @override
-  void initState() {
-    _tabController =
-        MacosTabController(length: kRssProviders.length, initialIndex: 0);
-    _progressUpdateNotifier = ValueNotifier(0);
-    _progressUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!TorrentManager.isInitialized || !mounted) return;
-      final inProgress =
-          TorrentManager.torrentList.map((e) => e.progress).where((p) => p < 1);
-      if (inProgress.isNotEmpty) {
-        _progressUpdateNotifier.value =
-            inProgress.reduce((a, b) => (a + b) / 2) * 100.0;
-      } else {
-        _progressUpdateNotifier.value = 100;
-      }
-    });
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _progressUpdateTimer.cancel();
-    _progressUpdateNotifier.dispose();
-    _tabController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +103,7 @@ class _MainPageState extends State<MainPage> {
                               : const MacosIcon(CupertinoIcons.cloud_download);
                         }),
                     onPressed: () async {
-                      if (TorrentManager.torrentList.isEmpty) {
+                      if (gTorrentManager.torrentList.isEmpty) {
                         await showMacosAlertDialog(
                             context: context,
                             builder: (context) => MacosAlertDialog(
@@ -125,8 +130,21 @@ class _MainPageState extends State<MainPage> {
                   ),
                   const SizedBox(width: 6),
                   TextButton.icon(
+                    onPressed: () async {
+                      await showMacosSheet(
+                          barrierDismissible: true,
+                          context: context,
+                          builder: (context) {
+                            return SubscriptionsDialog(context);
+                          });
+                    },
+                    icon: const MacosIcon(CupertinoIcons.star),
+                    label: const Text('Subscriptions'),
+                  ),
+                  const SizedBox(width: 6),
+                  TextButton.icon(
                     onPressed: () async =>
-                        await TorrentManager.selectSavePath(),
+                        await gTorrentManager.selectSavePath(),
                     icon: const MacosIcon(CupertinoIcons.folder_badge_plus),
                     label: const Text('Change Path'),
                   )
@@ -174,7 +192,8 @@ class _MainPageState extends State<MainPage> {
                         MacosIconButton(
                           icon: const MacosIcon(FontAwesomeIcons.folderOpen),
                           onPressed: () async {
-                            bool result = await TorrentManager.selectSavePath();
+                            bool result =
+                                await gTorrentManager.selectSavePath();
                             if (result) {
                               setState(() {});
                             } else {
@@ -210,33 +229,32 @@ class _MainPageState extends State<MainPage> {
       ],
     );
   }
-}
-
-class ToolbarWindowButton extends StatelessWidget {
-  const ToolbarWindowButton({
-    required this.color,
-    required this.tooltipMessage,
-    this.onPressed,
-    super.key,
-  });
-
-  final VoidCallback? onPressed;
-  final String tooltipMessage;
-  final Color color;
 
   @override
-  Widget build(BuildContext context) {
-    return MacosTooltip(
-        message: tooltipMessage,
-        child: MacosIconButton(
-          semanticLabel: tooltipMessage,
-          onPressed: onPressed,
-          backgroundColor: color,
-          hoverColor: color.withOpacity(0.5),
-          shape: BoxShape.circle,
-          icon: const SizedBox.square(dimension: 12),
-          boxConstraints: const BoxConstraints.tightFor(width: 12, height: 12),
-          padding: EdgeInsets.zero,
-        ));
+  void dispose() {
+    _progressUpdateTimer.cancel();
+    _progressUpdateNotifier.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    _tabController =
+        MacosTabController(length: kRssProviders.length, initialIndex: 0);
+    _progressUpdateNotifier = ValueNotifier(0);
+    _progressUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!TorrentManager.isInitialized || !mounted) return;
+      final inProgress = gTorrentManager.torrentList
+          .map((e) => e.progress)
+          .where((p) => p < 1);
+      if (inProgress.isNotEmpty) {
+        _progressUpdateNotifier.value =
+            inProgress.reduce((a, b) => (a + b) / 2) * 100.0;
+      } else {
+        _progressUpdateNotifier.value = 100;
+      }
+    });
+    super.initState();
   }
 }

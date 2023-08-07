@@ -9,6 +9,8 @@ import 'package:torrenium/widgets/item_dialog.dart';
 import 'package:torrenium/widgets/item_gridview.dart';
 import 'package:torrenium/widgets/item_listview.dart';
 
+import '../services/subscription.dart';
+
 class RssSearchResult extends Text {
   final Item item;
   RssSearchResult({super.key, required this.item}) : super(item.name);
@@ -23,35 +25,18 @@ class RSSTab extends StatefulWidget {
 }
 
 class _RSSTabState extends State<RSSTab> {
-  RSSProvider get provider => widget.provider;
-
   static var _keyword = ''; // share across all tabs (RSSProvider)
+
   late var _selectedCategory = provider.categoryRssMap?.values.first; // ALL
   late var _selectedAuthor = provider.authorRssMap?.values.first;
   final _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    _searchController.addListener(() => setState(() {
-          final e = _searchController.text;
-          debugPrint('search: $e');
-          _keyword = e;
-          if (!provider.supportAdvancedSearch) {
-            _selectedAuthor = null;
-            _selectedCategory = null;
-          }
-        }));
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  RSSProvider get provider => widget.provider;
 
   @override
   Widget build(BuildContext context) {
+    if (!mounted) {
+      return const SizedBox.shrink();
+    }
     final url = provider.searchUrl(
         query: _keyword, author: _selectedAuthor, category: _selectedCategory);
     return FutureBuilder(
@@ -176,10 +161,45 @@ class _RSSTabState extends State<RSSTab> {
                               }
                             })),
                   ),
-                  MacosIconButton(
+                  TextButton.icon(
                     icon: const MacosIcon(CupertinoIcons.refresh),
+                    label: const Text('Refresh'),
                     onPressed: () => setState(() {}),
                   ),
+                  TextButton.icon(
+                      icon: const MacosIcon(CupertinoIcons.star),
+                      label: const Text('Subscribe'),
+                      onPressed: () async {
+                        if (_keyword.trim().isEmpty) {
+                          return;
+                        }
+                        await gSubscriptionManager
+                            .addSubscription(
+                                providerName: provider.name,
+                                keyword: _keyword,
+                                category: _selectedCategory,
+                                author: _selectedAuthor)
+                            .then((value) async {
+                          await showMacosAlertDialog(
+                              context: context,
+                              builder: (context) {
+                                return MacosAlertDialog(
+                                  title: Text(value ? 'Success' : 'Error'),
+                                  message: Text(value
+                                      ? 'Subscription added $_keyword from ${provider.name}'
+                                      : 'Subscription already exists'),
+                                  appIcon:
+                                      const SizedBox(), // TODO: replace this
+                                  primaryButton: PushButton(
+                                      controlSize: ControlSize.large,
+                                      child: const Text('Dismiss'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      }),
+                                );
+                              });
+                        });
+                      }),
                 ],
               ),
               const SizedBox(
@@ -199,5 +219,28 @@ class _RSSTabState extends State<RSSTab> {
             ],
           );
         });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    _searchController.addListener(() {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _keyword = _searchController.text;
+        if (!provider.supportAdvancedSearch) {
+          _selectedAuthor = null;
+          _selectedCategory = null;
+        }
+      });
+    });
+    super.initState();
   }
 }

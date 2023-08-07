@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/classes/item.dart';
-import 'package:torrenium/utils/torrent_manager.dart';
-import 'package:torrenium/widgets/item_dialog.dart';
+
+import '../classes/item.dart';
+import '../utils/torrent_manager.dart';
+import '../utils/torrent_manager_ext.dart';
+import '../widgets/item_dialog.dart';
 
 class ItemListView extends StatelessWidget {
   final ScrollController? controller;
@@ -28,7 +30,7 @@ class ItemListView extends StatelessWidget {
                   icon:
                       const MacosIcon(CupertinoIcons.cloud_download, size: 18),
                   onPressed: () =>
-                      TorrentManager.download(item, context: context),
+                      gTorrentManager.download(item, context: context),
                 ),
                 const SizedBox(width: 16),
                 MacosIconButton(

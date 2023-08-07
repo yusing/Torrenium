@@ -11,9 +11,9 @@ class DownloadListDialog extends MacosSheet {
             child: ListView.separated(
               padding: const EdgeInsets.all(16.0),
               separatorBuilder: (_, index) => const SizedBox(height: 16),
-              itemCount: TorrentManager.torrentList.length,
+              itemCount: gTorrentManager.torrentList.length,
               itemBuilder: ((_, index) => DownloadListItem(
-                  TorrentManager.torrentList[index],
+                  gTorrentManager.torrentList[index],
                   setStateCallback: setState)),
             ),
           );

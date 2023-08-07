@@ -1,13 +1,66 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
-import 'package:torrenium/style.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
-import 'package:torrenium/utils/torrent_manager.dart';
-import 'package:torrenium/widgets/cached_image.dart';
+import 'package:logger/logger.dart';
+
+import '../utils/string.dart';
+import '../utils/torrent_manager.dart';
+
+class Item {
+  final String name;
+  final String description;
+  final String? torrentUrl;
+  final String pubDate;
+  final String? category;
+  final String? author;
+  final String? coverUrl;
+  final String? size;
+
+  Item({
+    required this.name,
+    required this.description,
+    required this.torrentUrl,
+    this.category,
+    this.author,
+    this.coverUrl,
+    this.size,
+    required this.pubDate,
+  });
+
+  Future<String> coverPhotoFallback() async {
+    const kFinalFallback =
+        'https://p.favim.com/orig/2018/08/16/anime-no-manga-Favim.com-6189353.png';
+    final name = this.name.cleanTitle;
+    final cacheKey = 'cover:$name';
+    if (gTorrentManager.prefs.containsKey(cacheKey)) {
+      return gTorrentManager.prefs.getString(cacheKey)!;
+    }
+    final searchUrl = Uri.parse(
+        "https://kitsu.io/api/edge/anime?filter[text]=$name&page[limit]=1");
+    final resp = await http.get(searchUrl);
+    if (resp.statusCode == 200) {
+      final body = utf8.decode(resp.bodyBytes);
+      final results = jsonDecode(body)["data"] as List?;
+      if (results == null || results.isEmpty) {
+        return kFinalFallback;
+      }
+      final result = results.first["attributes"]["posterImage"]["original"];
+      if (result != null) {
+        final url = result as String;
+        await gTorrentManager.prefs.setString(cacheKey, url);
+        return url;
+      }
+    }
+    Logger().e(resp.statusCode);
+    return kFinalFallback;
+  }
+
+  Future<void> startDownload() async {
+    await gTorrentManager.downloadItem(this);
+  }
+}
 
 class TorreniumCacheManager extends CacheManager {
   static const key = 'torreniumCacheManager';
@@ -46,73 +99,5 @@ class TorreniumHttpFileService extends FileService {
       return HttpGetResponse(
           http.StreamedResponse(Stream.value([]), 404, contentLength: 0));
     }
-  }
-}
-
-class Item {
-  final String name;
-  final String description;
-  final String? magnetUrl;
-  final String pubDate;
-  final String? category;
-  final String? author;
-  final String? coverUrl;
-  final String? size;
-
-  Item({
-    required this.name,
-    required this.description,
-    required this.magnetUrl,
-    this.category,
-    this.author,
-    this.coverUrl,
-    this.size,
-    required this.pubDate,
-  });
-
-  bool get isMagnet => magnetUrl != null && magnetUrl!.startsWith('magnet:');
-
-  Widget get imageWidget {
-    return ClipRect(
-      child: CachedImage(
-          url: coverUrl,
-          fallbackGetter: coverPhotoFallback,
-          width: kCoverPhotoWidth),
-    );
-  }
-
-  Future<String> coverPhotoFallback() async {
-    const kFinalFallback =
-        'https://p.favim.com/orig/2018/08/16/anime-no-manga-Favim.com-6189353.png';
-    final name = this
-        .name
-        // remove things in brackets including brackets: () [] {} 【】 ★★
-        .replaceAll(RegExp(r'(\(|\[|\{|\【)[^\(\[\{【★]*(\)|\]|\}|\】)'), ' ')
-        // remove all non english characters
-        .replaceAll(RegExp(r'[^a-zA-Z]'), ' ')
-        // remove all extra spaces
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-    final cacheKey = 'cover:$name';
-    if (TorrentManager.prefs.containsKey(cacheKey)) {
-      Logger().i('Using cached cover photo for $name');
-      return TorrentManager.prefs.getString(cacheKey)!;
-    }
-    final searchUrl = Uri.parse(
-        "https://kitsu.io/api/edge/anime?filter[text]=$name&page[limit]=1");
-    final resp = await http.get(searchUrl);
-    if (resp.statusCode == 200) {
-      final body = resp.body;
-      final dict = jsonDecode(body);
-      final result = (dict["data"] as List?)?.first["attributes"]["posterImage"]
-          ["original"];
-      if (result != null) {
-        final url = result as String;
-        TorrentManager.prefs.setString(cacheKey, url);
-        return url;
-      }
-    }
-    Logger().e(resp.statusCode);
-    return kFinalFallback;
   }
 }

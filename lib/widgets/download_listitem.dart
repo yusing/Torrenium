@@ -3,26 +3,44 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/style.dart';
-import 'package:torrenium/utils/ext_icons.dart';
-import 'package:torrenium/utils/torrent_manager.dart';
-import 'package:torrenium/utils/units.dart';
 import 'package:path/path.dart' as path;
 import 'package:torrenium/widgets/torrent_files_dialog.dart';
-// import 'package:url_launcher/url_launcher.dart';
+
+import '../classes/torrent.dart';
+import '../style.dart';
+import '../utils/ext_icons.dart';
+import '../utils/torrent_manager.dart';
+import '../utils/units.dart';
+
+class DownloadListItem extends ValueListenableBuilder {
+  DownloadListItem(Torrent torrent,
+      {super.key, required StateSetter setStateCallback})
+      : super(
+          valueListenable: torrent.stateNotifier,
+          builder: ((_, __, ___) =>
+              _DownloadListItemStatic(torrent, setStateCallback)),
+        );
+}
+
+class DownloadListMenuItem extends MacosPulldownMenuItem {
+  const DownloadListMenuItem({required Widget child, super.key})
+      : super(title: child);
+  @override
+  double get itemHeight => 128;
+}
 
 class _DownloadListItemStatic extends MacosListTile {
   _DownloadListItemStatic(Torrent torrent, StateSetter setStateCallback)
       : super(
           leading: MacosIcon(
-              getPathIcon(path.join(TorrentManager.savePath, torrent.name)),
+              getPathIcon(path.join(gTorrentManager.savePath, torrent.name)),
               color: torrent.isMultiFile ? Colors.yellowAccent : Colors.white,
               size: 32),
           title: Row(
             children: [
               Expanded(
                 child: Text(
-                  torrent.name,
+                  torrent.displayName,
                   style: kItemTitleTextStyle,
                 ),
               ),
@@ -41,9 +59,9 @@ class _DownloadListItemStatic extends MacosListTile {
                         ),
                         onPressed: () => pauseBtnSetState(() {
                               if (torrent.paused) {
-                                TorrentManager.resumeTorrent(torrent);
+                                gTorrentManager.resumeTorrent(torrent);
                               } else {
-                                TorrentManager.pauseTorrent(torrent);
+                                gTorrentManager.pauseTorrent(torrent);
                               }
                             })),
                   );
@@ -78,8 +96,8 @@ class _DownloadListItemStatic extends MacosListTile {
                     ),
                     onPressed: () {
                       setStateCallback(
-                          () => TorrentManager.deleteTorrent(torrent));
-                      if (TorrentManager.torrentList.isEmpty) {
+                          () => gTorrentManager.deleteTorrent(torrent));
+                      if (gTorrentManager.torrentList.isEmpty) {
                         Navigator.of(context).pop();
                       }
                     });
@@ -117,30 +135,13 @@ class _DownloadListItemStatic extends MacosListTile {
               : null,
           onClick: () async {
             // Uri pathUri =
-            //     Uri.file(path.join(TorrentManager.savePath, torrent.name));
+            //     Uri.file(path.join(gTorrentManager.savePath, torrent.name));
             // if (await canLaunchUrl(pathUri)) {
             //   await launchUrl(pathUri, mode: LaunchMode.externalApplication);
             // }
-            await Process.run(
-                'start', ['', path.join(TorrentManager.savePath, torrent.name)],
+            await Process.run('start',
+                ['', path.join(gTorrentManager.savePath, torrent.name)],
                 runInShell: true);
           },
         );
-}
-
-class DownloadListItem extends ValueListenableBuilder {
-  DownloadListItem(Torrent torrent,
-      {super.key, required StateSetter setStateCallback})
-      : super(
-          valueListenable: torrent.stateNotifier,
-          builder: ((_, __, ___) =>
-              _DownloadListItemStatic(torrent, setStateCallback)),
-        );
-}
-
-class DownloadListMenuItem extends MacosPulldownMenuItem {
-  const DownloadListMenuItem({required Widget child, super.key})
-      : super(title: child);
-  @override
-  double get itemHeight => 128;
 }

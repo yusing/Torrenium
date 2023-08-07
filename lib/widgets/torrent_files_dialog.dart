@@ -2,16 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/style.dart';
-import 'package:torrenium/utils/ext_icons.dart';
-import 'package:torrenium/utils/torrent_manager.dart';
-import 'package:torrenium/utils/units.dart';
 import 'package:path/path.dart' as path;
 
-class TorrentFliesSheet extends StatelessWidget {
-  const TorrentFliesSheet(this.torrent, {super.key});
+import '../classes/torrent.dart';
+import '../style.dart';
+import '../utils/ext_icons.dart';
+import '../utils/torrent_manager.dart';
+import '../utils/units.dart';
 
+class TorrentFliesSheet extends StatelessWidget {
   final Torrent torrent;
+
+  const TorrentFliesSheet(this.torrent, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,7 @@ class TorrentFliesSheet extends StatelessWidget {
             return MacosListTile(
               leading: MacosIcon(
                 getPathIcon(path.join(
-                    TorrentManager.savePath, torrent.name, file.relativePath)),
+                    gTorrentManager.savePath, torrent.name, file.relativePath)),
                 size: 32,
                 color: Colors.white,
               ),
@@ -59,7 +61,7 @@ class TorrentFliesSheet extends StatelessWidget {
                     'start',
                     [
                       '""',
-                      path.join(TorrentManager.savePath, torrent.name,
+                      path.join(gTorrentManager.savePath, torrent.name,
                           file.relativePath)
                     ],
                     runInShell: true);
