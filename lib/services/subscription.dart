@@ -5,11 +5,11 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../classes/item.dart' show Item;
 import '../utils/fetch_rss.dart' show parseRSSForItems;
 import '../utils/rss_providers.dart' show RSSProvider, kProvidersDict;
+import 'storage.dart';
 
 SubscriptionManager get gSubscriptionManager => SubscriptionManager.instance;
 
@@ -27,7 +27,7 @@ class Subscription {
       this.category,
       this.author});
 
-  factory Subscription.fromStr(String str, SharedPreferences prefs) {
+  factory Subscription.fromStr(String str) {
     final split = str.split(':');
     final sub = Subscription(
       providerName: split[0],
@@ -36,11 +36,11 @@ class Subscription {
       author: split[3] == 'null' ? null : split[3],
     );
     sub.initNotifiers(
-      lastUpdate: prefs.containsKey('sublastUpdate_$sub')
+      lastUpdate: Storage.hasKey('sublastUpdate_$sub')
           ? DateTime.fromMillisecondsSinceEpoch(
-              prefs.getInt('sublastUpdate_$sub')!)
+              Storage.instance.getInt('sublastUpdate_$sub')!)
           : null,
-      tasksDone: prefs.getStringList('subsTasksDone_$sub')?.length,
+      tasksDone: Storage.instance.getStringList('subsTasksDone_$sub')?.length,
     );
     return sub;
   }
@@ -77,11 +77,20 @@ class Subscription {
 
 class SubscriptionManager {
   static late final SubscriptionManager instance;
-  static bool isInitialized = false;
-  late final SharedPreferences _prefs;
-  late final Timer _updateTimer;
-  late final List<Subscription> subscriptions;
+  // ignore: unused_field
+  final Timer _updateTimer;
+  final List<Subscription> subscriptions;
 
+  SubscriptionManager()
+      : subscriptions = Storage.instance
+                .getStringList('subscriptions')
+                ?.map<Subscription>((e) => Subscription.fromStr(e))
+                .toList() ??
+            [],
+        _updateTimer = Timer.periodic(
+            const Duration(seconds: 3), (timer) async => await update()) {
+    Logger().d('SubscriptionManager initialized');
+  }
   List<Subscription> get _subs => subscriptions;
 
   Future<bool> addSubscription(
@@ -108,16 +117,10 @@ class SubscriptionManager {
       return false;
     }
     _subs.remove(sub);
-    await _prefs.remove('sublastUpdate_$sub');
-    await _prefs.remove('subsTasksDone_$sub');
+    await Storage.removeKey('sublastUpdate_$sub');
+    await Storage.removeKey('subsTasksDone_$sub');
     await _saveSubscriptions();
     return true;
-  }
-
-  Future<void> update() async {
-    for (final sub in _subs) {
-      await updateSub(sub);
-    }
   }
 
   Future<void> updateSub(Subscription sub, [bool force = false]) async {
@@ -128,7 +131,7 @@ class SubscriptionManager {
       return;
     }
     final subsTasksDone =
-        force ? [] : _prefs.getStringList('subsTasksDone_$sub') ?? [];
+        force ? [] : Storage.instance.getStringList('subsTasksDone_$sub') ?? [];
     final provider = sub.provider;
     if (provider == null) {
       Logger().e('Provider $provider not found');
@@ -155,9 +158,10 @@ class SubscriptionManager {
           Logger().e(e);
         }
       }
-      await _prefs.setInt(
-          'sublastUpdate_$sub', DateTime.now().millisecondsSinceEpoch);
-      await _prefs.setStringList('subsTasksDone_$sub', tasks.keys.toList());
+      await Storage.instance
+          .setInt('sublastUpdate_$sub', DateTime.now().millisecondsSinceEpoch);
+      await Storage.instance
+          .setStringList('subsTasksDone_$sub', tasks.keys.toList());
       sub.lastUpdateNotifier.value = DateTime.now();
       sub.tasksDoneNotifier.value = tasks.length;
     } else {
@@ -165,29 +169,18 @@ class SubscriptionManager {
     }
   }
 
-  Future<void> _init() async {
-    _prefs = await SharedPreferences.getInstance();
-    subscriptions = _prefs
-            .getStringList('subscriptions')
-            ?.map<Subscription>((e) => Subscription.fromStr(e, _prefs))
-            .toList() ??
-        [];
-    _updateTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      await update();
-    });
-    isInitialized = true;
-  }
-
   Future<void> _saveSubscriptions() async {
-    await _prefs.setStringList('subscriptions',
+    await Storage.instance.setStringList('subscriptions',
         _subs.map((e) => e.toString()).toList(growable: false));
   }
 
-  static Future<void> initInstance() async {
-    if (!isInitialized) {
-      instance = SubscriptionManager();
-      await instance._init();
-      Logger().i('SubscriptionManager initialized');
+  static void init() {
+    instance = SubscriptionManager();
+  }
+
+  static Future<void> update() async {
+    for (final sub in instance._subs) {
+      await instance.updateSub(sub);
     }
   }
 }

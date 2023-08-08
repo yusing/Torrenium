@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../services/storage.dart';
 import '../utils/torrent_manager.dart';
 import '../classes/item.dart';
 
@@ -40,7 +43,13 @@ extension TorrentManagerExtension on TorrentManager {
     if (selectedPath == null) {
       return false;
     }
-    prefs.setString('savePath', selectedPath);
+    Storage.setString('savePath', selectedPath);
+    try {
+      await Directory(selectedPath).create(recursive: true);
+    } catch (e) {
+      Logger().e(e);
+      return false;
+    }
     return true;
   }
 }

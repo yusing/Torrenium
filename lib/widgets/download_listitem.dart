@@ -36,74 +36,80 @@ class _DownloadListItemStatic extends MacosListTile {
               getPathIcon(path.join(gTorrentManager.savePath, torrent.name)),
               color: torrent.isMultiFile ? Colors.yellowAccent : Colors.white,
               size: 32),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
+          title: torrent.isPlaceholder
+              ? Text(
                   torrent.displayName,
                   style: kItemTitleTextStyle,
-                ),
-              ),
-              if (!torrent.isComplete)
-                StatefulBuilder(builder: (context, pauseBtnSetState) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: MacosIconButton(
-                        shape: BoxShape.circle,
-                        padding: const EdgeInsets.all(0),
-                        icon: Icon(
-                          torrent.paused
-                              ? CupertinoIcons.play_circle_fill
-                              : CupertinoIcons.pause_circle_fill,
-                          color: Colors.grey[700],
-                        ),
-                        onPressed: () => pauseBtnSetState(() {
-                              if (torrent.paused) {
-                                gTorrentManager.resumeTorrent(torrent);
-                              } else {
-                                gTorrentManager.pauseTorrent(torrent);
-                              }
-                            })),
-                  );
-                }),
-              if (torrent.isMultiFile)
-                Builder(builder: (context) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: MacosIconButton(
-                        shape: BoxShape.circle,
-                        padding: const EdgeInsets.all(0),
-                        icon: Icon(
-                          CupertinoIcons.search_circle_fill,
-                          color: Colors.grey[700],
-                          size: 24,
-                        ),
-                        onPressed: () async {
-                          await showMacosAlertDialog(
-                              context: context,
-                              barrierDismissible: true,
-                              builder: (context) => TorrentFliesSheet(torrent));
-                        }),
-                  );
-                }),
-              Builder(builder: (context) {
-                return MacosIconButton(
-                    shape: BoxShape.circle,
-                    padding: const EdgeInsets.all(0),
-                    icon: const Icon(
-                      CupertinoIcons.delete_solid,
-                      color: Colors.redAccent,
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        torrent.displayName,
+                        style: kItemTitleTextStyle,
+                      ),
                     ),
-                    onPressed: () {
-                      setStateCallback(
-                          () => gTorrentManager.deleteTorrent(torrent));
-                      if (gTorrentManager.torrentList.isEmpty) {
-                        Navigator.of(context).pop();
-                      }
-                    });
-              }),
-            ],
-          ),
+                    if (!torrent.isComplete)
+                      StatefulBuilder(builder: (context, pauseBtnSetState) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: MacosIconButton(
+                              shape: BoxShape.circle,
+                              padding: const EdgeInsets.all(0),
+                              icon: Icon(
+                                torrent.paused
+                                    ? CupertinoIcons.play_circle_fill
+                                    : CupertinoIcons.pause_circle_fill,
+                                color: Colors.grey[700],
+                              ),
+                              onPressed: () => pauseBtnSetState(() {
+                                    if (torrent.paused) {
+                                      gTorrentManager.resumeTorrent(torrent);
+                                    } else {
+                                      gTorrentManager.pauseTorrent(torrent);
+                                    }
+                                  })),
+                        );
+                      }),
+                    if (torrent.isMultiFile)
+                      Builder(builder: (context) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: MacosIconButton(
+                              shape: BoxShape.circle,
+                              padding: const EdgeInsets.all(0),
+                              icon: Icon(
+                                CupertinoIcons.search_circle_fill,
+                                color: Colors.grey[700],
+                                size: 24,
+                              ),
+                              onPressed: () async {
+                                await showMacosAlertDialog(
+                                    context: context,
+                                    barrierDismissible: true,
+                                    builder: (context) =>
+                                        TorrentFliesSheet(torrent));
+                              }),
+                        );
+                      }),
+                    Builder(builder: (context) {
+                      return MacosIconButton(
+                          shape: BoxShape.circle,
+                          padding: const EdgeInsets.all(0),
+                          icon: const Icon(
+                            CupertinoIcons.delete_solid,
+                            color: Colors.redAccent,
+                          ),
+                          onPressed: () {
+                            setStateCallback(
+                                () => gTorrentManager.deleteTorrent(torrent));
+                            if (gTorrentManager.torrentList.isEmpty) {
+                              Navigator.of(context).pop();
+                            }
+                          });
+                    }),
+                  ],
+                ),
           subtitle: torrent.isComplete && torrent.isMultiFile ||
                   !torrent.isComplete
               ? Column(

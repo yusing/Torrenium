@@ -3,11 +3,19 @@ import 'dart:io';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/utils/http.dart';
-import 'package:torrenium/view.dart';
+import 'package:torrenium/services/subscription.dart';
+import 'package:torrenium/utils/torrent_manager.dart';
 
-void main() async {
+import 'services/storage.dart';
+import 'utils/http.dart';
+import 'view.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Storage.init();
+  await TorrentManager.init();
+  SubscriptionManager.init();
+
   HttpOverrides.global = MyHttpOverrides();
   // !await gTorrentManager.init(); Moved to MainPage
   runApp(const TorreniumApp());

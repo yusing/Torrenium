@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/classes/item.dart';
-import 'package:torrenium/style.dart';
-import 'package:torrenium/widgets/item_dialog.dart';
 
+import '../classes/item.dart';
+import '../style.dart';
+import '../widgets/item_dialog.dart';
 import 'cached_image.dart';
 
 class ItemCard extends StatelessWidget {

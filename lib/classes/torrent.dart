@@ -8,15 +8,17 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 
+import '../services/storage.dart';
 import '../utils/torrent_manager.dart';
 import '../utils/units.dart';
+import 'item.dart';
 import 'torrent_file.dart';
 
 class Torrent implements Comparable<Torrent> {
-  final String name;
-  final String infoHash;
-  final int size;
-  final List<TorrentFile> files = [];
+  String name;
+  String infoHash;
+  int size;
+  List<TorrentFile> files = [];
   Pointer<Void> torrentPtr;
   int bytesDownloadedInitial;
   bool paused = false;
@@ -66,33 +68,37 @@ class Torrent implements Comparable<Torrent> {
     }
     return torrent;
   }
-  String get displayName {
-    final key = 'animeName:$nameHash';
-    if (gTorrentManager.prefs.containsKey(key)) {
-      return gTorrentManager.prefs.getString(key)!;
-    }
-    return name;
+
+  factory Torrent.placeholder(Item item) {
+    return Torrent(
+        name: 'Downloading metadata... ${item.name}',
+        infoHash: item.name,
+        size: 0,
+        torrentPtr: nullptr,
+        progress: 0,
+        bytesDownloaded: 0,
+        bytesDownloadedInitial: 0);
   }
 
-  DateTime get downloadedTime {
-    // lazy load
-    _downloadedTime ??=
-        FileStat.statSync(path.join(gTorrentManager.savePath, name)).modified;
-    return _downloadedTime!;
-  }
+  String get animeNameKey => 'animeName:$nameHash';
 
-  double get etaSecs {
-    if (progress == 0) {
-      return double.infinity;
-    }
-    return (DateTime.now().difference(_startTime).inSeconds *
-            (1 - progress) /
-            progress)
-        .toDouble();
-  }
+  String get displayName => Storage.getString(animeNameKey) ?? name;
+
+  DateTime get downloadedTime => _downloadedTime ??=
+      FileStat.statSync(path.join(gTorrentManager.savePath, name)).modified;
+
+  double get etaSecs => progress == 0
+      ? double.infinity
+      : (DateTime.now().difference(_startTime).inSeconds *
+              (1 - progress) /
+              progress)
+          .toDouble();
 
   bool get isComplete => progress == 1.0;
+
   bool get isMultiFile => files.length > 1;
+
+  bool get isPlaceholder => infoHash == 'placeholder';
 
   String get nameHash => sha256.convert(utf8.encode(name)).toString();
 
@@ -108,18 +114,11 @@ class Torrent implements Comparable<Torrent> {
     }
   }
 
-  void print() {
-    Logger().i(
-        "Torrent: name: $name\ninfoHash: $infoHash\nsize: ${size.humanReadableUnit}\nprogress: ${progress.percentageUnit}");
-  }
+  void print() => Logger().i(
+      "Torrent: name: $name\ninfoHash: $infoHash\nsize: ${size.humanReadableUnit}\nprogress: ${progress.percentageUnit}");
 
-  Future<void> setDisplayName(String displayName) async {
-    final key = 'animeName:$nameHash';
-    if (gTorrentManager.prefs.containsKey(key)) {
-      return;
-    }
-    await gTorrentManager.prefs.setString(key, displayName);
-  }
+  Future<void> setDisplayName(String displayName) async =>
+      await Storage.setStringIfNotExists(animeNameKey, displayName);
 
   void startSelfUpdate() {
     _startTime = DateTime.now();
@@ -147,6 +146,17 @@ class Torrent implements Comparable<Torrent> {
   void stopSelfUpdate() {
     _updateTimer?.cancel();
     _updateTimer = null;
+  }
+
+  void updateDetail(Torrent other) {
+    name = other.name;
+    infoHash = other.infoHash;
+    size = other.size;
+    files = other.files;
+    torrentPtr = other.torrentPtr;
+    bytesDownloadedInitial = other.bytesDownloadedInitial;
+    progress = other.progress;
+    bytesDownloaded = other.bytesDownloaded;
   }
 
   static List<Torrent> listFromJson(String jsonStr) {

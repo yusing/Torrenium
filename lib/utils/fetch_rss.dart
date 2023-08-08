@@ -6,29 +6,36 @@ import 'package:logger/logger.dart';
 import 'package:xml/xml.dart';
 
 import '../classes/item.dart';
+import '../services/storage.dart';
 import '../utils/rss_providers.dart';
 
 final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
 
 Future<List<Item>> getItemsFromRSS(RSSProvider provider, String url) async {
-  final response = await get(Uri.parse(url), headers: {
-    'Content-Type': 'application/xml',
-    'Accept': 'application/xml',
-    'Encoding': 'UTF-8',
-  });
-  final body =
-      const Utf8Decoder().convert(response.bodyBytes); // prevent encoding error
-  if (response.statusCode == 200) {
-    try {
-      return parseRSSForItems(provider, body);
-    } catch (e) {
-      Logger().e(e);
-      return [];
-    }
+  String? body;
+  if (Storage.hasCache(url)) {
+    body = Storage.getCache(url);
   } else {
-    Logger().e('${response.statusCode} $url');
+    final resp = await get(Uri.parse(url), headers: {
+      'Content-Type': 'application/xml',
+      'Accept': 'application/xml',
+      'Encoding': 'UTF-8',
+    });
+    if (resp.statusCode == 200) {
+      try {
+        body = const Utf8Decoder().convert(resp.bodyBytes);
+        await Storage.setCache(url, body, const Duration(minutes: 3));
+      } catch (e) {
+        Logger().e(e);
+      }
+    } else {
+      Logger().e('${resp.statusCode} $url');
+    }
+  }
+  if (body == null) {
     return [];
   }
+  return parseRSSForItems(provider, body);
 }
 
 DateTime parsePubdate(String pubDate) {

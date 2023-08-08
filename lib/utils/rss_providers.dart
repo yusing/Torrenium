@@ -212,24 +212,8 @@ const List<RSSProvider> kRssProviders = [
         'Real Life - Photobooks and Pictures': '2_1',
         'Real Life - Videos': '2_2',
       }),
-  RSSProvider(
-      name: 'U9A9',
-      homePageUrl: 'https://rsshub.app/u9a9',
-      rssPath: '',
-      searchParams: '/search/%q',
-      coverUrlGetter: null,
-      magnetUrlGetter: enclosureMangetUrlGetter,
-      authorNameTag: null,
-      categoryTag: null),
-  RSSProvider(
-      name: 'U3C3',
-      homePageUrl: 'https://rsshub.app/u3c3',
-      rssPath: '',
-      searchParams: '/search/%q',
-      coverUrlGetter: null,
-      magnetUrlGetter: enclosureMangetUrlGetter,
-      authorNameTag: null,
-      categoryTag: null)
+  RSSHubProvider('U9A9', 'u9a9'),
+  RSSHubProvider('U3C3', 'u3c3'),
 ];
 
 final kProvidersDict = kRssProviders.fold<Map<String, RSSProvider>>(
@@ -313,6 +297,19 @@ class RSSProvider {
             .replaceAll('%a', author ?? '')
             .replaceAll('%c', category ?? '');
   }
+}
+
+class RSSHubProvider extends RSSProvider {
+  const RSSHubProvider(String name, String endPoint)
+      : super(
+            name: name,
+            homePageUrl: 'https://rsshub.app/$endPoint',
+            rssPath: '',
+            searchParams: '/search/%q',
+            coverUrlGetter: null,
+            magnetUrlGetter: enclosureMangetUrlGetter,
+            authorNameTag: null,
+            categoryTag: null);
 }
 // TODO: open in browser
 // TODO: group tags in a class

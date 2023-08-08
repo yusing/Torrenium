@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 extension TitleExtractor on String {
   String
       get cleanTitle => // remove things in brackets including brackets: () [] {} 【】 ★★
@@ -7,4 +11,5 @@ extension TitleExtractor on String {
               // remove all extra spaces
               .replaceAll(RegExp(r'\s+'), ' ')
               .trim();
+  String get sha256Hash => sha256.convert(utf8.encode(this)).toString();
 }

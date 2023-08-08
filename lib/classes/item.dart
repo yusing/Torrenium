@@ -5,6 +5,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 
+import '../services/storage.dart';
 import '../utils/string.dart';
 import '../utils/torrent_manager.dart';
 
@@ -34,8 +35,8 @@ class Item {
         'https://p.favim.com/orig/2018/08/16/anime-no-manga-Favim.com-6189353.png';
     final name = this.name.cleanTitle;
     final cacheKey = 'cover:$name';
-    if (gTorrentManager.prefs.containsKey(cacheKey)) {
-      return gTorrentManager.prefs.getString(cacheKey)!;
+    if (Storage.hasCache(cacheKey)) {
+      return Storage.getCache(cacheKey);
     }
     final searchUrl = Uri.parse(
         "https://kitsu.io/api/edge/anime?filter[text]=$name&page[limit]=1");
@@ -49,7 +50,7 @@ class Item {
       final result = results.first["attributes"]["posterImage"]["original"];
       if (result != null) {
         final url = result as String;
-        await gTorrentManager.prefs.setString(cacheKey, url);
+        await Storage.setCache(cacheKey, url, const Duration(days: 7));
         return url;
       }
     }

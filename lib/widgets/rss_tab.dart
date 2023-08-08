@@ -6,8 +6,7 @@ import 'package:torrenium/classes/item.dart';
 import 'package:torrenium/utils/fetch_rss.dart';
 import 'package:torrenium/utils/rss_providers.dart';
 import 'package:torrenium/widgets/item_dialog.dart';
-import 'package:torrenium/widgets/item_gridview.dart';
-import 'package:torrenium/widgets/item_listview.dart';
+import 'package:torrenium/widgets/item_view.dart';
 
 import '../services/subscription.dart';
 

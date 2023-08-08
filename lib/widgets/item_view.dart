@@ -1,10 +1,36 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
+import '../style.dart';
 import '../utils/torrent_manager.dart';
 import '../utils/torrent_manager_ext.dart';
-import '../widgets/item_dialog.dart';
+import '../widgets/item_card.dart';
+import 'item_dialog.dart';
+
+class ItemGridView extends StatelessWidget {
+  final ScrollController? controller;
+  final List<Item> items;
+  const ItemGridView({this.controller, required this.items, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.builder(
+          shrinkWrap: true,
+          controller: controller,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: kCoverPhotoWidth,
+              crossAxisSpacing: 8.0,
+              mainAxisSpacing: 16.0,
+              childAspectRatio: 0.7),
+          itemCount: items.length,
+          itemBuilder: ((_, index) => ItemCard(item: items[index]))),
+    );
+  }
+}
 
 class ItemListView extends StatelessWidget {
   final ScrollController? controller;
