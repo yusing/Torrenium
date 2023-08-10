@@ -24,7 +24,7 @@ dependencies:
   logger: ^1.1.0
   intl: ^0.17.0
   flutter_cache_manager: ^3.3.0
-  url_launcher: ^6.1.10
+  url_launcher: ^6.1.12
   bitsdojo_window: ^0.1.5
   font_awesome_flutter: ^10.5.0
   shared_preferences: ^2.2.0

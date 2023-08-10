@@ -2,13 +2,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/classes/item.dart';
-import 'package:torrenium/utils/fetch_rss.dart';
-import 'package:torrenium/utils/rss_providers.dart';
-import 'package:torrenium/widgets/item_dialog.dart';
-import 'package:torrenium/widgets/item_view.dart';
 
+import '../classes/item.dart';
+import '../main.dart';
 import '../services/subscription.dart';
+import '../style.dart';
+import '../utils/fetch_rss.dart';
+import '../utils/rss_providers.dart';
+import 'cupertino_picker_button.dart';
+import 'item_dialog.dart';
+import 'item_view.dart';
+
+typedef KV = MapEntry<String, String?>;
 
 class RssSearchResult extends Text {
   final Item item;
@@ -26,10 +31,102 @@ class RSSTab extends StatefulWidget {
 class _RSSTabState extends State<RSSTab> {
   static var _keyword = ''; // share across all tabs (RSSProvider)
 
-  late var _selectedCategory = provider.categoryRssMap?.values.first; // ALL
-  late var _selectedAuthor = provider.authorRssMap?.values.first;
+  late int? _selectedCategoryIndex =
+      widget.provider.categoryRssMap == null ? null : 0;
+  late int? _selectedAuthorIndex =
+      widget.provider.authorRssMap == null ? null : 0;
   final _searchController = TextEditingController();
+
+  List<Widget> get buttons => [
+        TextButton.icon(
+          icon: const MacosIcon(CupertinoIcons.refresh),
+          label: const Text('Refresh'),
+          onPressed: () => setState(() {}),
+        ),
+        TextButton.icon(
+            icon: const MacosIcon(CupertinoIcons.star),
+            label: const Text('Subscribe'),
+            onPressed: () async {
+              if (_keyword.trim().isEmpty) {
+                return;
+              }
+              await gSubscriptionManager
+                  .addSubscription(
+                      providerName: provider.name,
+                      keyword: _keyword,
+                      category: selectedCategory?.value,
+                      author: selectedAuthor?.value)
+                  .then((value) async {
+                await showMacosAlertDialog(
+                    context: context,
+                    builder: (context) {
+                      return MacosAlertDialog(
+                        title: Text(value ? 'Success' : 'Error'),
+                        message: Text(value
+                            ? 'Subscription added $_keyword from ${provider.name}'
+                            : 'Subscription already exists'),
+                        appIcon: const SizedBox(), // TODO: replace this
+                        primaryButton: PushButton(
+                            controlSize: ControlSize.large,
+                            child: const Text('Dismiss'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            }),
+                      );
+                    });
+              });
+            })
+      ];
   RSSProvider get provider => widget.provider;
+
+  KV? get selectedAuthor => _selectedAuthorIndex != null
+      ? widget.provider.authorRssMap?.entries.elementAt(_selectedAuthorIndex!)
+      : null;
+
+  KV? get selectedCategory => _selectedCategoryIndex != null
+      ? widget.provider.categoryRssMap?.entries
+          .elementAt(_selectedCategoryIndex!)
+      : null;
+
+  Widget authorDropdown() {
+    final enabled = _keyword.isNotEmpty
+        ? provider.supportAdvancedSearch
+            ? (provider.authorRssMap?.isNotEmpty ?? false)
+            : false
+        : provider.authorRssMap != null;
+    return enabled ? authorDropdownInner() : const SizedBox.shrink();
+  }
+
+  Widget authorDropdownInner() {
+    onChange(int? e) => setState(() {
+          _selectedAuthorIndex = e;
+          if (!provider.supportAdvancedSearch) {
+            _searchController.clear();
+            _selectedCategoryIndex = null;
+          }
+        });
+    if (!kIsDesktop) {
+      return CupertinoPickerButton(
+          items: provider.authorRssMap?.entries,
+          itemBuilder: (e) => Text(e.key),
+          value: selectedAuthor,
+          onPop: (e) {
+            if (e == null) {
+              return;
+            }
+            onChange(provider.authorRssMap?.keys.toList().indexOf(e.key));
+          });
+    }
+
+    return MacosPopupButton(
+        value: _selectedAuthorIndex,
+        items: List.generate(provider.authorRssMap!.length, (index) {
+          final key = provider.authorRssMap!.keys.elementAt(index);
+          return MacosPopupMenuItem(
+              value: index, enabled: !key.startsWith('*'), child: Text(key));
+        }),
+        onChanged: onChange);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +134,9 @@ class _RSSTabState extends State<RSSTab> {
       return const SizedBox.shrink();
     }
     final url = provider.searchUrl(
-        query: _keyword, author: _selectedAuthor, category: _selectedCategory);
+        query: _keyword,
+        author: selectedAuthor?.value,
+        category: selectedCategory?.value);
     return FutureBuilder(
         future: getItemsFromRSS(provider, url),
         builder: (_, snapshot) {
@@ -49,158 +148,43 @@ class _RSSTabState extends State<RSSTab> {
           }
           return Column(
             children: [
-              GestureDetector(
-                onLongPress: () async {
-                  await Clipboard.setData(ClipboardData(text: url))
-                      .then((value) => showMacosAlertDialog(
-                          context: context,
-                          builder: (_) => MacosAlertDialog(
-                                appIcon: const SizedBox.shrink(),
-                                title: const Text('Copied to clipboard'),
-                                message: const SizedBox.shrink(),
-                                primaryButton: PushButton(
-                                    controlSize: ControlSize.large,
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    child: const Text('Dismiss')),
-                              )));
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Card(
-                        color: Colors.black26,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4)),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 6.0, horizontal: 4.0),
-                          child: Text(url,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontFamily: 'monospace',
-                                  letterSpacing: 1,
-                                  fontWeight: FontWeight.w500)),
-                        )),
-                  ),
+              if (kIsDesktop) urlBar(url),
+              if (!kIsDesktop) ...[
+                Row(
+                  children: [
+                    Expanded(child: searchBar(snapshot.data)),
+                    ...buttons
+                  ],
                 ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: MacosSearchField(
-                          autofocus: false,
-                          autocorrect: false,
-                          maxLines: 1,
-                          controller: _searchController,
-                          placeholder: 'Search for something...',
-                          maxResultsToShow: 10,
-                          results: snapshot.data
-                              ?.map((e) => SearchResultItem(e.name,
-                                  child: RssSearchResult(item: e)))
-                              .toList(growable: false),
-                          onResultSelected: (e) => showMacosSheet(
-                              context: context,
-                              builder: (context) => ItemDialog(
-                                  (e.child as RssSearchResult).item,
-                                  context: context))),
+                const SizedBox(
+                  height: 4,
+                ),
+                Row(
+                  children: [
+                    Expanded(child: categoryDropdown()),
+                    const SizedBox(
+                      width: 4,
                     ),
-                  ),
-                  const SizedBox(
-                    width: 4,
-                  ),
-                  Visibility(
-                    visible: _keyword.isNotEmpty
-                        ? provider.supportAdvancedSearch
-                            ? (provider.categoryRssMap?.isNotEmpty ?? false)
-                            : false
-                        : true,
-                    child: MacosPopupButton<String>(
-                        value: _selectedCategory,
-                        items: provider.categoryRssMap?.entries
-                            .map((e) => MacosPopupMenuItem<String>(
-                                value: e.value,
-                                enabled: !e.key.startsWith('*'),
-                                child: Text(e.key)))
-                            .toList(growable: false),
-                        onChanged: (e) => setState(() {
-                              _selectedCategory = e;
-                              if (!provider.supportAdvancedSearch) {
-                                _searchController.clear();
-                                _selectedAuthor = null;
-                              }
-                            })),
-                  ),
-                  const SizedBox(
-                    width: 4,
-                  ),
-                  Visibility(
-                    visible: _keyword.isNotEmpty
-                        ? provider.supportAdvancedSearch
-                            ? (provider.authorRssMap?.isNotEmpty ?? false)
-                            : false
-                        : true,
-                    child: MacosPopupButton<String>(
-                        value: _selectedAuthor,
-                        items: provider.authorRssMap?.entries
-                            .map((e) => MacosPopupMenuItem<String>(
-                                value: e.value,
-                                enabled: !e.key.startsWith('*'),
-                                child: Text(e.key)))
-                            .toList(growable: false),
-                        onChanged: (e) => setState(() {
-                              _selectedAuthor = e;
-                              if (!provider.supportAdvancedSearch) {
-                                _searchController.clear();
-                                _selectedCategory = null;
-                              }
-                            })),
-                  ),
-                  TextButton.icon(
-                    icon: const MacosIcon(CupertinoIcons.refresh),
-                    label: const Text('Refresh'),
-                    onPressed: () => setState(() {}),
-                  ),
-                  TextButton.icon(
-                      icon: const MacosIcon(CupertinoIcons.star),
-                      label: const Text('Subscribe'),
-                      onPressed: () async {
-                        if (_keyword.trim().isEmpty) {
-                          return;
-                        }
-                        await gSubscriptionManager
-                            .addSubscription(
-                                providerName: provider.name,
-                                keyword: _keyword,
-                                category: _selectedCategory,
-                                author: _selectedAuthor)
-                            .then((value) async {
-                          await showMacosAlertDialog(
-                              context: context,
-                              builder: (context) {
-                                return MacosAlertDialog(
-                                  title: Text(value ? 'Success' : 'Error'),
-                                  message: Text(value
-                                      ? 'Subscription added $_keyword from ${provider.name}'
-                                      : 'Subscription already exists'),
-                                  appIcon:
-                                      const SizedBox(), // TODO: replace this
-                                  primaryButton: PushButton(
-                                      controlSize: ControlSize.large,
-                                      child: const Text('Dismiss'),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      }),
-                                );
-                              });
-                        });
-                      }),
-                ],
-              ),
+                    Expanded(child: authorDropdown())
+                  ],
+                )
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: searchBar(snapshot.data),
+                    ),
+                    const SizedBox(
+                      width: 4,
+                    ),
+                    categoryDropdown(),
+                    const SizedBox(
+                      width: 4,
+                    ),
+                    authorDropdown(),
+                    ...buttons
+                  ],
+                ),
               const SizedBox(
                 height: 8,
               ),
@@ -220,6 +204,64 @@ class _RSSTabState extends State<RSSTab> {
         });
   }
 
+  Widget categoryDropdown() {
+    final enabled = _keyword.isNotEmpty
+        ? provider.supportAdvancedSearch
+            ? (provider.categoryRssMap?.isNotEmpty ?? false)
+            : false
+        : provider.categoryRssMap != null;
+    return enabled ? categoryDropdownInner() : const SizedBox.shrink();
+  }
+
+  Widget categoryDropdownInner() {
+    onChange(int? e) => setState(() {
+          _selectedCategoryIndex = e;
+          if (!provider.supportAdvancedSearch) {
+            _searchController.clear();
+            _selectedAuthorIndex = null;
+          }
+        });
+    if (!kIsDesktop) {
+      return CupertinoPickerButton(
+          items: provider.categoryRssMap?.entries,
+          itemBuilder: (e) => Text(e.key),
+          value: selectedCategory,
+          onPop: (e) {
+            if (e == null) {
+              return;
+            }
+            onChange(provider.categoryRssMap?.keys.toList().indexOf(e.key));
+          });
+    }
+    return MacosPopupButton(
+        value: _selectedCategoryIndex,
+        items: List.generate(provider.categoryRssMap!.length, (index) {
+          final key = provider.categoryRssMap!.keys.elementAt(index);
+          return MacosPopupMenuItem(
+              value: index, enabled: !key.startsWith('*'), child: Text(key));
+        }),
+        onChanged: onChange);
+  }
+
+  @override
+  void didUpdateWidget(RSSTab oldWidget) {
+    if (widget.provider.authorRssMap == null) {
+      _selectedAuthorIndex = null;
+    } else {
+      if (_selectedAuthorIndex! >= widget.provider.authorRssMap!.length) {
+        _selectedAuthorIndex = 0;
+      }
+    }
+    if (widget.provider.categoryRssMap == null) {
+      _selectedCategoryIndex = null;
+    } else {
+      if (_selectedCategoryIndex! >= widget.provider.categoryRssMap!.length) {
+        _selectedCategoryIndex = 0;
+      }
+    }
+    super.didUpdateWidget(oldWidget);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -235,11 +277,78 @@ class _RSSTabState extends State<RSSTab> {
       setState(() {
         _keyword = _searchController.text;
         if (!provider.supportAdvancedSearch) {
-          _selectedAuthor = null;
-          _selectedCategory = null;
+          _selectedAuthorIndex = null;
+          _selectedCategoryIndex = null;
         }
       });
     });
     super.initState();
+  }
+
+  Widget searchBar(List<Item>? results) {
+    if (!kIsDesktop) {
+      return CupertinoSearchTextField(
+          autofocus: false,
+          autocorrect: false,
+          controller: _searchController,
+          placeholder: 'Search for something...');
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: MacosSearchField(
+          autofocus: false,
+          autocorrect: false,
+          maxLines: 1,
+          controller: _searchController,
+          placeholder: 'Search for something...',
+          maxResultsToShow: kIsDesktop ? 10 : 4,
+          results: results
+              ?.map((e) =>
+                  SearchResultItem(e.name, child: RssSearchResult(item: e)))
+              .toList(growable: false),
+          onResultSelected: (e) => showMacosSheet(
+              context: context,
+              builder: (context) => ItemDialog(
+                  (e.child as RssSearchResult).item,
+                  context: context))),
+    );
+  }
+
+  Widget urlBar(String url) {
+    return GestureDetector(
+      onLongPress: () async {
+        await Clipboard.setData(ClipboardData(text: url))
+            .then((value) => showMacosAlertDialog(
+                context: context,
+                builder: (_) => MacosAlertDialog(
+                      appIcon: const SizedBox.shrink(),
+                      title: const Text('Copied to clipboard'),
+                      message: const SizedBox.shrink(),
+                      primaryButton: PushButton(
+                          controlSize: ControlSize.large,
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Dismiss')),
+                    )));
+      },
+      child: urlBarInner(url),
+    );
+  }
+
+  Widget urlBarInner(String url) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: SizedBox(
+        width: double.infinity,
+        child: Card(
+            color: Colors.black26,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+              child: Text(url, style: kMonoTextStyle),
+            )),
+      ),
+    );
   }
 }

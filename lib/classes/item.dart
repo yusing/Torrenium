@@ -7,7 +7,7 @@ import 'package:logger/logger.dart';
 
 import '../services/storage.dart';
 import '../utils/string.dart';
-import '../utils/torrent_manager.dart';
+import '../services/torrent.dart';
 
 class Item {
   final String name;

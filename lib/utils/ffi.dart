@@ -2,7 +2,7 @@ import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
 
-import 'torrent_manager.dart';
+import '../services/torrent.dart';
 
 extension DartStringTCallback<T> on T Function(String) {
   T cStringCall(Pointer<Char> cStr) {

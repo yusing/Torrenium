@@ -4,9 +4,9 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
 import '../style.dart';
-import '../utils/torrent_manager.dart';
-import '../utils/torrent_manager_ext.dart';
-import '../widgets/item_card.dart';
+import '../services/torrent.dart';
+import '../services/torrent_ext.dart';
+import 'item_card.dart';
 import 'item_dialog.dart';
 
 class ItemGridView extends StatelessWidget {

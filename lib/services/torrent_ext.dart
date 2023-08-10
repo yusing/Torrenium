@@ -5,9 +5,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../services/storage.dart';
-import '../utils/torrent_manager.dart';
 import '../classes/item.dart';
+import 'storage.dart';
+import 'torrent.dart';
 
 extension TorrentManagerExtension on TorrentManager {
   void download(Item item, {required BuildContext context, bool pop = false}) {

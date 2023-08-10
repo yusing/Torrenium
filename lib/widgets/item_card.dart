@@ -3,7 +3,7 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
 import '../style.dart';
-import '../widgets/item_dialog.dart';
+import 'item_dialog.dart';
 import 'cached_image.dart';
 
 class ItemCard extends StatelessWidget {

@@ -2,5 +2,6 @@
     "files.associations": {
         "MLTable": "yaml",
         "xstring": "cpp"
-    }
+    },
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

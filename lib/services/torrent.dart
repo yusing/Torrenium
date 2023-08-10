@@ -9,9 +9,9 @@ import 'package:path_provider/path_provider.dart';
 
 import '../classes/item.dart';
 import '../classes/torrent.dart';
-import '../services/storage.dart';
+import 'storage.dart';
 import '../utils/ffi.dart';
-import 'torrent_binding.dart' as torrent_binding;
+import '../utils/torrent_binding.dart' as torrent_binding;
 
 TorrentManager get gTorrentManager => TorrentManager.instance;
 
@@ -29,7 +29,9 @@ class TorrentManager {
 
   static final _dylib = Platform.isWindows
       ? DynamicLibrary.open('libtorrent_go.dll')
-      : DynamicLibrary.executable();
+      : Platform.isLinux || Platform.isAndroid
+          ? DynamicLibrary.open('libtorrent_go.so')
+          : DynamicLibrary.executable();
   static final go = torrent_binding.TorrentGoBinding(_dylib);
 
   var torrentList = <Torrent>[];
@@ -78,17 +80,28 @@ class TorrentManager {
 
   static Future<void> init() async {
     instance = TorrentManager();
-    instance.docDir = await getDownloadsDirectory() ??
-        await getApplicationDocumentsDirectory();
+    if (Platform.isAndroid) {
+      instance.docDir = await getApplicationSupportDirectory();
+    } else {
+      instance.docDir = await getDownloadsDirectory() ??
+          await getApplicationDocumentsDirectory();
+    }
+    Logger().d('docDir: ${instance.docDir.path}');
 
     if (!Storage.hasKey('savePath')) {
-      Storage.setString('savePath', pathlib.join(instance.docDir.path));
+      Storage.setString(
+          'savePath', pathlib.join(instance.docDir.path, 'Torrenium'));
     }
     instance.savePath = Storage.getString('savePath')!;
+    Logger().d('savePath: ${instance.savePath}');
     // create save path if it doesn't exist
-    await Directory(instance.savePath).create(recursive: true);
+    await Directory(instance.savePath).create(recursive: true).catchError((e) {
+      Logger().e(e);
+      throw Exception('Failed to create save path');
+    });
 
     go.InitTorrentClient.dartStringCall(instance.savePath);
+    Logger().d('TorrentClient initialized');
 
     // load last session
     instance.torrentList = Torrent.listFromJson.cStringCall(go.GetTorrentList())

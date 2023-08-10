@@ -5,8 +5,8 @@ import 'package:macos_ui/macos_ui.dart';
 import '../classes/item.dart';
 import '../style.dart';
 import '../utils/gradient.dart';
-import '../utils/torrent_manager.dart';
-import '../utils/torrent_manager_ext.dart';
+import '../services/torrent.dart';
+import '../services/torrent_ext.dart';
 
 class ItemDialog extends MacosSheet {
   ItemDialog(Item item, {required BuildContext context, super.key})

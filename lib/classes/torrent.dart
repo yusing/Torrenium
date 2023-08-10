@@ -6,10 +6,10 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as pathlib;
 
 import '../services/storage.dart';
-import '../utils/torrent_manager.dart';
+import '../services/torrent.dart';
 import '../utils/units.dart';
 import 'item.dart';
 import 'torrent_file.dart';
@@ -85,7 +85,7 @@ class Torrent implements Comparable<Torrent> {
   String get displayName => Storage.getString(animeNameKey) ?? name;
 
   DateTime get downloadedTime => _downloadedTime ??=
-      FileStat.statSync(path.join(gTorrentManager.savePath, name)).modified;
+      FileStat.statSync(pathlib.join(gTorrentManager.savePath, name)).modified;
 
   double get etaSecs => progress == 0
       ? double.infinity

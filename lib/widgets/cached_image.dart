@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/classes/item.dart';
+import '../classes/item.dart';
 
 class CachedImage extends CachedNetworkImage {
   CachedImage(

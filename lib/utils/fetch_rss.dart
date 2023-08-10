@@ -7,7 +7,7 @@ import 'package:xml/xml.dart';
 
 import '../classes/item.dart';
 import '../services/storage.dart';
-import '../utils/rss_providers.dart';
+import 'rss_providers.dart';
 
 final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
 
