@@ -12,4 +12,8 @@ extension TitleExtractor on String {
               .replaceAll(RegExp(r'\s+'), ' ')
               .trim();
   String get sha256Hash => sha256.convert(utf8.encode(this)).toString();
+
+  String encodeUrl() {
+    return Uri.encodeFull("file://$this");
+  }
 }

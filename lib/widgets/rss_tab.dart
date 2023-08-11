@@ -31,11 +31,11 @@ class RSSTab extends StatefulWidget {
 class _RSSTabState extends State<RSSTab> {
   static var _keyword = ''; // share across all tabs (RSSProvider)
 
-  late int? _selectedCategoryIndex =
-      widget.provider.categoryRssMap == null ? null : 0;
-  late int? _selectedAuthorIndex =
-      widget.provider.authorRssMap == null ? null : 0;
+  late int? _selectedCategoryIndex = provider.categoryRssMap == null ? null : 0;
+  late int? _selectedAuthorIndex = provider.authorRssMap == null ? null : 0;
   final _searchController = TextEditingController();
+
+  late var provider = widget.provider;
 
   List<Widget> get buttons => [
         TextButton.icon(
@@ -77,15 +77,13 @@ class _RSSTabState extends State<RSSTab> {
               });
             })
       ];
-  RSSProvider get provider => widget.provider;
 
   KV? get selectedAuthor => _selectedAuthorIndex != null
-      ? widget.provider.authorRssMap?.entries.elementAt(_selectedAuthorIndex!)
+      ? provider.authorRssMap?.entries.elementAt(_selectedAuthorIndex!)
       : null;
 
   KV? get selectedCategory => _selectedCategoryIndex != null
-      ? widget.provider.categoryRssMap?.entries
-          .elementAt(_selectedCategoryIndex!)
+      ? provider.categoryRssMap?.entries.elementAt(_selectedCategoryIndex!)
       : null;
 
   Widget authorDropdown() {
@@ -161,6 +159,19 @@ class _RSSTabState extends State<RSSTab> {
                 ),
                 Row(
                   children: [
+                    Expanded(
+                      child: CupertinoPickerButton(
+                          value: provider,
+                          items: kRssProviders,
+                          itemBuilder: (e) =>
+                              Text(e.name, style: kItemTitleTextStyle),
+                          onPop: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() => provider = value);
+                          }),
+                    ),
                     Expanded(child: categoryDropdown()),
                     const SizedBox(
                       width: 4,
@@ -245,17 +256,17 @@ class _RSSTabState extends State<RSSTab> {
 
   @override
   void didUpdateWidget(RSSTab oldWidget) {
-    if (widget.provider.authorRssMap == null) {
+    if (provider.authorRssMap == null) {
       _selectedAuthorIndex = null;
     } else {
-      if (_selectedAuthorIndex! >= widget.provider.authorRssMap!.length) {
+      if (_selectedAuthorIndex! >= provider.authorRssMap!.length) {
         _selectedAuthorIndex = 0;
       }
     }
-    if (widget.provider.categoryRssMap == null) {
+    if (provider.categoryRssMap == null) {
       _selectedCategoryIndex = null;
     } else {
-      if (_selectedCategoryIndex! >= widget.provider.categoryRssMap!.length) {
+      if (_selectedCategoryIndex! >= provider.categoryRssMap!.length) {
         _selectedCategoryIndex = 0;
       }
     }

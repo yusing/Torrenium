@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
@@ -33,6 +34,7 @@ class TorrentManager {
           ? DynamicLibrary.open('libtorrent_go.so')
           : DynamicLibrary.executable();
   static final go = torrent_binding.TorrentGoBinding(_dylib);
+  final updateNotifier = ValueNotifier(null);
 
   var torrentList = <Torrent>[];
   late final Directory docDir;
@@ -42,6 +44,7 @@ class TorrentManager {
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
     torrentList.remove(t);
+    updateNotifier.notifyListeners();
   }
 
   Future<void> downloadItem(Item item) async {
@@ -59,6 +62,7 @@ class TorrentManager {
         "displayName": item.name
       });
     }, _isolateToMain.sendPort);
+    updateNotifier.notifyListeners();
   }
 
   Torrent getTorrentInfo(Torrent t) =>
@@ -93,11 +97,12 @@ class TorrentManager {
           'savePath', pathlib.join(instance.docDir.path, 'Torrenium'));
     }
     instance.savePath = Storage.getString('savePath')!;
+    final dataPath = pathlib.join(instance.savePath, 'data');
     Logger().d('savePath: ${instance.savePath}');
     // create save path if it doesn't exist
-    await Directory(instance.savePath).create(recursive: true).catchError((e) {
+    await Directory(dataPath).create(recursive: true).catchError((e) {
       Logger().e(e);
-      throw Exception('Failed to create save path');
+      throw Exception('Failed to create data path');
     });
 
     go.InitTorrentClient.dartStringCall(instance.savePath);
@@ -108,6 +113,7 @@ class TorrentManager {
       ..sort()
       ..forEach((t) => t.startSelfUpdate());
 
-    Logger().d('TorrentManager initialized');
+    Logger().d(
+        'TorrentManager initialized ${instance.torrentList.length} torrents');
   }
 }

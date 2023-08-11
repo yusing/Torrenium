@@ -8,8 +8,9 @@ class SubscriptionsDialog extends MacosSheet {
   SubscriptionsDialog(BuildContext context, {super.key})
       : super(child: content());
 
-  static StatefulWidget content() =>
-      StatefulBuilder(builder: (context, setState) {
+  static StatefulWidget content() => ValueListenableBuilder(
+      valueListenable: gSubscriptionManager.updateNotifier,
+      builder: (context, _, __) {
         return Padding(
             padding: const EdgeInsets.all(16),
             child: gSubscriptionManager.subscriptions.isEmpty
@@ -31,12 +32,7 @@ class SubscriptionsDialog extends MacosSheet {
                               MacosIconButton(
                                 icon: const Icon(CupertinoIcons.delete),
                                 onPressed: () => gSubscriptionManager
-                                    .removeSubscription(sub)
-                                    .then((value) {
-                                  if (value) {
-                                    setState(() {});
-                                  }
-                                }),
+                                    .removeSubscription(sub),
                               ),
                             ],
                           ),

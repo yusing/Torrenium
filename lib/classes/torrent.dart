@@ -4,12 +4,14 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
+import 'package:torrenium/services/watch_history.dart';
 
 import '../services/storage.dart';
 import '../services/torrent.dart';
+import '../utils/ext_icons.dart';
 import '../utils/units.dart';
 import 'item.dart';
 import 'torrent_file.dart';
@@ -24,7 +26,7 @@ class Torrent implements Comparable<Torrent> {
   bool paused = false;
   num progress;
   int bytesDownloaded;
-  ValueNotifier stateNotifier = ValueNotifier(false);
+  ValueNotifier<void> stateNotifier = ValueNotifier(null);
   Timer? _updateTimer;
   late DateTime _startTime;
   DateTime? _downloadedTime;
@@ -37,7 +39,6 @@ class Torrent implements Comparable<Torrent> {
       required this.progress,
       required this.bytesDownloaded,
       required this.bytesDownloadedInitial});
-
   factory Torrent.fromJson(dynamic json) {
     if (json is String) {
       json = jsonDecode(json);
@@ -68,7 +69,6 @@ class Torrent implements Comparable<Torrent> {
     }
     return torrent;
   }
-
   factory Torrent.placeholder(Item item) {
     return Torrent(
         name: 'Downloading metadata... ${item.name}',
@@ -94,13 +94,21 @@ class Torrent implements Comparable<Torrent> {
               progress)
           .toDouble();
 
+  String get fullPath => pathlib.join(gTorrentManager.savePath, name);
+
+  IconData get icon => getPathIcon(fullPath);
+
   bool get isComplete => progress == 1.0;
 
   bool get isMultiFile => files.length > 1;
 
   bool get isPlaceholder => infoHash == 'placeholder';
 
+  Duration get lastPosition => WatchHistory.getPosition(nameHash);
+
   String get nameHash => sha256.convert(utf8.encode(name)).toString();
+
+  double get watchProgress => WatchHistory.getProgress(nameHash);
 
   @override
   int compareTo(Torrent other) {
@@ -139,7 +147,7 @@ class Torrent implements Comparable<Torrent> {
           }
         }
       }
-      stateNotifier.value = !stateNotifier.value;
+      stateNotifier.notifyListeners();
     });
   }
 
@@ -157,6 +165,10 @@ class Torrent implements Comparable<Torrent> {
     bytesDownloadedInitial = other.bytesDownloadedInitial;
     progress = other.progress;
     bytesDownloaded = other.bytesDownloaded;
+  }
+
+  Future<void> updateWatchPosition(Duration pos) async {
+    await WatchHistory.updatePosition(nameHash, pos);
   }
 
   static List<Torrent> listFromJson(String jsonStr) {

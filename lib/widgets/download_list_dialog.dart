@@ -2,62 +2,49 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:path/path.dart' as pathlib;
-import 'package:torrenium/widgets/torrent_files_dialog.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../classes/torrent.dart';
-import '../style.dart';
-import '../utils/ext_icons.dart';
+import '../main.dart' show kIsDesktop;
 import '../services/torrent.dart';
+import '../style.dart';
 import '../utils/units.dart';
+import 'torrent_files_dialog.dart';
+import 'video_player.dart';
 
 class DownloadListDialog extends MacosSheet {
   DownloadListDialog(BuildContext context, {super.key})
       : super(child: content());
 
-  static StatefulWidget content() =>
-      StatefulBuilder(builder: (context, setState) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: gTorrentManager.torrentList.isEmpty
-              ? const Center(child: Text('Nothing Here...'))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16.0),
-                  separatorBuilder: (_, index) => const SizedBox(height: 16),
-                  itemCount: gTorrentManager.torrentList.length,
-                  itemBuilder: ((_, index) => DownloadListItem(
-                      gTorrentManager.torrentList[index],
-                      setStateCallback: setState)),
-                ),
-        );
-      });
+  static StatefulWidget content() => ValueListenableBuilder(
+      valueListenable: gTorrentManager.updateNotifier,
+      builder: (context, _, __) => Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: gTorrentManager.torrentList.isEmpty
+                ? const Center(child: Text('Nothing Here...'))
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16.0),
+                    separatorBuilder: (_, index) => const SizedBox(height: 16),
+                    itemCount: gTorrentManager.torrentList.length,
+                    itemBuilder: ((_, index) =>
+                        DownloadListItem(gTorrentManager.torrentList[index])),
+                  ),
+          ));
 }
 
-class DownloadListItem extends ValueListenableBuilder {
-  DownloadListItem(Torrent torrent,
-      {super.key, required StateSetter setStateCallback})
+class DownloadListItem extends ValueListenableBuilder<void> {
+  DownloadListItem(Torrent torrent, {super.key})
       : super(
           valueListenable: torrent.stateNotifier,
-          builder: ((_, __, ___) =>
-              _DownloadListItemStatic(torrent, setStateCallback)),
+          builder: ((context, __, ___) =>
+              _DownloadListItemStatic(context, torrent)),
         );
-}
-
-class DownloadListMenuItem extends MacosPulldownMenuItem {
-  const DownloadListMenuItem({required Widget child, super.key})
-      : super(title: child);
-  @override
-  double get itemHeight => 128;
 }
 
 class _DownloadListItemStatic extends MacosListTile {
-  _DownloadListItemStatic(Torrent torrent, StateSetter setStateCallback)
+  _DownloadListItemStatic(BuildContext context, Torrent torrent)
       : super(
-          leading: MacosIcon(
-              getPathIcon(pathlib.join(gTorrentManager.savePath, torrent.name)),
+          leading: MacosIcon(torrent.icon,
               color: torrent.isMultiFile ? Colors.yellowAccent : Colors.white,
               size: 32),
           title: torrent.isPlaceholder
@@ -94,7 +81,16 @@ class _DownloadListItemStatic extends MacosListTile {
                                     }
                                   })),
                         );
-                      }),
+                      })
+                    else if (torrent.watchProgress > 0)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          '${torrent.watchProgress.percentageUnit(0)} Watched',
+                          style: kItemTitleTextStyle.copyWith(
+                              color: Colors.yellowAccent),
+                        ),
+                      ),
                     if (torrent.isMultiFile)
                       Builder(builder: (context) {
                         return Padding(
@@ -125,9 +121,9 @@ class _DownloadListItemStatic extends MacosListTile {
                             color: Colors.redAccent,
                           ),
                           onPressed: () {
-                            setStateCallback(
-                                () => gTorrentManager.deleteTorrent(torrent));
-                            if (gTorrentManager.torrentList.isEmpty) {
+                            gTorrentManager.deleteTorrent(torrent);
+                            if (kIsDesktop &&
+                                gTorrentManager.torrentList.isEmpty) {
                               Navigator.of(context).pop();
                             }
                           });
@@ -165,17 +161,13 @@ class _DownloadListItemStatic extends MacosListTile {
               : null,
           onClick: () async {
             if (Platform.isWindows) {
-              await Process.run('start',
-                  ['', pathlib.join(gTorrentManager.savePath, torrent.name)],
+              await Process.run('start', ['', torrent.fullPath],
                   runInShell: true);
             } else {
-              Uri pathUri = Uri.file(
-                  pathlib.join(gTorrentManager.savePath, torrent.name));
-              if (await canLaunchUrl(pathUri)) {
-                await launchUrl(pathUri, mode: LaunchMode.externalApplication);
-              } else {
-                Logger().e('Could not launch $pathUri');
-              }
+              await Navigator.of(context, rootNavigator: true).push(
+                  CupertinoPageRoute(
+                      fullscreenDialog: true,
+                      builder: (_) => VideoPlayerPage(torrent)));
             }
           },
         );

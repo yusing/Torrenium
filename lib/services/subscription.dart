@@ -80,6 +80,7 @@ class SubscriptionManager {
   // ignore: unused_field
   final Timer _updateTimer;
   final List<Subscription> subscriptions;
+  final updateNotifier = ValueNotifier(null);
 
   SubscriptionManager()
       : subscriptions = Storage.instance
@@ -109,6 +110,7 @@ class SubscriptionManager {
     }
     _subs.add(sub);
     await _saveSubscriptions();
+    updateNotifier.notifyListeners();
     return true;
   }
 
@@ -120,6 +122,7 @@ class SubscriptionManager {
     await Storage.removeKey('sublastUpdate_$sub');
     await Storage.removeKey('subsTasksDone_$sub');
     await _saveSubscriptions();
+    updateNotifier.notifyListeners();
     return true;
   }
 
