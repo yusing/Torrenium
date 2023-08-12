@@ -366,8 +366,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "..\\..\\go_torrent\\build\\ios\\**";
-				OTHER_LDFLAGS = "-llibtorrent_go_ios";
+				LIBRARY_SEARCH_PATHS = "..\\go_torrent\\build\\ios\\**";
+				OTHER_LDFLAGS = "-lstdc++ -torrent_go_ios $(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusing.torrenium;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -384,9 +384,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				LIBRARY_SEARCH_PATHS = "..\\..\\go_torrent\\build\\ios\\**";
+				LIBRARY_SEARCH_PATHS = "..\\go_torrent\\build\\ios\\**";
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = "-llibtorrent_go_ios";
+				OTHER_LDFLAGS = "-lstdc++ -torrent_go_ios $(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusing.torrenium.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -404,9 +404,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				LIBRARY_SEARCH_PATHS = "..\\..\\go_torrent\\build\\ios\\**";
+				LIBRARY_SEARCH_PATHS = "..\\go_torrent\\build\\ios\\**";
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = "-llibtorrent_go_ios";
+				OTHER_LDFLAGS = "-lstdc++ -torrent_go_ios $(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusing.torrenium.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -422,9 +422,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				LIBRARY_SEARCH_PATHS = "..\\..\\go_torrent\\build\\ios\\**";
+				LIBRARY_SEARCH_PATHS = "..\\go_torrent\\build\\ios\\**";
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = "-llibtorrent_go_ios";
+				OTHER_LDFLAGS = "-lstdc++ -torrent_go_ios $(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusing.torrenium.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -552,8 +552,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "..\\..\\go_torrent\\build\\ios\\**";
-				OTHER_LDFLAGS = "-llibtorrent_go_ios";
+				LIBRARY_SEARCH_PATHS = "..\\go_torrent\\build\\ios\\**";
+				OTHER_LDFLAGS = "-lstdc++ -torrent_go_ios $(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusing.torrenium;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -576,8 +576,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "..\\..\\go_torrent\\build\\ios\\**";
-				OTHER_LDFLAGS = "-llibtorrent_go_ios";
+				LIBRARY_SEARCH_PATHS = "..\\go_torrent\\build\\ios\\**";
+				OTHER_LDFLAGS = "-lstdc++ -torrent_go_ios $(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusing.torrenium;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
