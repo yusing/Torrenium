@@ -1,8 +1,7 @@
 name: Run layerlens.
 
 on:
-  push:
-    branches: [ main]
+  workflow_dispatch:
 
 jobs:
   generate:
@@ -18,8 +17,11 @@ jobs:
     - name: pub get
       run: flutter pub get
 
+    - name: install layerlens
+      run: dart pub global activate layerlens
+
     - name: generate
-      run: dart run layerlens lib
+      run: layerlens lib
 
     - name: Commit files
       uses: stefanzweifel/git-auto-commit-action@v4
