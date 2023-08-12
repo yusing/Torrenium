@@ -9,22 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: clone the repo
-      uses: actions/checkout@v3
-
-    - name: install dart sdk
-      uses: dart-lang/setup-dart@v1.3
+    - uses: actions/checkout@v3
+    - uses: subosito/flutter-action@v2
       with:
-        sdk: dev
+        channel: 'stable' # or: 'beta', 'dev' or 'master'
+    - run: flutter --version
 
-    - name: version
-      run: dart --version
-
-    - name: dart pub get
-      run: dart pub get
+    - name: pub get
+      run: flutter pub get
 
     - name: generate
-      run: dart run layerlens
+      run: layerlens lib
 
     - name: Commit files
       uses: stefanzweifel/git-auto-commit-action@v4
