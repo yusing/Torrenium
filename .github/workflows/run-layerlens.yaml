@@ -19,7 +19,7 @@ jobs:
       run: flutter pub get
 
     - name: generate
-      run: layerlens lib
+      run: dart run layerlens lib
 
     - name: Commit files
       uses: stefanzweifel/git-auto-commit-action@v4

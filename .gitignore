@@ -511,3 +511,4 @@ obj/
 
 ios/Podfile
 gen_readme.bat
+ios.py
