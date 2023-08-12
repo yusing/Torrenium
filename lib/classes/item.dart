@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
+import 'package:macos_ui/macos_ui.dart';
 
+import '../main.dart';
 import '../services/storage.dart';
-import '../utils/string.dart';
 import '../services/torrent.dart';
+import '../utils/string.dart';
+import '../widgets/item_dialog.dart';
 
 class Item {
   final String name;
@@ -56,6 +60,33 @@ class Item {
     }
     Logger().e(resp.statusCode);
     return kFinalFallback;
+  }
+
+  Future<void> showDialog(BuildContext context) async {
+    if (kIsDesktop) {
+      showMacosSheet(
+          context: context, builder: (context) => ItemDialog(context, this));
+    } else {
+      Navigator.push(
+          context,
+          CupertinoPageRoute(
+              builder: (context) => CupertinoPageScaffold(
+                  navigationBar: CupertinoNavigationBar(
+                    middle: Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                    ),
+                    trailing: CupertinoButton(
+                        padding: const EdgeInsets.all(0),
+                        child: const Icon(CupertinoIcons.down_arrow),
+                        onPressed: () {
+                          gTorrentManager.downloadItem(this);
+                          Navigator.of(context).pop();
+                        }),
+                  ),
+                  child: SafeArea(child: ItemDialog.content(context, this)))));
+    }
   }
 
   Future<void> startDownload() async {

@@ -3,11 +3,11 @@ import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
-import '../style.dart';
 import '../services/torrent.dart';
 import '../services/torrent_ext.dart';
+import '../style.dart';
+import 'dynamic.dart';
 import 'item_card.dart';
-import 'item_dialog.dart';
 
 class ItemGridView extends StatelessWidget {
   final ScrollController? controller;
@@ -45,36 +45,24 @@ class ItemListView extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: ((context, index) {
         final item = items[index];
-        return MacosListTile(
-          title: FittedBox(
-            child: Row(
-              children: [
-                Text(item.name),
-                const SizedBox(width: 16),
-                MacosIconButton(
-                  padding: const EdgeInsets.all(0),
-                  icon:
-                      const MacosIcon(CupertinoIcons.cloud_download, size: 18),
-                  onPressed: () =>
-                      gTorrentManager.download(item, context: context),
-                ),
-                const SizedBox(width: 16),
-                MacosIconButton(
-                  padding: const EdgeInsets.all(0),
-                  icon: const MacosIcon(
-                    CupertinoIcons.info,
-                    size: 16,
-                  ),
-                  onPressed: () => showMacosSheet(
-                      context: context,
-                      builder: (context) => ItemDialog(
-                            item,
-                            context: context,
-                          )),
-                )
-              ],
+        return DynamicListTile(
+          title: Text(item.name),
+          trailing: [
+            DynamicIconButton(
+              padding: const EdgeInsets.all(0),
+              icon: const MacosIcon(CupertinoIcons.cloud_download, size: 18),
+              onPressed: () => gTorrentManager.download(item, context: context),
             ),
-          ),
+            const SizedBox(width: 16),
+            DynamicIconButton(
+              padding: const EdgeInsets.all(0),
+              icon: const MacosIcon(
+                CupertinoIcons.info,
+                size: 16,
+              ),
+              onPressed: () => item.showDialog(context),
+            )
+          ],
           subtitle: Text(
               "${item.category ?? 'Unknown'}: Published at ${item.pubDate} ${item.size != null ? 'Size: ${item.size}' : ''}",
               style: const TextStyle(fontSize: 12)),

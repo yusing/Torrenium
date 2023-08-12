@@ -4,13 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
-import '../main.dart';
+import '../main.dart' show kIsDesktop;
 import '../services/subscription.dart';
 import '../style.dart';
 import '../utils/fetch_rss.dart';
 import '../utils/rss_providers.dart';
 import 'cupertino_picker_button.dart';
-import 'item_dialog.dart';
 import 'item_view.dart';
 
 typedef KV = MapEntry<String, String?>;
@@ -317,11 +316,8 @@ class _RSSTabState extends State<RSSTab> {
               ?.map((e) =>
                   SearchResultItem(e.name, child: RssSearchResult(item: e)))
               .toList(growable: false),
-          onResultSelected: (e) => showMacosSheet(
-              context: context,
-              builder: (context) => ItemDialog(
-                  (e.child as RssSearchResult).item,
-                  context: context))),
+          onResultSelected: (e) =>
+              (e.child as RssSearchResult).item.showDialog(context)),
     );
   }
 

@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:macos_ui/macos_ui.dart';
 
 import '../services/subscription.dart';
+import '../style.dart';
+import 'dynamic.dart';
 
 class SubscriptionsDialog extends MacosSheet {
   SubscriptionsDialog(BuildContext context, {super.key})
@@ -20,22 +22,26 @@ class SubscriptionsDialog extends MacosSheet {
                 : ListView.separated(
                     itemBuilder: (context, index) {
                       final sub = gSubscriptionManager.subscriptions[index];
-                      return MacosListTile(
-                          title: Row(
-                            children: [
-                              Expanded(child: Text(sub.keyword)),
-                              MacosIconButton(
-                                  icon: const Icon(CupertinoIcons.refresh),
-                                  onPressed: () async =>
-                                      await gSubscriptionManager.updateSub(
-                                          sub, true)),
-                              MacosIconButton(
-                                icon: const Icon(CupertinoIcons.delete),
-                                onPressed: () => gSubscriptionManager
-                                    .removeSubscription(sub),
-                              ),
-                            ],
+                      return DynamicListTile(
+                          title: Text(
+                            sub.keyword,
+                            style: kItemTitleTextStyle,
+                            softWrap: true,
+                            maxLines: 2,
                           ),
+                          trailing: [
+                            DynamicIconButton(
+                                icon: const Icon(CupertinoIcons.refresh),
+                                onPressed: () async =>
+                                    await gSubscriptionManager.updateSub(
+                                        sub, true)),
+                            const SizedBox(width: 16),
+                            DynamicIconButton(
+                              icon: const Icon(CupertinoIcons.delete),
+                              onPressed: () =>
+                                  gSubscriptionManager.removeSubscription(sub),
+                            ),
+                          ],
                           subtitle: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,

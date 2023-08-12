@@ -10,9 +10,11 @@ import 'package:path_provider/path_provider.dart';
 
 import '../classes/item.dart';
 import '../classes/torrent.dart';
-import 'storage.dart';
 import '../utils/ffi.dart';
 import '../utils/torrent_binding.dart' as torrent_binding;
+import 'storage.dart';
+import 'subscription.dart';
+import 'watch_history.dart';
 
 TorrentManager get gTorrentManager => TorrentManager.instance;
 
@@ -44,6 +46,8 @@ class TorrentManager {
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
     torrentList.remove(t);
+    WatchHistory.remove(t.nameHash);
+    gSubscriptionManager.addExclusion(t.nameHash);
     updateNotifier.notifyListeners();
   }
 

@@ -4,6 +4,7 @@ import '../utils/rss_providers.dart';
 import '../widgets/download_list_dialog.dart';
 import '../widgets/rss_tab.dart';
 import '../widgets/subscriptions_dialog.dart';
+import '../widgets/watch_history.dart';
 
 class MobileTab {
   final String title;
@@ -24,6 +25,7 @@ class MobileView extends StatefulWidget {
         'Downloads', CupertinoIcons.down_arrow, DownloadListDialog.content()),
     MobileTab(
         'Subscriptions', CupertinoIcons.star, SubscriptionsDialog.content()),
+    const MobileTab('History', CupertinoIcons.time, WatchHistoryPage())
   ];
   const MobileView({super.key});
 

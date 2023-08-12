@@ -43,21 +43,21 @@ class TorreniumApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // return kIsDesktop
-    //     ? MacosApp(
-    //         title: 'Torrenium',
-    //         theme: MacosThemeData.light(),
-    //         darkTheme: MacosThemeData.dark(),
-    //         debugShowCheckedModeBanner: false,
-    //         home: view)
-    //     : CupertinoApp(
-    //         title: 'Torrenium', debugShowCheckedModeBanner: false, home: view);
+    return kIsDesktop
+        ? MacosApp(
+            title: 'Torrenium',
+            theme: MacosThemeData.light(),
+            darkTheme: MacosThemeData.dark(),
+            debugShowCheckedModeBanner: false,
+            home: view)
+        : CupertinoApp(
+            title: 'Torrenium', debugShowCheckedModeBanner: false, home: view);
 
-    return MacosApp(
-        title: 'Torrenium',
-        theme: MacosThemeData.light(),
-        darkTheme: MacosThemeData.dark(),
-        debugShowCheckedModeBanner: false,
-        home: view);
+    // return MacosApp(
+    //     title: 'Torrenium',
+    //     theme: MacosThemeData.light(),
+    //     darkTheme: MacosThemeData.dark(),
+    //     debugShowCheckedModeBanner: false,
+    //     home: view);
   }
 }

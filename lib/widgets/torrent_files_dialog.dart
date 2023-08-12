@@ -10,6 +10,7 @@ import '../utils/ext_icons.dart';
 import '../services/torrent.dart';
 import '../utils/units.dart';
 
+// TODO: watch history
 class TorrentFliesSheet extends StatelessWidget {
   final Torrent torrent;
 

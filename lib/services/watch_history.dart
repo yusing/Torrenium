@@ -1,11 +1,14 @@
+import 'dart:collection';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:torrenium/services/torrent.dart';
+
+import '../classes/torrent.dart';
 import 'storage.dart';
 
 part 'watch_history.g.dart';
-
-enum WatchHistoryEntryType { vnameHasheo, image, audio, all }
 
 List<String> watchHistoryEntryTypeStringKey = [
   'anime',
@@ -13,6 +16,101 @@ List<String> watchHistoryEntryTypeStringKey = [
   'music',
   'all',
 ];
+
+class WatchHistories {
+  LinkedHashMap<String, WatchHistoryEntry> map;
+
+  WatchHistories(this.map);
+
+  factory WatchHistories.empty() {
+    return WatchHistories(LinkedHashMap<String, WatchHistoryEntry>());
+  }
+
+  factory WatchHistories.fromJson(Map<String, dynamic> json) =>
+      WatchHistories(LinkedHashMap.from(json.map((key, value) => MapEntry(
+          key, WatchHistoryEntry.fromJson(value as Map<String, dynamic>)))));
+
+  int get length => map.length;
+
+  WatchHistoryEntry? operator [](String key) => map[key];
+  WatchHistoryEntry elementAt(int index) => map.values.elementAt(index);
+
+  Map<String, dynamic> toJson() =>
+      map.map((key, value) => MapEntry(key, value.toJson()));
+}
+
+class WatchHistory {
+  static const _key = 'watch_histories';
+
+  static ValueNotifier notifier = ValueNotifier(null);
+  static WatchHistories list = get();
+
+  static Future<void> add(WatchHistoryEntry entry) async {
+    list.map.remove(entry.nameHash);
+    list.map[entry.nameHash] = entry;
+    await update();
+  }
+
+  static WatchHistories get() {
+    final json = Storage.getString(_key);
+    if (json == null) return WatchHistories.empty();
+    try {
+      return WatchHistories.fromJson(jsonDecode(json));
+    } catch (e) {
+      debugPrint(e.toString());
+      return WatchHistories.empty();
+    }
+  }
+
+  static Duration getDuration(String nameHash) {
+    return Duration(seconds: list.map[nameHash]?.duration ?? 0);
+  }
+
+  static int getIndex(String nameHash) {
+    return list.map[nameHash]?.position ?? 0;
+  }
+
+  static Duration getPosition(String nameHash) {
+    return Duration(seconds: getIndex(nameHash));
+  }
+
+  static double getProgress(String nameHash) {
+    final duration = getDuration(nameHash);
+    if (duration == Duration.zero) {
+      return 0;
+    }
+    final position = getPosition(nameHash);
+    return position.inSeconds / duration.inSeconds;
+  }
+
+  static Future<void> remove(String nameHash) async {
+    list.map.remove(nameHash);
+    await update();
+  }
+
+  static Future<void> update() async {
+    await Storage.setString(_key, jsonEncode(list));
+    notifier.notifyListeners();
+  }
+
+  static Future<void> updateDuration(String nameHash, Duration duration) async {
+    list.map[nameHash]?.duration = duration.inSeconds;
+    await update();
+  }
+
+  /* Image */
+  static Future<void> updateIndex(String nameHash, int index) async {
+    list.map[nameHash]?.position = index;
+    await update();
+  }
+
+  static Future<void> updatePosition(String nameHash, Duration position) async {
+    if (position == Duration.zero) {
+      return;
+    }
+    await updateIndex(nameHash, position.inSeconds);
+  }
+}
 
 @JsonSerializable()
 class WatchHistoryEntry {
@@ -30,114 +128,21 @@ class WatchHistoryEntry {
   factory WatchHistoryEntry.fromJson(Map<String, dynamic> json) =>
       _$WatchHistoryEntryFromJson(json);
   Map<String, dynamic> toJson() => _$WatchHistoryEntryToJson(this);
-}
 
-@JsonSerializable()
-class WatchHistories {
-  List<WatchHistoryEntry> value;
-
-  WatchHistories(this.value);
-
-  factory WatchHistories.empty() {
-    return WatchHistories([]);
-  }
-
-  factory WatchHistories.fromJson(Map<String, dynamic> json) =>
-      _$WatchHistoriesFromJson(json);
-  Map<String, dynamic> toJson() => _$WatchHistoriesToJson(this);
-}
-
-class WatchHistory {
-  static WatchHistories get() {
-    final json = Storage.getString(_key);
-    if (json == null) return WatchHistories.empty();
-    try {
-      return WatchHistories.fromJson(jsonDecode(json));
-    } catch (e) {
-      debugPrint(e.toString());
-      return WatchHistories.empty();
-    }
-  }
-
-  static Future<void> update() async {
-    await Storage.setString(_key, jsonEncode(history));
-  }
-
-  static Future<void> add(WatchHistoryEntry entry) async {
-    final entryIndex =
-        history.value.indexWhere((e) => e.nameHash == entry.nameHash);
-    if (entryIndex != -1) {
-      history.value.removeAt(entryIndex);
-    }
-    history.value.insert(0, entry);
-    await update();
-  }
-
-  static Future<void> remove(String nameHash) async {
-    history.value.removeWhere((e) => e.nameHash == nameHash);
-    await update();
-  }
-
-  static Future<void> updateDuration(String nameHash, Duration duration) async {
-    final entryIndex = history.value.indexWhere((e) => e.nameHash == nameHash);
-    if (entryIndex == -1) {
-      debugPrint('WatchHistory.updateDuration: entry not found');
-      return;
-    }
-    history.value[entryIndex].duration = duration.inSeconds;
-    await update();
-  }
-
-  static Duration getDuration(String nameHash) {
-    final entryIndex = history.value.indexWhere((e) => e.nameHash == nameHash);
-    if (entryIndex == -1) {
-      debugPrint('WatchHistory.getDuration: entry not found');
-      return Duration.zero;
-    }
-    return Duration(seconds: history.value[entryIndex].duration ?? 0);
-  }
-
-  /* Image */
-  static Future<void> updateIndex(String nameHash, int index) async {
-    final entryIndex = history.value.indexWhere((e) => e.nameHash == nameHash);
-    if (entryIndex == -1) {
-      debugPrint('WatchHistory.updateIndex $nameHash not found');
-      return;
-    }
-    history.value[entryIndex].position = index;
-    await update();
-  }
-
-  static int getIndex(String nameHash) {
-    var index = history.value.indexWhere((e) => e.nameHash == nameHash);
-    if (index == -1) {
-      debugPrint('WatchHistory.getIndex $nameHash not found');
+  double get progress {
+    if (duration == null || duration == 0) {
       return 0;
     }
-    index = history.value[index].position ?? 0;
-    return index;
-  }
-
-  static Future<void> updatePosition(String nameHash, Duration position) async {
-    if (position == Duration.zero) {
-      return;
-    }
-    await updateIndex(nameHash, position.inSeconds);
-  }
-
-  static Duration getPosition(String nameHash) {
-    return Duration(seconds: getIndex(nameHash));
-  }
-
-  static double getProgress(String nameHash) {
-    final duration = getDuration(nameHash);
-    if (duration == Duration.zero) {
+    if (position == null) {
       return 0;
     }
-    final position = getPosition(nameHash);
-    return position.inSeconds / duration.inSeconds;
+    return position! / duration!;
   }
 
-  static const _key = 'watch_histories';
-  static WatchHistories history = get();
+  Torrent get torrent => gTorrentManager.torrentList
+          .firstWhere((element) => element.nameHash == nameHash, orElse: () {
+        throw Exception('Torrent not found');
+      });
 }
+
+enum WatchHistoryEntryType { vnameHasheo, image, audio, all }

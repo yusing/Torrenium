@@ -7,6 +7,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter/services.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:torrenium/services/torrent.dart';
 
 import '../classes/torrent.dart';
 import '../services/watch_history.dart';
@@ -46,7 +47,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     torrent.updateWatchPosition(_vlcController.value.position);
     torrent.stateNotifier.notifyListeners();
     _vlcController.stop().then((_) => _vlcController.dispose());
-    Navigator.pop(context);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setPreferredOrientations([
@@ -54,6 +54,28 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    if (torrent.watchProgress >= .85) {
+      showCupertinoDialog(
+              context: context,
+              builder: (_) => CupertinoAlertDialog(
+                      title: const Text('Seems like finished watching'),
+                      content: const Text('Delete?'),
+                      actions: [
+                        CupertinoDialogAction(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('No')),
+                        CupertinoDialogAction(
+                            onPressed: () {
+                              gTorrentManager.deleteTorrent(torrent);
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Yes',
+                                style: TextStyle(color: Colors.red)))
+                      ]))
+          .then((value) => Navigator.pop(context)); // pop video player
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   @override

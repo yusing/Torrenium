@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
@@ -9,6 +8,7 @@ import 'package:logger/logger.dart';
 import '../classes/item.dart' show Item;
 import '../utils/fetch_rss.dart' show parseRSSForItems;
 import '../utils/rss_providers.dart' show RSSProvider, kProvidersDict;
+import '../utils/string.dart';
 import 'storage.dart';
 
 SubscriptionManager get gSubscriptionManager => SubscriptionManager.instance;
@@ -94,6 +94,15 @@ class SubscriptionManager {
   }
   List<Subscription> get _subs => subscriptions;
 
+  Future<void> addExclusion(String nameHash) {
+    final exclusions = getExclusions();
+    if (exclusions.contains(nameHash)) {
+      return Future.value();
+    }
+    exclusions.add(nameHash);
+    return Storage.instance.setStringList('subsExclusions', exclusions);
+  }
+
   Future<bool> addSubscription(
       {required String providerName,
       required String keyword,
@@ -112,6 +121,10 @@ class SubscriptionManager {
     await _saveSubscriptions();
     updateNotifier.notifyListeners();
     return true;
+  }
+
+  List<String> getExclusions() {
+    return Storage.instance.getStringList('subsExclusions') ?? [];
   }
 
   Future<bool> removeSubscription(Subscription sub) async {
@@ -135,6 +148,8 @@ class SubscriptionManager {
     }
     final subsTasksDone =
         force ? [] : Storage.instance.getStringList('subsTasksDone_$sub') ?? [];
+    subsTasksDone.addAll(getExclusions());
+
     final provider = sub.provider;
     if (provider == null) {
       Logger().e('Provider $provider not found');
@@ -146,7 +161,7 @@ class SubscriptionManager {
     if (resp.statusCode == 200) {
       final items = parseRSSForItems(provider, utf8.decode(resp.bodyBytes));
       final tasks = items.fold(<String, Item>{}, (prev, item) {
-        prev[sha256.convert(utf8.encode(item.name)).toString()] = item;
+        prev[item.name.sha256Hash.toString()] = item;
         return prev;
       });
       // start new tasks

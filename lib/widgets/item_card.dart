@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
 import '../style.dart';
-import 'item_dialog.dart';
 import 'cached_image.dart';
 
 class ItemCard extends StatelessWidget {
@@ -13,11 +11,7 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        await showMacosSheet(
-            context: context,
-            builder: ((context) => ItemDialog(item, context: context)));
-      },
+      onTap: () => item.showDialog(context),
       child: Card(
         color: Colors.transparent,
         shape: RoundedRectangleBorder(

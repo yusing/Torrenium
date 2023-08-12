@@ -79,7 +79,6 @@ class Torrent implements Comparable<Torrent> {
         bytesDownloaded: 0,
         bytesDownloadedInitial: 0);
   }
-
   String get animeNameKey => 'animeName:$nameHash';
 
   String get displayName => Storage.getString(animeNameKey) ?? name;
@@ -117,16 +116,25 @@ class Torrent implements Comparable<Torrent> {
       return -1;
     } else if (files.length == 1 && other.files.length > 1) {
       return 1;
+    } else if (watchProgress < other.watchProgress) {
+      return 1;
+    } else if (watchProgress > other.watchProgress) {
+      return -1;
     } else {
       return other.downloadedTime.compareTo(downloadedTime); // descending
     }
+  }
+
+  void delete() {
+    gTorrentManager.deleteTorrent(this);
   }
 
   void print() => Logger().i(
       "Torrent: name: $name\ninfoHash: $infoHash\nsize: ${size.humanReadableUnit}\nprogress: ${progress.percentageUnit}");
 
   Future<void> setDisplayName(String displayName) async =>
-      await Storage.setStringIfNotExists(animeNameKey, displayName);
+      await Storage.setStringIfNotExists(animeNameKey,
+          displayName.trim().replaceAll('【', '[').replaceAll('】', ']'));
 
   void startSelfUpdate() {
     _startTime = DateTime.now();
@@ -135,7 +143,6 @@ class Torrent implements Comparable<Torrent> {
         return;
       }
       if (!paused) {
-        // return; // Don't update if not in download page or torrent is paused
         Torrent tNewer = gTorrentManager.getTorrentInfo(this);
         if (progress != tNewer.progress) {
           progress = tNewer.progress;

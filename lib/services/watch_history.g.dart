@@ -21,15 +21,3 @@ Map<String, dynamic> _$WatchHistoryEntryToJson(WatchHistoryEntry instance) =>
       'duration': instance.duration,
       'position': instance.position,
     };
-
-WatchHistories _$WatchHistoriesFromJson(Map<String, dynamic> json) =>
-    WatchHistories(
-      (json['value'] as List<dynamic>)
-          .map((e) => WatchHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-
-Map<String, dynamic> _$WatchHistoriesToJson(WatchHistories instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-    };
