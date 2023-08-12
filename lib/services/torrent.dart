@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
+import 'package:torrenium/services/report_error.dart';
 
 import '../classes/item.dart';
 import '../classes/torrent.dart';
@@ -30,13 +31,23 @@ class TorrentManager {
       await torrent.setDisplayName(message['displayName']);
     });
 
-  static final _dylib = Platform.isWindows
-      ? DynamicLibrary.open('libtorrent_go.dll')
-      : Platform.isLinux || Platform.isAndroid
-          ? DynamicLibrary.open('libtorrent_go.so')
-          : DynamicLibrary.executable();
-  static final go = torrent_binding.TorrentGoBinding(_dylib);
+  static late final DynamicLibrary _dylib;
+  static late final torrent_binding.TorrentGoBinding go;
   final updateNotifier = ValueNotifier(null);
+
+  TorrentManager() {
+    try {
+      _dylib = Platform.isWindows
+          ? DynamicLibrary.open('libtorrent_go.dll')
+          : Platform.isLinux || Platform.isAndroid
+              ? DynamicLibrary.open('libtorrent_go.so')
+              : DynamicLibrary.process();
+      go = torrent_binding.TorrentGoBinding(_dylib);
+    } on Exception catch (e, st) {
+      reportError(
+          stackTrace: st, msg: 'Failed to load libtorrent_go', exception: e);
+    }
+  }
 
   var torrentList = <Torrent>[];
   late final Directory docDir;
@@ -109,7 +120,12 @@ class TorrentManager {
       throw Exception('Failed to create data path');
     });
 
-    go.InitTorrentClient.dartStringCall(instance.savePath);
+    try {
+      go.InitTorrentClient.dartStringCall(instance.savePath);
+    } on Exception catch (e, st) {
+      reportError(
+          stackTrace: st, msg: 'Failed to load libtorrent_go', exception: e);
+    }
     Logger().d('TorrentClient initialized');
 
     // load last session
