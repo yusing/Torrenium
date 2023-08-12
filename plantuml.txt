@@ -1,0 +1,602 @@
+@startuml
+set namespaceSeparator ::
+
+class "torrenium::classes::item.dart::Item" {
+  +String name
+  +String description
+  +String? torrentUrl
+  +String pubDate
+  +String? category
+  +String? author
+  +String? coverUrl
+  +String? size
+  +dynamic coverPhotoFallback()
+  +dynamic showDialog()
+  +dynamic startDownload()
+}
+
+class "torrenium::classes::item.dart::TorreniumCacheManager" {
+  {static} +String key
+  {static} -TorreniumCacheManager? _instance
+}
+
+"torrenium::classes::item.dart::TorreniumCacheManager" o-- "torrenium::classes::item.dart::TorreniumCacheManager"
+"flutter_cache_manager::src::cache_manager.dart::CacheManager" <|-- "torrenium::classes::item.dart::TorreniumCacheManager"
+
+class "torrenium::classes::item.dart::TorreniumHttpFileService" {
+  +dynamic get()
+}
+
+"flutter_cache_manager::src::web::file_service.dart::FileService" <|-- "torrenium::classes::item.dart::TorreniumHttpFileService"
+
+class "torrenium::classes::torrent.dart::Torrent" {
+  +String name
+  +String infoHash
+  +int size
+  +List<TorrentFile> files
+  +Pointer<Void> torrentPtr
+  +int bytesDownloadedInitial
+  +bool paused
+  +num progress
+  +int bytesDownloaded
+  +ValueNotifier<void> stateNotifier
+  -Timer? _updateTimer
+  -DateTime _startTime
+  -DateTime? _downloadedTime
+  +String animeNameKey
+  +String displayName
+  +DateTime downloadedTime
+  +double etaSecs
+  +String fullPath
+  +IconData icon
+  +bool isComplete
+  +bool isMultiFile
+  +bool isPlaceholder
+  +Duration lastPosition
+  +String nameHash
+  +double watchProgress
+  +int compareTo()
+  +void delete()
+  +void print()
+  +dynamic setDisplayName()
+  +void startSelfUpdate()
+  +void stopSelfUpdate()
+  +void updateDetail()
+  +dynamic updateWatchPosition()
+  {static} +List<Torrent> listFromJson()
+}
+
+"torrenium::classes::torrent.dart::Torrent" o-- "dart::ffi::Pointer<Void>"
+"torrenium::classes::torrent.dart::Torrent" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<void>"
+"torrenium::classes::torrent.dart::Torrent" o-- "dart::async::Timer"
+"torrenium::classes::torrent.dart::Torrent" o-- "flutter::src::widgets::icon_data.dart::IconData"
+"dart::core::Comparable" <|-- "torrenium::classes::torrent.dart::Torrent"
+
+class "torrenium::classes::torrent_file.dart::TorrentFile" {
+  +String name
+  +int size
+  +String relativePath
+  +int bytesDownloaded
+  +num progress
+}
+
+class "torrenium::main.dart::TorreniumApp" {
+  {static} +Widget view
+  +Widget build()
+}
+
+"torrenium::main.dart::TorreniumApp" o-- "flutter::src::widgets::framework.dart::Widget"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::main.dart::TorreniumApp"
+
+class "torrenium::services::storage.dart::Storage" {
+  {static} +SharedPreferences instance
+  {static} +String getCache()
+  {static} +String? getString()
+  {static} +bool hasCache()
+  {static} +bool hasKey()
+  {static} +dynamic init()
+  {static} +dynamic removeCache()
+  {static} +dynamic removeKey()
+  {static} +dynamic setCache()
+  {static} +dynamic setString()
+  {static} +dynamic setStringIfNotExists()
+}
+
+"torrenium::services::storage.dart::Storage" o-- "shared_preferences::shared_preferences.dart::SharedPreferences"
+
+class "torrenium::services::subscription.dart::Subscription" {
+  +String providerName
+  +String keyword
+  +String? category
+  +String? author
+  +ValueNotifier<DateTime?> lastUpdateNotifier
+  +ValueNotifier<int?> tasksDoneNotifier
+  +int hashCode
+  +RSSProvider? provider
+  +bool ==()
+  +void initNotifiers()
+  +String toString()
+}
+
+"torrenium::services::subscription.dart::Subscription" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<DateTime>"
+"torrenium::services::subscription.dart::Subscription" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<int>"
+"torrenium::services::subscription.dart::Subscription" o-- "torrenium::utils::rss_providers.dart::RSSProvider"
+
+class "torrenium::services::subscription.dart::SubscriptionManager" {
+  {static} +SubscriptionManager instance
+  -Timer _updateTimer
+  +List<Subscription> subscriptions
+  +ValueNotifier<Null> updateNotifier
+  -List<Subscription> _subs
+  +dynamic addExclusion()
+  +dynamic addSubscription()
+  +List<String> getExclusions()
+  +dynamic removeSubscription()
+  +dynamic updateSub()
+  -dynamic _saveSubscriptions()
+  {static} +void init()
+  {static} +dynamic update()
+}
+
+"torrenium::services::subscription.dart::SubscriptionManager" o-- "torrenium::services::subscription.dart::SubscriptionManager"
+"torrenium::services::subscription.dart::SubscriptionManager" o-- "dart::async::Timer"
+"torrenium::services::subscription.dart::SubscriptionManager" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<Null>"
+
+class "torrenium::services::torrent.dart::TorrentManager" {
+  {static} +TorrentManager instance
+  {static} -ReceivePort _isolateToMain
+  {static} -DynamicLibrary _dylib
+  {static} +TorrentGoBinding go
+  +ValueNotifier<Null> updateNotifier
+  +List<Torrent> torrentList
+  +Directory docDir
+  +String savePath
+  +void deleteTorrent()
+  +dynamic downloadItem()
+  +Torrent getTorrentInfo()
+  +void pauseTorrent()
+  +void resumeTorrent()
+  {static} +dynamic init()
+}
+
+"torrenium::services::torrent.dart::TorrentManager" o-- "torrenium::services::torrent.dart::TorrentManager"
+"torrenium::services::torrent.dart::TorrentManager" o-- "dart::isolate::ReceivePort"
+"torrenium::services::torrent.dart::TorrentManager" o-- "dart::ffi::DynamicLibrary"
+"torrenium::services::torrent.dart::TorrentManager" o-- "torrenium::utils::torrent_binding.dart::TorrentGoBinding"
+"torrenium::services::torrent.dart::TorrentManager" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<Null>"
+"torrenium::services::torrent.dart::TorrentManager" o-- "dart::io::Directory"
+
+class "torrenium::services::watch_history.dart::WatchHistories" {
+  +LinkedHashMap<String, WatchHistoryEntry> map
+  +int length
+  +WatchHistoryEntry? []()
+  +WatchHistoryEntry elementAt()
+  +Map<String, dynamic> toJson()
+}
+
+"torrenium::services::watch_history.dart::WatchHistories" o-- "dart::collection::LinkedHashMap<String, WatchHistoryEntry>"
+
+class "torrenium::services::watch_history.dart::WatchHistory" {
+  {static} -String _key
+  {static} +ValueNotifier<dynamic> notifier
+  {static} +WatchHistories list
+  {static} +dynamic add()
+  {static} +WatchHistories get()
+  {static} +Duration getDuration()
+  {static} +int getIndex()
+  {static} +Duration getPosition()
+  {static} +double getProgress()
+  {static} +dynamic remove()
+  {static} +dynamic update()
+  {static} +dynamic updateDuration()
+  {static} +dynamic updateIndex()
+  {static} +dynamic updatePosition()
+}
+
+"torrenium::services::watch_history.dart::WatchHistory" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<dynamic>"
+"torrenium::services::watch_history.dart::WatchHistory" o-- "torrenium::services::watch_history.dart::WatchHistories"
+
+class "torrenium::services::watch_history.dart::WatchHistoryEntry" {
+  +String nameHash
+  +String title
+  +int? duration
+  +int? position
+  +double progress
+  +Torrent torrent
+  +Map<String, dynamic> toJson()
+}
+
+"torrenium::services::watch_history.dart::WatchHistoryEntry" o-- "torrenium::classes::torrent.dart::Torrent"
+
+class "torrenium::services::watch_history.dart::WatchHistoryEntryType" {
+  +int index
+  {static} +List<WatchHistoryEntryType> values
+  {static} +WatchHistoryEntryType vnameHasheo
+  {static} +WatchHistoryEntryType image
+  {static} +WatchHistoryEntryType audio
+  {static} +WatchHistoryEntryType all
+}
+
+"torrenium::services::watch_history.dart::WatchHistoryEntryType" o-- "torrenium::services::watch_history.dart::WatchHistoryEntryType"
+"dart::core::Enum" <|-- "torrenium::services::watch_history.dart::WatchHistoryEntryType"
+
+class "torrenium::utils::http.dart::MyHttpOverrides" {
+  +HttpClient createHttpClient()
+}
+
+"dart::_http::HttpOverrides" <|-- "torrenium::utils::http.dart::MyHttpOverrides"
+
+class "torrenium::utils::rss_providers.dart::RSSProvider" {
+  +String name
+  +String homePageUrl
+  +String logoPath
+  +String rssPath
+  +String? mainPagePath
+  +String searchParams
+  +String itemNameTag
+  +String? authorNameTag
+  +String pubDateTag
+  +String? categoryTag
+  +String? fileSizeTag
+  +String descriptionTag
+  +bool supportAdvancedSearch
+  +String? Function(XmlElement)? magnetUrlGetter
+  +String? Function(XmlElement)? coverUrlGetter
+  +Map<String, String?>? categoryRssMap
+  +Map<String, String?>? authorRssMap
+  +String logoUrl
+  +String rssUrl
+  +String searchUrl()
+}
+
+"torrenium::utils::rss_providers.dart::RSSProvider" o-- "torrenium::utils::rss_providers.dart::String Function(XmlElement)"
+
+class "torrenium::utils::rss_providers.dart::RSSHubProvider" {
+}
+
+"torrenium::utils::rss_providers.dart::RSSProvider" <|-- "torrenium::utils::rss_providers.dart::RSSHubProvider"
+
+class "torrenium::utils::torrent_binding.dart::TorrentGoBinding" {
+  -Pointer<T> Function<T extends NativeType>(String) _lookup
+  -Pointer<NativeFunction<Void Function(Pointer<Char>)>> _InitTorrentClientPtr
+  -void Function(Pointer<Char>) _InitTorrentClient
+  -Pointer<NativeFunction<Void Function(Pointer<Char>)>> _FreeCStringPtr
+  -void Function(Pointer<Char>) _FreeCString
+  -Pointer<NativeFunction<Pointer<Char> Function(Pointer<Char>)>> _AddMagnetPtr
+  -Pointer<Char> Function(Pointer<Char>) _AddMagnet
+  -Pointer<NativeFunction<Pointer<Char> Function(Pointer<Char>)>> _AddTorrentPtr
+  -Pointer<Char> Function(Pointer<Char>) _AddTorrent
+  -Pointer<NativeFunction<Void Function(Pointer<Void>)>> _PauseTorrentPtr
+  -void Function(Pointer<Void>) _PauseTorrent
+  -Pointer<NativeFunction<Size Function(Pointer<Char>)>> _ResumeTorrentPtr
+  -int Function(Pointer<Char>) _ResumeTorrent
+  -Pointer<NativeFunction<Void Function(Pointer<Void>)>> _DeleteTorrentPtr
+  -void Function(Pointer<Void>) _DeleteTorrent
+  -Pointer<NativeFunction<Pointer<Char> Function(Pointer<Void>)>> _GetTorrentInfoPtr
+  -Pointer<Char> Function(Pointer<Void>) _GetTorrentInfo
+  -Pointer<NativeFunction<Pointer<Char> Function()>> _GetTorrentListPtr
+  -Pointer<Char> Function() _GetTorrentList
+  +void InitTorrentClient()
+  +void FreeCString()
+  +Pointer<Char> AddMagnet()
+  +Pointer<Char> AddTorrent()
+  +void PauseTorrent()
+  +int ResumeTorrent()
+  +void DeleteTorrent()
+  +Pointer<Char> GetTorrentInfo()
+  +Pointer<Char> GetTorrentList()
+}
+
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::Pointer<T> Function<T extends NativeType>(String)"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "dart::ffi::Pointer<NativeFunction<Void Function(Pointer<Char>)>>"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::void Function(Pointer<Char>)"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "dart::ffi::Pointer<NativeFunction<Pointer<Char> Function(Pointer<Char>)>>"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::Pointer<Char> Function(Pointer<Char>)"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "dart::ffi::Pointer<NativeFunction<Void Function(Pointer<Void>)>>"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::void Function(Pointer<Void>)"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "dart::ffi::Pointer<NativeFunction<Size Function(Pointer<Char>)>>"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::int Function(Pointer<Char>)"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "dart::ffi::Pointer<NativeFunction<Pointer<Char> Function(Pointer<Void>)>>"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::Pointer<Char> Function(Pointer<Void>)"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "dart::ffi::Pointer<NativeFunction<Pointer<Char> Function()>>"
+"torrenium::utils::torrent_binding.dart::TorrentGoBinding" o-- "null::Pointer<Char> Function()"
+
+class "torrenium::view::desktop_view.dart::DesktopView" {
+  +State<DesktopView> createState()
+}
+
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::view::desktop_view.dart::DesktopView"
+
+class "torrenium::view::desktop_view.dart::TitleBar" {
+  {static} -ValueNotifier<double> _progressUpdateNotifier
+  -Timer _progressUpdateTimer
+}
+
+"torrenium::view::desktop_view.dart::TitleBar" o-- "flutter::src::foundation::change_notifier.dart::ValueNotifier<double>"
+"torrenium::view::desktop_view.dart::TitleBar" o-- "dart::async::Timer"
+"macos_ui::src::layout::toolbar::toolbar.dart::ToolBar" <|-- "torrenium::view::desktop_view.dart::TitleBar"
+
+class "torrenium::view::desktop_view.dart::_DesktopViewState" {
+  -MacosTabController _tabController
+  +Widget build()
+  +void dispose()
+}
+
+"torrenium::view::desktop_view.dart::_DesktopViewState" o-- "macos_ui::src::layout::tab_view::tab_controller.dart::MacosTabController"
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::view::desktop_view.dart::_DesktopViewState"
+
+class "torrenium::view::mobile_view.dart::MobileTab" {
+  +String title
+  +IconData icon
+  +StatefulWidget child
+}
+
+"torrenium::view::mobile_view.dart::MobileTab" o-- "flutter::src::widgets::icon_data.dart::IconData"
+"torrenium::view::mobile_view.dart::MobileTab" o-- "flutter::src::widgets::framework.dart::StatefulWidget"
+
+class "torrenium::view::mobile_view.dart::MobileView" {
+  {static} -CupertinoTabController _tabController
+  {static} +List<MobileTab> kPages
+  +State<MobileView> createState()
+}
+
+"torrenium::view::mobile_view.dart::MobileView" o-- "flutter::src::cupertino::tab_scaffold.dart::CupertinoTabController"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::view::mobile_view.dart::MobileView"
+
+class "torrenium::view::mobile_view.dart::_MobileViewState" {
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::view::mobile_view.dart::_MobileViewState"
+
+class "torrenium::widgets::af_dropdown.dart::AFDropdown" {
+  +Map<T, String> itemsMap
+  +T Function() valueGetter
+  +void Function(T?) onChanged
+  +State<AFDropdown<T>> createState()
+}
+
+"torrenium::widgets::af_dropdown.dart::AFDropdown" o-- "flutter::src::foundation::basic_types.dart::T Function()"
+"torrenium::widgets::af_dropdown.dart::AFDropdown" o-- "flutter::src::foundation::basic_types.dart::void Function(T)"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::widgets::af_dropdown.dart::AFDropdown"
+
+class "torrenium::widgets::af_dropdown.dart::_AFDropdownState" {
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::widgets::af_dropdown.dart::_AFDropdownState"
+
+class "torrenium::widgets::cached_image.dart::CachedImage" {
+}
+
+"cached_network_image::src::cached_image_widget.dart::CachedNetworkImage" <|-- "torrenium::widgets::cached_image.dart::CachedImage"
+
+class "torrenium::widgets::cupertino_picker_button.dart::CupertinoPickerButton" {
+  +void Function(int)? onSelectedItemChanged
+  +Iterable<T>? items
+  +T? value
+  +Text Function(T) itemBuilder
+  +void Function(T?) onPop
+  +State<CupertinoPickerButton<T>> createState()
+}
+
+"torrenium::widgets::cupertino_picker_button.dart::CupertinoPickerButton" o-- "flutter::src::foundation::basic_types.dart::void Function(int)"
+"torrenium::widgets::cupertino_picker_button.dart::CupertinoPickerButton" o-- "null::Text Function(T)"
+"torrenium::widgets::cupertino_picker_button.dart::CupertinoPickerButton" o-- "null::void Function(T)"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::widgets::cupertino_picker_button.dart::CupertinoPickerButton"
+
+class "torrenium::widgets::cupertino_picker_button.dart::_CupertinoPickerButtonState" {
+  -int _selectedItem
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::widgets::cupertino_picker_button.dart::_CupertinoPickerButtonState"
+
+class "torrenium::widgets::download_list_dialog.dart::DownloadListDialog" {
+  {static} +StatefulWidget content()
+}
+
+"macos_ui::src::sheets::macos_sheet.dart::MacosSheet" <|-- "torrenium::widgets::download_list_dialog.dart::DownloadListDialog"
+
+class "torrenium::widgets::download_list_dialog.dart::DownloadListItem" {
+}
+
+"flutter::src::widgets::value_listenable_builder.dart::ValueListenableBuilder" <|-- "torrenium::widgets::download_list_dialog.dart::DownloadListItem"
+
+class "torrenium::widgets::download_list_dialog.dart::_DownloadListItemStatic" {
+  +BuildContext context
+  +Torrent torrent
+}
+
+"torrenium::widgets::download_list_dialog.dart::_DownloadListItemStatic" o-- "flutter::src::widgets::framework.dart::BuildContext"
+"torrenium::widgets::download_list_dialog.dart::_DownloadListItemStatic" o-- "torrenium::classes::torrent.dart::Torrent"
+"torrenium::widgets::dynamic.dart::DynamicListTile" <|-- "torrenium::widgets::download_list_dialog.dart::_DownloadListItemStatic"
+
+class "torrenium::widgets::dynamic.dart::DynamicIcon" {
+  +IconData icon
+  +Color? color
+  +double? size
+  +Widget build()
+}
+
+"torrenium::widgets::dynamic.dart::DynamicIcon" o-- "flutter::src::widgets::icon_data.dart::IconData"
+"torrenium::widgets::dynamic.dart::DynamicIcon" o-- "dart::ui::Color"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::dynamic.dart::DynamicIcon"
+
+class "torrenium::widgets::dynamic.dart::DynamicIconButton" {
+  +Widget icon
+  +void Function() onPressed
+  +EdgeInsetsGeometry? padding
+  +Widget build()
+}
+
+"torrenium::widgets::dynamic.dart::DynamicIconButton" o-- "flutter::src::widgets::framework.dart::Widget"
+"torrenium::widgets::dynamic.dart::DynamicIconButton" o-- "dart::ui::void Function()"
+"torrenium::widgets::dynamic.dart::DynamicIconButton" o-- "flutter::src::painting::edge_insets.dart::EdgeInsetsGeometry"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::dynamic.dart::DynamicIconButton"
+
+class "torrenium::widgets::dynamic.dart::DynamicListTile" {
+  +Widget title
+  +Widget? subtitle
+  +Widget? leading
+  +List<Widget>? trailing
+  +void Function()? onTap
+  +Widget build()
+}
+
+"torrenium::widgets::dynamic.dart::DynamicListTile" o-- "flutter::src::widgets::framework.dart::Widget"
+"torrenium::widgets::dynamic.dart::DynamicListTile" o-- "dart::ui::void Function()"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::dynamic.dart::DynamicListTile"
+
+class "torrenium::widgets::dynamic.dart::DynamicProgressBar" {
+  +double value
+  +Color? trackColor
+  +Widget build()
+}
+
+"torrenium::widgets::dynamic.dart::DynamicProgressBar" o-- "dart::ui::Color"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::dynamic.dart::DynamicProgressBar"
+
+class "torrenium::widgets::item_card.dart::ItemCard" {
+  +Item item
+  +Widget build()
+}
+
+"torrenium::widgets::item_card.dart::ItemCard" o-- "torrenium::classes::item.dart::Item"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::item_card.dart::ItemCard"
+
+class "torrenium::widgets::item_dialog.dart::ItemDialog" {
+  {static} +Widget content()
+}
+
+"macos_ui::src::sheets::macos_sheet.dart::MacosSheet" <|-- "torrenium::widgets::item_dialog.dart::ItemDialog"
+
+class "torrenium::widgets::item_view.dart::ItemGridView" {
+  +ScrollController? controller
+  +List<Item> items
+  +Widget build()
+}
+
+"torrenium::widgets::item_view.dart::ItemGridView" o-- "flutter::src::widgets::scroll_controller.dart::ScrollController"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::item_view.dart::ItemGridView"
+
+class "torrenium::widgets::item_view.dart::ItemListView" {
+  +ScrollController? controller
+  +List<Item> items
+  +Widget build()
+}
+
+"torrenium::widgets::item_view.dart::ItemListView" o-- "flutter::src::widgets::scroll_controller.dart::ScrollController"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::item_view.dart::ItemListView"
+
+class "torrenium::widgets::play_pause_button.dart::PlayPauseButton" {
+  +void Function() play
+  +void Function() pause
+  +bool isPlaying
+}
+
+"torrenium::widgets::play_pause_button.dart::PlayPauseButton" o-- "dart::ui::void Function()"
+"flutter::src::cupertino::button.dart::CupertinoButton" <|-- "torrenium::widgets::play_pause_button.dart::PlayPauseButton"
+
+class "torrenium::widgets::rss_tab.dart::RssSearchResult" {
+  +Item item
+}
+
+"torrenium::widgets::rss_tab.dart::RssSearchResult" o-- "torrenium::classes::item.dart::Item"
+"flutter::src::widgets::text.dart::Text" <|-- "torrenium::widgets::rss_tab.dart::RssSearchResult"
+
+class "torrenium::widgets::rss_tab.dart::RSSTab" {
+  +RSSProvider provider
+  +State<RSSTab> createState()
+}
+
+"torrenium::widgets::rss_tab.dart::RSSTab" o-- "torrenium::utils::rss_providers.dart::RSSProvider"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::widgets::rss_tab.dart::RSSTab"
+
+class "torrenium::widgets::rss_tab.dart::_RSSTabState" {
+  {static} -String _keyword
+  -int? _selectedCategoryIndex
+  -int? _selectedAuthorIndex
+  -TextEditingController _searchController
+  +RSSProvider provider
+  +List<Widget> buttons
+  +MapEntry<String, String?>? selectedAuthor
+  +MapEntry<String, String?>? selectedCategory
+  +Widget authorDropdown()
+  +Widget authorDropdownInner()
+  +Widget build()
+  +Widget categoryDropdown()
+  +Widget categoryDropdownInner()
+  +void didUpdateWidget()
+  +void dispose()
+  +void initState()
+  +Widget searchBar()
+  +Widget urlBar()
+  +Widget urlBarInner()
+}
+
+"torrenium::widgets::rss_tab.dart::_RSSTabState" o-- "flutter::src::widgets::editable_text.dart::TextEditingController"
+"torrenium::widgets::rss_tab.dart::_RSSTabState" o-- "torrenium::utils::rss_providers.dart::RSSProvider"
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::widgets::rss_tab.dart::_RSSTabState"
+
+class "torrenium::widgets::subscriptions_dialog.dart::SubscriptionsDialog" {
+  {static} +StatefulWidget content()
+}
+
+"macos_ui::src::sheets::macos_sheet.dart::MacosSheet" <|-- "torrenium::widgets::subscriptions_dialog.dart::SubscriptionsDialog"
+
+class "torrenium::widgets::toolbar_window_button.dart::ToolbarWindowButton" {
+}
+
+"macos_ui::src::labels::tooltip.dart::MacosTooltip" <|-- "torrenium::widgets::toolbar_window_button.dart::ToolbarWindowButton"
+
+class "torrenium::widgets::torrent_files_dialog.dart::TorrentFliesSheet" {
+  +Torrent torrent
+  +Widget build()
+}
+
+"torrenium::widgets::torrent_files_dialog.dart::TorrentFliesSheet" o-- "torrenium::classes::torrent.dart::Torrent"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "torrenium::widgets::torrent_files_dialog.dart::TorrentFliesSheet"
+
+class "torrenium::widgets::video_player.dart::VideoPlayerPage" {
+  +Torrent torrent
+  +State<VideoPlayerPage> createState()
+}
+
+"torrenium::widgets::video_player.dart::VideoPlayerPage" o-- "torrenium::classes::torrent.dart::Torrent"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::widgets::video_player.dart::VideoPlayerPage"
+
+class "torrenium::widgets::video_player.dart::_VideoPlayerPageState" {
+  -VlcPlayerController _vlcController
+  -int? _activeAudioTrack
+  -int? _activeSubtitleTrack
+  -double _playbackSpeed
+  -OverlayEntry _overlay
+  +Torrent torrent
+  +void addToHistory()
+  +void back()
+  +Widget build()
+  +void initState()
+  -dynamic _onVlcInit()
+  -void _showOptions()
+}
+
+"torrenium::widgets::video_player.dart::_VideoPlayerPageState" o-- "flutter_vlc_player::src::vlc_player_controller.dart::VlcPlayerController"
+"torrenium::widgets::video_player.dart::_VideoPlayerPageState" o-- "flutter::src::widgets::overlay.dart::OverlayEntry"
+"torrenium::widgets::video_player.dart::_VideoPlayerPageState" o-- "torrenium::classes::torrent.dart::Torrent"
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::widgets::video_player.dart::_VideoPlayerPageState"
+
+class "torrenium::widgets::watch_history.dart::WatchHistoryPage" {
+  +State<WatchHistoryPage> createState()
+}
+
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "torrenium::widgets::watch_history.dart::WatchHistoryPage"
+
+class "torrenium::widgets::watch_history.dart::_WatchHistoryPageState" {
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "torrenium::widgets::watch_history.dart::_WatchHistoryPageState"
+
+
+@enduml
