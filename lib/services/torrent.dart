@@ -46,7 +46,7 @@ class TorrentManager {
           ? DynamicLibrary.open('libtorrent_go.dll')
           : Platform.isLinux || Platform.isAndroid
               ? DynamicLibrary.open('libtorrent_go.so')
-              : DynamicLibrary.executable();
+              : DynamicLibrary.process();
       go = torrent_binding.TorrentGoBinding(_dylib);
     } on Exception catch (e, st) {
       reportError(
