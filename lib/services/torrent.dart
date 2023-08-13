@@ -7,10 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
-import 'package:torrenium/services/error_reporter.dart';
 
 import '../classes/item.dart';
 import '../classes/torrent.dart';
+import '../main.dart' show kIsDesktop;
+import '../services/error_reporter.dart';
 import '../utils/ffi.dart';
 import '../utils/torrent_binding.dart' as torrent_binding;
 import 'storage.dart';
@@ -35,6 +36,10 @@ class TorrentManager {
   static late final torrent_binding.TorrentGoBinding go;
   final updateNotifier = ValueNotifier(null);
 
+  var torrentList = <Torrent>[];
+
+  late final Directory docDir;
+  late String savePath;
   TorrentManager() {
     try {
       _dylib = Platform.isWindows
@@ -48,10 +53,6 @@ class TorrentManager {
           stackTrace: st, msg: 'Failed to load libtorrent_go', error: e);
     }
   }
-
-  var torrentList = <Torrent>[];
-  late final Directory docDir;
-  late String savePath;
 
   void deleteTorrent(Torrent t) {
     t.stopSelfUpdate();
@@ -101,6 +102,8 @@ class TorrentManager {
     instance = TorrentManager();
     if (Platform.isAndroid) {
       instance.docDir = await getApplicationSupportDirectory();
+    } else if (Platform.isIOS) {
+      instance.docDir = await getApplicationDocumentsDirectory();
     } else {
       instance.docDir = await getDownloadsDirectory() ??
           await getApplicationDocumentsDirectory();
@@ -112,13 +115,16 @@ class TorrentManager {
           'savePath', pathlib.join(instance.docDir.path, 'Torrenium'));
     }
     instance.savePath = Storage.getString('savePath')!;
-    final dataPath = pathlib.join(instance.savePath, 'data');
-    Logger().d('savePath: ${instance.savePath}');
-    // create save path if it doesn't exist
-    await Directory(dataPath).create(recursive: true).catchError((e) {
-      Logger().e(e);
-      throw Exception('Failed to create data path');
-    });
+
+    if (kIsDesktop) {
+      final dataPath = pathlib.join(instance.savePath, 'data');
+      Logger().d('savePath: ${instance.savePath}');
+      // create save path if it doesn't exist
+      await Directory(dataPath).create(recursive: true).catchError((e) {
+        Logger().e(e);
+        throw Exception('Failed to create data path');
+      });
+    }
 
     try {
       go.InitTorrentClient.dartStringCall(instance.savePath);
