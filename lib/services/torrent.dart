@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
-import 'package:torrenium/services/report_error.dart';
+import 'package:torrenium/services/error_reporter.dart';
 
 import '../classes/item.dart';
 import '../classes/torrent.dart';
@@ -41,11 +41,11 @@ class TorrentManager {
           ? DynamicLibrary.open('libtorrent_go.dll')
           : Platform.isLinux || Platform.isAndroid
               ? DynamicLibrary.open('libtorrent_go.so')
-              : DynamicLibrary.process();
+              : DynamicLibrary.executable();
       go = torrent_binding.TorrentGoBinding(_dylib);
     } on Exception catch (e, st) {
       reportError(
-          stackTrace: st, msg: 'Failed to load libtorrent_go', exception: e);
+          stackTrace: st, msg: 'Failed to load libtorrent_go', error: e);
     }
   }
 
@@ -124,7 +124,7 @@ class TorrentManager {
       go.InitTorrentClient.dartStringCall(instance.savePath);
     } on Exception catch (e, st) {
       reportError(
-          stackTrace: st, msg: 'Failed to load libtorrent_go', exception: e);
+          stackTrace: st, msg: 'Failed to load libtorrent_go', error: e);
     }
     Logger().d('TorrentClient initialized');
 
