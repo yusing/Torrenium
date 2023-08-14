@@ -131,6 +131,7 @@ class TorrentManager {
     } on Exception catch (e, st) {
       reportError(
           stackTrace: st, msg: 'Failed to load libtorrent_go', error: e);
+      rethrow;
     }
     Logger().d('TorrentClient initialized');
 
