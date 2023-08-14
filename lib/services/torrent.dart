@@ -46,7 +46,7 @@ class TorrentManager {
           ? DynamicLibrary.open('libtorrent_go.dll')
           : Platform.isLinux || Platform.isAndroid
               ? DynamicLibrary.open('libtorrent_go.so')
-              : DynamicLibrary.process();
+              : DynamicLibrary.open('libtorrent_go.dylib');
       go = torrent_binding.TorrentGoBinding(_dylib);
     } on Exception catch (e, st) {
       reportError(
@@ -103,7 +103,7 @@ class TorrentManager {
     if (Platform.isAndroid) {
       instance.docDir = await getApplicationSupportDirectory();
     } else if (Platform.isIOS) {
-      instance.docDir = await getApplicationDocumentsDirectory();
+      instance.docDir = await getLibraryDirectory();
     } else {
       instance.docDir = await getDownloadsDirectory() ??
           await getApplicationDocumentsDirectory();
