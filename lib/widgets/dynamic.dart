@@ -119,3 +119,35 @@ class DynamicProgressBar extends StatelessWidget {
     );
   }
 }
+
+class DynamicTextButton extends StatelessWidget {
+  final Widget icon;
+  final Widget label;
+  final VoidCallback onPressed;
+
+  const DynamicTextButton(
+      {super.key,
+      required this.icon,
+      required this.label,
+      required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsDesktop) {
+      return MacosIconButton(
+          padding: const EdgeInsets.all(6),
+          icon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [icon, const SizedBox(width: 6), label],
+          ),
+          onPressed: onPressed);
+    }
+    return CupertinoButton(
+        padding: const EdgeInsets.all(6),
+        onPressed: onPressed,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [icon, const SizedBox(width: 6), label],
+        ));
+  }
+}

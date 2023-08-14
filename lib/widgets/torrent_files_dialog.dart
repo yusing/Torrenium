@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:path/path.dart' as pathlib;
 
@@ -33,7 +33,7 @@ class TorrentFliesSheet extends StatelessWidget {
                 getPathIcon(pathlib.join(
                     gTorrentManager.savePath, torrent.name, file.relativePath)),
                 size: 32,
-                color: Colors.white,
+                color: CupertinoColors.white,
               ),
               title: Text(file.name, style: kItemTitleTextStyle),
               subtitle: file.progress == 1

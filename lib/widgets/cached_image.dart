@@ -1,5 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 import '../classes/item.dart';
@@ -25,7 +25,7 @@ class CachedImage extends CachedNetworkImage {
           width: width,
           height: height,
           errorWidget: (context, url, error) => fallbackGetter == null
-              ? const Icon(Icons.error)
+              ? const Icon(CupertinoIcons.exclamationmark_circle_fill)
               : FutureBuilder(
                   future: fallbackGetter(),
                   builder: (context, snapshot) {
@@ -38,7 +38,8 @@ class CachedImage extends CachedNetworkImage {
                           fit: fit);
                     } else if (snapshot.hasError) {
                       Logger().e('error', snapshot.error, snapshot.stackTrace);
-                      return const Icon(Icons.error);
+                      return const Icon(
+                          CupertinoIcons.exclamationmark_circle_fill);
                     } else {
                       return const Center(child: ProgressCircle());
                     }

@@ -84,6 +84,9 @@ class TorreniumApp extends StatelessWidget {
             home: content())
         : CupertinoApp(
             title: 'Torrenium',
+            theme: const CupertinoThemeData(
+                brightness: Brightness.dark,
+                primaryColor: CupertinoColors.activeOrange),
             debugShowCheckedModeBanner: false,
             home: content());
   }

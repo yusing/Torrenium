@@ -22,9 +22,9 @@ class MobileView extends StatefulWidget {
     MobileTab(
         'Home', CupertinoIcons.home, RSSTab(provider: kRssProviders.first)),
     MobileTab(
-        'Downloads', CupertinoIcons.down_arrow, DownloadListDialog.content()),
-    MobileTab(
         'Subscriptions', CupertinoIcons.star, SubscriptionsDialog.content()),
+    MobileTab(
+        'Downloads', CupertinoIcons.down_arrow, DownloadListDialog.content()),
     const MobileTab('History', CupertinoIcons.time, WatchHistoryPage())
   ];
   const MobileView({super.key});

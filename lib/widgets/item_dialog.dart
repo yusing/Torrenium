@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -12,7 +12,7 @@ import '../utils/gradient.dart';
 class ItemDialog extends MacosSheet {
   ItemDialog(BuildContext context, Item item, {super.key})
       : super(
-            backgroundColor: Colors.black.withAlpha(147),
+            backgroundColor: CupertinoColors.black.withAlpha(147),
             child: Container(
                 decoration: gradientDecoration,
                 padding: EdgeInsets.all(kIsDesktop ? 32.0 : 8.0),

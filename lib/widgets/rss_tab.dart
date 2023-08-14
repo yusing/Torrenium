@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
@@ -10,6 +10,7 @@ import '../style.dart';
 import '../utils/fetch_rss.dart';
 import '../utils/rss_providers.dart';
 import 'cupertino_picker_button.dart';
+import 'dynamic.dart';
 import 'item_view.dart';
 
 typedef KV = MapEntry<String, String?>;
@@ -37,13 +38,13 @@ class _RSSTabState extends State<RSSTab> {
   late var provider = widget.provider;
 
   List<Widget> get buttons => [
-        TextButton.icon(
-          icon: const MacosIcon(CupertinoIcons.refresh),
+        DynamicTextButton(
+          icon: const DynamicIcon(CupertinoIcons.refresh),
           label: const Text('Refresh'),
           onPressed: () => setState(() {}),
         ),
-        TextButton.icon(
-            icon: const MacosIcon(CupertinoIcons.star),
+        DynamicTextButton(
+            icon: const DynamicIcon(CupertinoIcons.star),
             label: const Text('Subscribe'),
             onPressed: () async {
               if (_keyword.trim().isEmpty) {
@@ -104,14 +105,15 @@ class _RSSTabState extends State<RSSTab> {
         });
     if (!kIsDesktop) {
       return CupertinoPickerButton(
-          items: provider.authorRssMap?.entries,
-          itemBuilder: (e) => Text(e.key),
-          value: selectedAuthor,
+          items: provider.authorRssMap?.keys,
+          itemBuilder: (e) => Text(e),
+          value: selectedAuthor?.key,
           onPop: (e) {
             if (e == null) {
               return;
             }
-            onChange(provider.authorRssMap?.keys.toList().indexOf(e.key));
+            onChange(
+                provider.authorRssMap?.keys.toList(growable: false).indexOf(e));
           });
     }
 
@@ -233,14 +235,16 @@ class _RSSTabState extends State<RSSTab> {
         });
     if (!kIsDesktop) {
       return CupertinoPickerButton(
-          items: provider.categoryRssMap?.entries,
-          itemBuilder: (e) => Text(e.key),
-          value: selectedCategory,
+          items: provider.categoryRssMap?.keys,
+          itemBuilder: (e) => Text(e),
+          value: selectedCategory?.key,
           onPop: (e) {
             if (e == null) {
               return;
             }
-            onChange(provider.categoryRssMap?.keys.toList().indexOf(e.key));
+            onChange(provider.categoryRssMap?.keys
+                .toList(growable: false)
+                .indexOf(e));
           });
     }
     return MacosPopupButton(
@@ -346,10 +350,11 @@ class _RSSTabState extends State<RSSTab> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: SizedBox(
         width: double.infinity,
-        child: Card(
-            color: Colors.black26,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        child: Container(
+            color: CupertinoColors.darkBackgroundGray,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                shape: BoxShape.rectangle),
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),

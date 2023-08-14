@@ -7,7 +7,7 @@ class CupertinoPickerButton<T> extends StatefulWidget {
   final Iterable<T>? items;
   final T? value;
   final Text Function(T item) itemBuilder;
-  final void Function(T?) onPop;
+  final void Function(T) onPop;
 
   const CupertinoPickerButton({
     super.key,
@@ -46,7 +46,10 @@ class _CupertinoPickerButtonState<T> extends State<CupertinoPickerButton<T>> {
                   children: widget.items!
                       .map((e) => widget.itemBuilder(e))
                       .toList(growable: false)))
-          .then((value) => widget.onPop(value)),
+          .then((value) {
+        if (value == null) return;
+        widget.onPop.call(value);
+      }),
       child: Text(
           widget.itemBuilder(widget.items!.elementAt(_selectedItem)).data!),
     );

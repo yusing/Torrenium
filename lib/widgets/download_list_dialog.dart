@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
-import 'package:macos_ui/macos_ui.dart' show MacosSheet, showMacosAlertDialog;
+import 'package:macos_ui/macos_ui.dart'
+    show MacosColors, MacosSheet, showMacosAlertDialog;
 
 import '../classes/torrent.dart';
 import '../main.dart' show kIsDesktop;
@@ -46,7 +46,9 @@ class _DownloadListItemStatic extends DynamicListTile {
   _DownloadListItemStatic(this.context, this.torrent)
       : super(
           leading: DynamicIcon(torrent.icon,
-              color: torrent.isMultiFile ? Colors.yellowAccent : Colors.white,
+              color: torrent.isMultiFile
+                  ? MacosColors.appleYellow
+                  : MacosColors.white,
               size: 32),
           title: Text(
             torrent.displayName,
@@ -66,7 +68,7 @@ class _DownloadListItemStatic extends DynamicListTile {
                               torrent.paused
                                   ? CupertinoIcons.play_circle_fill
                                   : CupertinoIcons.pause_circle_fill,
-                              color: Colors.grey[700],
+                              color: MacosColors.systemGrayColor,
                             ),
                             onPressed: () => pauseBtnSetState(() {
                                   if (torrent.paused) {
@@ -83,9 +85,9 @@ class _DownloadListItemStatic extends DynamicListTile {
                         padding: const EdgeInsets.only(right: 8.0),
                         child: DynamicIconButton(
                             padding: const EdgeInsets.all(0),
-                            icon: Icon(
+                            icon: const Icon(
                               CupertinoIcons.search_circle_fill,
-                              color: Colors.grey[700],
+                              color: MacosColors.systemGrayColor,
                               size: 24,
                             ),
                             onPressed: () async {
@@ -102,7 +104,7 @@ class _DownloadListItemStatic extends DynamicListTile {
                         padding: const EdgeInsets.all(0),
                         icon: const Icon(
                           CupertinoIcons.delete,
-                          color: Colors.redAccent,
+                          color: MacosColors.appleRed,
                         ),
                         onPressed: () {
                           gTorrentManager.deleteTorrent(torrent);
@@ -113,43 +115,41 @@ class _DownloadListItemStatic extends DynamicListTile {
                         });
                   }),
                 ],
-          subtitle: Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Builder(builder: (context) {
-                return ConstrainedBox(
-                    constraints: BoxConstraints(
-                        minWidth: MediaQuery.of(context).size.width),
-                    child: DynamicProgressBar(
-                      value: (torrent.isComplete
-                              ? torrent.watchProgress
-                              : torrent.progress)
-                          .toDouble(),
-                      trackColor:
-                          torrent.isComplete ? Colors.purpleAccent : null,
-                    ));
-              }),
-              if (!torrent.isComplete)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                      "${torrent.bytesDownloaded.humanReadableUnit} of ${torrent.size.humanReadableUnit} - ${torrent.etaSecs.timeUnit} remaining",
-                      style: kItemTitleTextStyle),
-                )
-              else if (torrent.isMultiFile)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                    '${torrent.files.length} files',
-                    style: kItemTitleTextStyle,
-                  ),
-                )
-              else
-                const SizedBox.shrink(),
-            ],
-          ),
-          onTap: () => openTorrent(context, torrent),
+          subtitle: torrent.isComplete
+              ? null
+              : Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Builder(builder: (context) {
+                      return ConstrainedBox(
+                          constraints: BoxConstraints(
+                              minWidth: MediaQuery.of(context).size.width),
+                          child: DynamicProgressBar(
+                            value: torrent.progress.toDouble(),
+                            trackColor: torrent.isComplete
+                                ? MacosColors.applePurple
+                                : null,
+                          ));
+                    }),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                          "${torrent.bytesDownloaded.humanReadableUnit} of ${torrent.size.humanReadableUnit} - ${torrent.etaSecs.timeUnit} remaining",
+                          style: kItemTitleTextStyle),
+                    ),
+                    if (torrent.isMultiFile)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '${torrent.files.length} files',
+                          style: kItemTitleTextStyle,
+                        ),
+                      )
+                  ],
+                ),
+          onTap:
+              torrent.isComplete ? () => openTorrent(context, torrent) : null,
         );
 }

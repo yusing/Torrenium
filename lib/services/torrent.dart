@@ -32,27 +32,20 @@ class TorrentManager {
       await torrent.setDisplayName(message['displayName']);
     });
 
-  static late final DynamicLibrary _dylib;
-  static late final torrent_binding.TorrentGoBinding go;
+  /* !Must be static otherwise invalid argument inside isolate */
+  static late final DynamicLibrary _dylib = Platform.isWindows
+      ? DynamicLibrary.open('libtorrent_go.dll')
+      : Platform.isLinux || Platform.isAndroid
+          ? DynamicLibrary.open('libtorrent_go.so')
+          : DynamicLibrary.open('libtorrent_go.dylib');
+  static late final torrent_binding.TorrentGoBinding go =
+      torrent_binding.TorrentGoBinding(_dylib);
   final updateNotifier = ValueNotifier(null);
 
   var torrentList = <Torrent>[];
 
   late final Directory docDir;
   late String savePath;
-  TorrentManager() {
-    try {
-      _dylib = Platform.isWindows
-          ? DynamicLibrary.open('libtorrent_go.dll')
-          : Platform.isLinux || Platform.isAndroid
-              ? DynamicLibrary.open('libtorrent_go.so')
-              : DynamicLibrary.open('libtorrent_go.dylib');
-      go = torrent_binding.TorrentGoBinding(_dylib);
-    } on Exception catch (e, st) {
-      reportError(
-          stackTrace: st, msg: 'Failed to load libtorrent_go', error: e);
-    }
-  }
 
   void deleteTorrent(Torrent t) {
     t.stopSelfUpdate();

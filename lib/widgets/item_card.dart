@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../classes/item.dart';
 import '../style.dart';
@@ -12,10 +12,10 @@ class ItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => item.showDialog(context),
-      child: Card(
-        color: Colors.transparent,
-        shape: RoundedRectangleBorder(
+      child: Container(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
+          color: const Color.fromARGB(0, 0, 0, 0),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

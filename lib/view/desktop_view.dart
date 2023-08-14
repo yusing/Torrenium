@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/material.dart' show Colors, TextButton;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -10,6 +9,7 @@ import '../services/torrent.dart';
 import '../services/torrent_ext.dart';
 import '../utils/rss_providers.dart';
 import '../widgets/download_list_dialog.dart';
+import '../widgets/dynamic.dart';
 import '../widgets/rss_tab.dart';
 import '../widgets/subscriptions_dialog.dart';
 import '../widgets/toolbar_window_button.dart';
@@ -49,24 +49,24 @@ class TitleBar extends ToolBar {
                     children: [
                       ToolbarWindowButton(
                         tooltipMessage: 'Close',
-                        color: Colors.red,
+                        color: MacosColors.appleRed,
                         onPressed: appWindow.close,
                       ),
                       const SizedBox(width: 6),
                       ToolbarWindowButton(
                         tooltipMessage: 'Minimize',
-                        color: Colors.yellow,
+                        color: MacosColors.appleYellow,
                         onPressed: appWindow.minimize,
                       ),
                       const SizedBox(width: 6),
                       ToolbarWindowButton(
                         tooltipMessage: 'Maximize/Restore',
-                        color: Colors.green,
+                        color: MacosColors.appleGreen,
                         onPressed: appWindow.maximizeOrRestore,
                       ),
                       const SizedBox(width: 6),
                       Builder(
-                          builder: (context) => TextButton.icon(
+                          builder: (context) => DynamicTextButton(
                                 label: const Text('Downloads'),
                                 // tooltipMessage: '${_progressUpdateNotifier.value.toInt()}%',
                                 icon: ValueListenableBuilder(
@@ -77,7 +77,7 @@ class TitleBar extends ToolBar {
                                           ? ProgressCircle(
                                               value:
                                                   _progressUpdateNotifier.value,
-                                              innerColor: Colors.indigoAccent,
+                                              innerColor: MacosColors.appleBlue,
                                             )
                                           : const MacosIcon(
                                               CupertinoIcons.cloud_download);
@@ -112,7 +112,7 @@ class TitleBar extends ToolBar {
                               )),
                       const SizedBox(width: 6),
                       Builder(
-                          builder: (context) => TextButton.icon(
+                          builder: (context) => DynamicTextButton(
                                 onPressed: () async {
                                   await showMacosSheet(
                                       barrierDismissible: true,
@@ -125,7 +125,7 @@ class TitleBar extends ToolBar {
                                 label: const Text('Subscriptions'),
                               )),
                       const SizedBox(width: 6),
-                      TextButton.icon(
+                      DynamicTextButton(
                         onPressed: () async =>
                             await gTorrentManager.selectSavePath(),
                         icon: const MacosIcon(CupertinoIcons.folder_badge_plus),
