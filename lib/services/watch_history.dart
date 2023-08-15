@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:torrenium/classes/download_item.dart';
 import 'package:torrenium/services/torrent.dart';
 
 import '../classes/torrent.dart';
@@ -139,10 +140,19 @@ class WatchHistoryEntry {
     return position! / duration!;
   }
 
-  Torrent get torrent => gTorrentManager.torrentList
-          .firstWhere((element) => element.nameHash == nameHash, orElse: () {
-        throw Exception('Torrent not found');
-      });
+  DownloadItem get item {
+    // find any torrent with this nameHash
+    // otherwise search for all multi-file torrents and return the file with the nameHash
+
+    return gTorrentManager.torrentList
+        .cast()
+        .firstWhere((t) => t.nameHash == nameHash, orElse: () {
+      final torrent = gTorrentManager.torrentList.firstWhere(
+          (t) => t.isMultiFile && t.files.any((f) => f.nameHash == nameHash),
+          orElse: () => throw Exception('Torrent not found'));
+      return torrent.files.firstWhere((f) => f.nameHash == nameHash);
+    });
+  }
 }
 
 enum WatchHistoryEntryType { vnameHasheo, image, audio, all }

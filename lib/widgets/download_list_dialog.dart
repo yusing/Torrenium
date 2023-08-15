@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart'
     show MacosColors, MacosSheet, showMacosAlertDialog;
@@ -100,7 +102,22 @@ class _DownloadListItemStatic extends DynamicListTile {
                               } else {
                                 await showCupertinoModalPopup(
                                     context: context,
-                                    builder: (_) => TorrentFliesSheet(torrent));
+                                    filter:
+                                        ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                    builder: (_) => Container(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                .8,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: CupertinoColors
+                                              .systemBackground
+                                              .resolveFrom(context)
+                                              .withOpacity(.8),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        child: TorrentFliesSheet(torrent)));
                               }
                             }),
                       );

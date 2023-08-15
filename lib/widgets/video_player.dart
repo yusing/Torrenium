@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
@@ -39,10 +40,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void back() {
-    _overlay.remove();
+    if (_overlay.mounted) {
+      _overlay.remove();
+    }
     item.updateWatchPosition(_vlcController.value.position);
     WatchHistory.notifier.notifyListeners();
-    _vlcController.stop().then((_) => _vlcController.dispose());
     // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     if (item.watchProgress >= .85) {
@@ -100,6 +102,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       _overlay.remove();
     }
     _overlay.dispose();
+    _vlcController.stop().then((value) => _vlcController.dispose());
     super.dispose();
   }
 
@@ -230,7 +233,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
       ),
     );
-    _vlcController = VlcPlayerController.network(item.fullPath.encodeUrl(),
+    debugPrint(item.fullPath);
+    assert(File(item.fullPath).existsSync());
+    _vlcController = VlcPlayerController.file(File(item.fullPath),
         autoPlay: true,
         options: VlcPlayerOptions(
             video: VlcVideoOptions([

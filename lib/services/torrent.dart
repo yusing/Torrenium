@@ -71,6 +71,7 @@ class TorrentManager {
         "displayName": item.name
       });
     }, _isolateToMain.sendPort);
+    torrentList.sort();
     updateNotifier.notifyListeners();
   }
 

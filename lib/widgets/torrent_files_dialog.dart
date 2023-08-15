@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:macos_ui/macos_ui.dart';
 import 'package:path/path.dart' as pathlib;
 
 import '../classes/torrent.dart';
@@ -36,7 +35,11 @@ class TorrentFliesSheet extends StatelessWidget {
               size: 32,
               color: CupertinoColors.white,
             ),
-            title: Text(file.name, style: kItemTitleTextStyle),
+            title: Text(
+              file.name,
+              style: kItemTitleTextStyle,
+              maxLines: 2,
+            ),
             subtitle: file.progress == 1
                 ? Text(
                     file.size.humanReadableUnit,
@@ -50,15 +53,15 @@ class TorrentFliesSheet extends StatelessWidget {
                         const SizedBox(height: 4),
                         SizedBox(
                           width: MediaQuery.of(context).size.width - 162,
-                          child: ProgressBar(
-                              value: file.progress.toDouble() * 100),
+                          child: DynamicProgressBar(
+                              value: file.progress.toDouble()),
                         ),
                         const SizedBox(height: 8),
                         Text(
                             "${file.bytesDownloaded.humanReadableUnit} of ${file.size.humanReadableUnit}",
                             style: kItemTitleTextStyle),
                       ]),
-            onTap: () => openItem(context, torrent),
+            onTap: () => openItem(context, file),
           );
         },
       ),
