@@ -30,6 +30,8 @@ class TorrentManager {
       torrent.updateDetail(Torrent.fromJson(message['torrent']));
       torrent.startSelfUpdate();
       await torrent.setDisplayName(message['displayName']);
+      instance.torrentList.sort();
+      instance.updateNotifier.notifyListeners();
     });
 
   /* !Must be static otherwise invalid argument inside isolate */
@@ -71,7 +73,6 @@ class TorrentManager {
         "displayName": item.name
       });
     }, _isolateToMain.sendPort);
-    torrentList.sort();
     updateNotifier.notifyListeners();
   }
 
