@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 
-import '../classes/torrent.dart';
+import '../classes/download_item.dart';
 import 'show_video_player.dart';
 
-Future<void> openTorrent(BuildContext context, Torrent torrent) async {
+Future<void> openItem(BuildContext context, DownloadItem item) async {
   // TODO: implement video player for linux/macos
   if (Platform.isWindows) {
-    await Process.run('start', ['', torrent.fullPath], runInShell: true);
+    await Process.run('start', ['', item.fullPath], runInShell: true);
   } else {
-    await showVideoPlayer(context, torrent);
+    await showVideoPlayer(context, item);
   }
 }

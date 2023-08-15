@@ -40,7 +40,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                       trackColor: CupertinoColors.systemPurple,
                     ),
                   ),
-                  onTap: () => openTorrent(context, item.torrent),
+                  onTap: () => openItem(context, item.torrent),
                 );
               },
             );

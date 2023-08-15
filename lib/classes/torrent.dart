@@ -3,29 +3,24 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/widgets.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
-import 'package:torrenium/services/watch_history.dart';
 
 import '../services/storage.dart';
 import '../services/torrent.dart';
 import '../utils/ext_icons.dart';
-import '../utils/units.dart';
+import '../utils/string.dart';
+import 'download_item.dart';
 import 'item.dart';
 import 'torrent_file.dart';
 
-class Torrent implements Comparable<Torrent> {
-  String name;
-  String infoHash;
-  int size;
+class Torrent extends DownloadItem implements Comparable<Torrent> {
+  String name, infoHash;
   List<TorrentFile> files = [];
   Pointer<Void> torrentPtr;
-  int bytesDownloadedInitial;
+  int size, bytesDownloaded, bytesDownloadedInitial;
   bool paused = false;
   num progress;
-  int bytesDownloaded;
   ValueNotifier<void> stateNotifier = ValueNotifier(null);
   Timer? _updateTimer;
   late DateTime _startTime;
@@ -64,6 +59,7 @@ class Torrent implements Comparable<Torrent> {
       bytesDownloadedInitial:
           json['bytes_downloaded'] ?? json['progress'] * json['size'],
     );
+    final fp = torrent.fullPath;
     for (final file in json['files']) {
       torrent.files.add(TorrentFile.fromJson(file));
     }
@@ -79,8 +75,9 @@ class Torrent implements Comparable<Torrent> {
         bytesDownloaded: 0,
         bytesDownloadedInitial: 0);
   }
-  String get animeNameKey => 'animeName:$nameHash';
+  String get animeNameKey => 'animeName:${name.sha256Hash}';
 
+  @override
   String get displayName => Storage.getString(animeNameKey) ?? name;
 
   DateTime get downloadedTime => _downloadedTime ??=
@@ -93,6 +90,7 @@ class Torrent implements Comparable<Torrent> {
               progress)
           .toDouble();
 
+  @override
   String get fullPath => pathlib.join(gTorrentManager.savePath, name);
 
   IconData get icon => getPathIcon(fullPath);
@@ -102,12 +100,6 @@ class Torrent implements Comparable<Torrent> {
   bool get isMultiFile => files.length > 1;
 
   bool get isPlaceholder => infoHash == 'placeholder';
-
-  Duration get lastPosition => WatchHistory.getPosition(nameHash);
-
-  String get nameHash => sha256.convert(utf8.encode(name)).toString();
-
-  double get watchProgress => WatchHistory.getProgress(nameHash);
 
   @override
   int compareTo(Torrent other) {
@@ -125,12 +117,10 @@ class Torrent implements Comparable<Torrent> {
     }
   }
 
+  @override
   void delete() {
     gTorrentManager.deleteTorrent(this);
   }
-
-  void print() => Logger().i(
-      "Torrent: name: $name\ninfoHash: $infoHash\nsize: ${size.humanReadableUnit}\nprogress: ${progress.percentageUnit}");
 
   Future<void> setDisplayName(String displayName) async =>
       await Storage.setStringIfNotExists(animeNameKey,
@@ -172,10 +162,6 @@ class Torrent implements Comparable<Torrent> {
     bytesDownloadedInitial = other.bytesDownloadedInitial;
     progress = other.progress;
     bytesDownloaded = other.bytesDownloaded;
-  }
-
-  Future<void> updateWatchPosition(Duration pos) async {
-    await WatchHistory.updatePosition(nameHash, pos);
   }
 
   static List<Torrent> listFromJson(String jsonStr) {

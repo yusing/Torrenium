@@ -1,6 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
-class TorrentFile {
+import 'package:path/path.dart' as pathlib;
+
+import '../services/torrent.dart';
+import 'download_item.dart';
+
+class TorrentFile extends DownloadItem {
   final String name;
   final int size;
   final String relativePath;
@@ -32,4 +38,17 @@ class TorrentFile {
       progress: json['progress'],
     );
   }
+
+  @override
+  String get displayName => name;
+
+  bool get exists => File(fullPath).existsSync();
+
+  @override
+  String get fullPath {
+    return pathlib.join(gTorrentManager.savePath, relativePath);
+  }
+
+  @override
+  void delete() => File(fullPath).deleteSync();
 }

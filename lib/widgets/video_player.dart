@@ -6,8 +6,7 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../classes/torrent.dart';
-import '../services/torrent.dart';
+import '../classes/download_item.dart';
 import '../services/watch_history.dart';
 import '../utils/string.dart';
 import '../utils/units.dart';
@@ -16,8 +15,9 @@ import 'dynamic.dart';
 import 'play_pause_button.dart';
 
 class VideoPlayerPage extends StatefulWidget {
-  final Torrent torrent;
-  const VideoPlayerPage(this.torrent, {super.key});
+  final DownloadItem item;
+
+  const VideoPlayerPage(this.item, {super.key});
 
   @override
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
@@ -28,24 +28,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _playbackSpeed = 1.0;
   late OverlayEntry _overlay;
 
-  Torrent get torrent => widget.torrent;
+  DownloadItem get item => widget.item;
 
   void addToHistory() {
     WatchHistory.add(WatchHistoryEntry(
-        title: torrent.displayName,
-        nameHash: torrent.nameHash,
+        title: item.displayName,
+        nameHash: item.nameHash,
         duration: _vlcController.value.duration.inSeconds,
         position: _vlcController.value.position.inSeconds));
   }
 
   void back() {
     _overlay.remove();
-    torrent.updateWatchPosition(_vlcController.value.position);
-    torrent.stateNotifier.notifyListeners();
+    item.updateWatchPosition(_vlcController.value.position);
+    WatchHistory.notifier.notifyListeners();
     _vlcController.stop().then((_) => _vlcController.dispose());
     // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-    if (torrent.watchProgress >= .85) {
+    if (item.watchProgress >= .85) {
       showCupertinoDialog(
           context: context,
           builder: (_) => CupertinoAlertDialog(
@@ -57,7 +57,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         child: const Text('No')),
                     CupertinoDialogAction(
                         onPressed: () {
-                          gTorrentManager.deleteTorrent(torrent);
+                          item.delete();
                           Navigator.pop(context);
                         },
                         child: const Text('Yes',
@@ -113,119 +113,124 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           color: CupertinoColors.black.withOpacity(0.5),
           margin: const EdgeInsets.all(0),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  CupertinoButton(
-                      onPressed: back,
-                      child: const Icon(CupertinoIcons.back,
-                          color: CupertinoColors.white)),
-                  Expanded(
-                      child: Text(
-                    torrent.displayName,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w500),
-                  )),
-                  CupertinoButton(
-                    onPressed: _showOptions,
-                    child: const Icon(FontAwesomeIcons.sliders,
-                        color: CupertinoColors.white),
-                  )
-                ],
-              ),
-              SizedBox(
-                width: 400,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CupertinoButton(
-                          onPressed: () => _vlcController.seekTo(
-                              _vlcController.value.position -
-                                  const Duration(seconds: 5)),
-                          child: const Icon(
-                            FontAwesomeIcons.backward,
-                            size: 32,
-                            color: CupertinoColors.white,
-                          ),
-                        ),
-                        const Text('5',
-                            style: TextStyle(color: CupertinoColors.systemGrey))
-                      ],
-                    ),
-                    ValueListenableBuilder(
-                      valueListenable: _vlcController,
-                      builder: (_, __, ___) => PlayPauseButton(
-                          iconSize: 32,
-                          color: CupertinoColors.white,
-                          play: _vlcController.play,
-                          pause: _vlcController.pause,
-                          isPlaying: _vlcController.value.isPlaying),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CupertinoButton(
-                          child: const Icon(FontAwesomeIcons.forward,
-                              size: 32, color: CupertinoColors.white),
-                          onPressed: () => _vlcController.seekTo(
-                              _vlcController.value.position +
-                                  const Duration(seconds: 5)),
-                        ),
-                        const Text('5',
-                            style: TextStyle(color: CupertinoColors.systemGrey))
-                      ],
-                    ),
+                    CupertinoButton(
+                        onPressed: back,
+                        child: const Icon(CupertinoIcons.back,
+                            color: CupertinoColors.white)),
+                    Expanded(
+                        child: Text(
+                      item.displayName,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500),
+                    )),
+                    CupertinoButton(
+                      onPressed: _showOptions,
+                      child: const Icon(FontAwesomeIcons.sliders,
+                          color: CupertinoColors.white),
+                    )
                   ],
                 ),
-              ),
-              Row(
-                children: [
-                  ValueListenableBuilder(
-                    valueListenable: _vlcController,
-                    builder: (_, v, ___) => Text.rich(TextSpan(
-                        text: v.position.toStringNoMs(),
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w500),
+                SizedBox(
+                  width: 400,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          TextSpan(
-                              text: ' / ${v.duration.toStringNoMs()}',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: CupertinoColors.white.withOpacity(.8)))
-                        ])),
+                          CupertinoButton(
+                            onPressed: () => _vlcController.seekTo(
+                                _vlcController.value.position -
+                                    const Duration(seconds: 5)),
+                            child: const Icon(
+                              FontAwesomeIcons.backward,
+                              size: 32,
+                              color: CupertinoColors.white,
+                            ),
+                          ),
+                          const Text('5',
+                              style:
+                                  TextStyle(color: CupertinoColors.systemGrey))
+                        ],
+                      ),
+                      ValueListenableBuilder(
+                        valueListenable: _vlcController,
+                        builder: (_, __, ___) => PlayPauseButton(
+                            iconSize: 32,
+                            color: CupertinoColors.white,
+                            play: _vlcController.play,
+                            pause: _vlcController.pause,
+                            isPlaying: _vlcController.value.isPlaying),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CupertinoButton(
+                            child: const Icon(FontAwesomeIcons.forward,
+                                size: 32, color: CupertinoColors.white),
+                            onPressed: () => _vlcController.seekTo(
+                                _vlcController.value.position +
+                                    const Duration(seconds: 5)),
+                          ),
+                          const Text('5',
+                              style:
+                                  TextStyle(color: CupertinoColors.systemGrey))
+                        ],
+                      ),
+                    ],
                   ),
-                  Expanded(
-                      child: ValueListenableBuilder(
-                    valueListenable: _vlcController,
-                    builder: (_, v, ___) => CupertinoSlider(
-                      value: v.position.inSeconds.toDouble(),
-                      onChanged: (_) {},
-                      onChangeEnd: (vNew) => _vlcController
-                          .seekTo(Duration(seconds: vNew.toInt())),
-                      min: 0.0,
-                      max: max(
-                          1.0, // maybe uninitialized
-                          v.duration.inSeconds
-                              .toDouble()), // _durationSecs.value may load after _positionSecs.value
-                      activeColor: CupertinoColors.white,
-                      thumbColor: CupertinoColors.systemRed,
+                ),
+                Row(
+                  children: [
+                    ValueListenableBuilder(
+                      valueListenable: _vlcController,
+                      builder: (_, v, ___) => Text.rich(TextSpan(
+                          text: v.position.toStringNoMs(),
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500),
+                          children: [
+                            TextSpan(
+                                text: ' / ${v.duration.toStringNoMs()}',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color:
+                                        CupertinoColors.white.withOpacity(.8)))
+                          ])),
                     ),
-                  ))
-                ],
-              ),
-            ],
+                    Expanded(
+                        child: ValueListenableBuilder(
+                      valueListenable: _vlcController,
+                      builder: (_, v, ___) => CupertinoSlider(
+                        value: v.position.inSeconds.toDouble(),
+                        onChanged: (_) {},
+                        onChangeEnd: (vNew) => _vlcController
+                            .seekTo(Duration(seconds: vNew.toInt())),
+                        min: 0.0,
+                        max: max(
+                            1.0, // maybe uninitialized
+                            v.duration.inSeconds
+                                .toDouble()), // _durationSecs.value may load after _positionSecs.value
+                        activeColor: CupertinoColors.white,
+                        thumbColor: CupertinoColors.systemRed,
+                      ),
+                    ))
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
-    _vlcController = VlcPlayerController.network(torrent.fullPath.encodeUrl(),
+    _vlcController = VlcPlayerController.network(item.fullPath.encodeUrl(),
         autoPlay: true,
         options: VlcPlayerOptions(
             video: VlcVideoOptions([
@@ -242,8 +247,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Future<void> _onVlcInit() async {
     Timer.periodic(const Duration(milliseconds: 100), (timer) async {
       if (_vlcController.value.duration != Duration.zero) {
-        if (torrent.progress > 0) {
-          await _vlcController.seekTo(torrent.lastPosition);
+        if (item.watchProgress > 0) {
+          await _vlcController.seekTo(item.lastPosition);
         }
         addToHistory();
         timer.cancel();

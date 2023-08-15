@@ -215,7 +215,6 @@ class _RSSTabState extends State<RSSTab> {
       updateUrl();
     }
 
-    ;
     if (!kIsDesktop) {
       return CupertinoPickerButton(
           items: List.generate(provider.authorRssMap?.length ?? 0, (i) => i,
@@ -255,7 +254,6 @@ class _RSSTabState extends State<RSSTab> {
       updateUrl();
     }
 
-    ;
     if (!kIsDesktop) {
       return CupertinoPickerButton(
           items: List.generate(provider.categoryRssMap?.length ?? 0, (i) => i,

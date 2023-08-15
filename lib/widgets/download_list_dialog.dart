@@ -91,11 +91,17 @@ class _DownloadListItemStatic extends DynamicListTile {
                               size: 24,
                             ),
                             onPressed: () async {
-                              await showMacosAlertDialog(
-                                  context: context,
-                                  barrierDismissible: true,
-                                  builder: (context) =>
-                                      TorrentFliesSheet(torrent));
+                              if (kIsDesktop) {
+                                await showMacosAlertDialog(
+                                    context: context,
+                                    barrierDismissible: true,
+                                    builder: (context) => MacosSheet(
+                                        child: TorrentFliesSheet(torrent)));
+                              } else {
+                                await showCupertinoModalPopup(
+                                    context: context,
+                                    builder: (_) => TorrentFliesSheet(torrent));
+                              }
                             }),
                       );
                     }),
@@ -149,7 +155,8 @@ class _DownloadListItemStatic extends DynamicListTile {
                       )
                   ],
                 ),
-          onTap:
-              torrent.isComplete ? () => openTorrent(context, torrent) : null,
+          onTap: torrent.isComplete && !torrent.isMultiFile
+              ? () => openItem(context, torrent)
+              : null,
         );
 }
