@@ -33,12 +33,12 @@ class TorrentManager {
     });
 
   /* !Must be static otherwise invalid argument inside isolate */
-  static late final DynamicLibrary _dylib = Platform.isWindows
+  static final DynamicLibrary _dylib = Platform.isWindows
       ? DynamicLibrary.open('libtorrent_go.dll')
       : Platform.isLinux || Platform.isAndroid
           ? DynamicLibrary.open('libtorrent_go.so')
           : DynamicLibrary.open('libtorrent_go.dylib');
-  static late final torrent_binding.TorrentGoBinding go =
+  static final torrent_binding.TorrentGoBinding go =
       torrent_binding.TorrentGoBinding(_dylib);
   final updateNotifier = ValueNotifier(null);
 

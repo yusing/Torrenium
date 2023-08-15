@@ -279,6 +279,7 @@ class RSSProvider {
     if (query != null && query.isEmpty) {
       query = null;
     }
+
     if (query == null) {
       if (!supportAdvancedSearch) {
         if (author != null) {
@@ -288,7 +289,10 @@ class RSSProvider {
           return homePageUrl + rssPath + category;
         }
       }
-      return homePageUrl + (mainPagePath ?? rssPath);
+      if (author == null && category == null) {
+        return homePageUrl + (mainPagePath ?? rssPath);
+      }
+      query = '';
     }
     return homePageUrl +
         rssPath +

@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../classes/item.dart';
@@ -10,7 +9,6 @@ import '../style.dart';
 import '../utils/fetch_rss.dart';
 import '../utils/rss_providers.dart';
 import 'cupertino_picker_button.dart';
-import 'dynamic.dart';
 import 'item_view.dart';
 
 typedef KV = MapEntry<String, String?>;
@@ -21,41 +19,44 @@ class RssSearchResult extends Text {
 }
 
 class RSSTab extends StatefulWidget {
-  final RSSProvider provider;
-  const RSSTab({required this.provider, super.key});
+  const RSSTab({super.key});
 
   @override
   State<RSSTab> createState() => _RSSTabState();
 }
 
 class _RSSTabState extends State<RSSTab> {
-  static var _keyword = ''; // share across all tabs (RSSProvider)
+  static final _searchController =
+      TextEditingController(); // share across all tabs (RSSProvider)
 
-  late int? _selectedCategoryIndex = provider.categoryRssMap == null ? null : 0;
-  late int? _selectedAuthorIndex = provider.authorRssMap == null ? null : 0;
-  final _searchController = TextEditingController();
+  late final _tabControllerDesktop = kIsDesktop
+      ? (MacosTabController(length: kRssProviders.length, initialIndex: 0)
+        ..addListener(() {
+          updateUrl();
+        }))
+      : null;
 
-  late var provider = widget.provider;
+  int categoryIndex = 0;
+  int authorIndex = 0;
+  var provider = kRssProviders.first;
+
+  late final ValueNotifier<String> urlListenable = ValueNotifier(
+      provider.searchUrl(
+          query: query, author: selectedAuthor, category: selectedCategory));
 
   List<Widget> get buttons => [
-        DynamicTextButton(
-          icon: const DynamicIcon(CupertinoIcons.refresh),
-          label: const Text('Refresh'),
-          onPressed: () => setState(() {}),
-        ),
-        DynamicTextButton(
-            icon: const DynamicIcon(CupertinoIcons.star),
-            label: const Text('Subscribe'),
+        CupertinoButton(
+            child: const Text('Subscribe'),
             onPressed: () async {
-              if (_keyword.trim().isEmpty) {
+              if (query.trim().isEmpty) {
                 return;
               }
               await gSubscriptionManager
                   .addSubscription(
                       providerName: provider.name,
-                      keyword: _keyword,
-                      category: selectedCategory?.value,
-                      author: selectedAuthor?.value)
+                      keyword: query,
+                      category: selectedCategory,
+                      author: selectedAuthor)
                   .then((value) async {
                 await showMacosAlertDialog(
                     context: context,
@@ -63,7 +64,7 @@ class _RSSTabState extends State<RSSTab> {
                       return MacosAlertDialog(
                         title: Text(value ? 'Success' : 'Error'),
                         message: Text(value
-                            ? 'Subscription added $_keyword from ${provider.name}'
+                            ? 'Subscription added $query from ${provider.name}'
                             : 'Subscription already exists'),
                         appIcon: const SizedBox(), // TODO: replace this
                         primaryButton: PushButton(
@@ -78,47 +79,155 @@ class _RSSTabState extends State<RSSTab> {
             })
       ];
 
-  KV? get selectedAuthor => _selectedAuthorIndex != null
-      ? provider.authorRssMap?.entries.elementAt(_selectedAuthorIndex!)
-      : null;
+  String get query => _searchController.text;
 
-  KV? get selectedCategory => _selectedCategoryIndex != null
-      ? provider.categoryRssMap?.entries.elementAt(_selectedCategoryIndex!)
-      : null;
+  String? get selectedAuthor =>
+      provider.authorRssMap?.values.elementAt(authorIndex);
 
-  Widget authorDropdown() {
-    final enabled = _keyword.isNotEmpty
+  String? get selectedCategory =>
+      provider.categoryRssMap?.values.elementAt(categoryIndex);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!mounted) {
+      return const SizedBox.shrink();
+    }
+    return ValueListenableBuilder(
+        valueListenable: urlListenable,
+        builder: (context, url, _) {
+          if (kIsDesktop) {
+            return Column(children: [
+              Expanded(
+                child: content(url),
+              ),
+              MacosSegmentedControl(
+                  tabs: List.generate(
+                      kRssProviders.length,
+                      (i) => MacosTab(
+                            label: kRssProviders[i].name,
+                          )),
+                  controller: _tabControllerDesktop!)
+            ]);
+          }
+          return content(url);
+        });
+  }
+
+  Widget content(String url) => FutureBuilder(
+      future: getItemsFromRSS(provider, url),
+      builder: (_, snapshot) {
+        if (snapshot.hasError) {
+          debugPrintStack(
+              label: snapshot.error.toString(),
+              stackTrace: snapshot.stackTrace);
+          return Center(child: Text(snapshot.error.toString()));
+        }
+        return Column(
+          children: [
+            if (kIsDesktop) urlBar(url),
+            if (!kIsDesktop) ...[
+              Row(
+                children: [
+                  Expanded(child: searchBar(snapshot.data)),
+                  ...buttons
+                ],
+              ),
+              const SizedBox(
+                height: 4,
+              ),
+              urlBar(url),
+              const SizedBox(
+                height: 4,
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: CupertinoPickerButton(
+                        valueGetter: () => provider,
+                        items: kRssProviders,
+                        itemBuilder: (e) =>
+                            Text(e.name, style: kItemTitleTextStyle),
+                        onSelectedItemChanged: (value) =>
+                            provider = kRssProviders[value],
+                        onPop: (value) {
+                          provider = value;
+                          updateUrl();
+                        }),
+                  ),
+                  Expanded(child: pickerCategory()),
+                  const SizedBox(
+                    width: 4,
+                  ),
+                  Expanded(child: pickerAuthor())
+                ],
+              )
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    child: searchBar(snapshot.data),
+                  ),
+                  const SizedBox(
+                    width: 4,
+                  ),
+                  pickerCategory(),
+                  const SizedBox(
+                    width: 4,
+                  ),
+                  pickerAuthor(),
+                  ...buttons
+                ],
+              ),
+            const SizedBox(
+              height: 8,
+            ),
+            Expanded(
+              child: (snapshot.hasData
+                  ? snapshot.data!.isEmpty
+                      ? const Text("No result found")
+                      : (provider.coverUrlGetter == null
+                          ? ItemListView(items: snapshot.data!)
+                          : ItemGridView(items: snapshot.data!))
+                  : const Center(
+                      child: CupertinoActivityIndicator(),
+                    )),
+            ),
+          ],
+        );
+      });
+
+  Widget pickerAuthor() {
+    final enabled = query.isNotEmpty
         ? provider.supportAdvancedSearch
             ? (provider.authorRssMap?.isNotEmpty ?? false)
             : false
         : provider.authorRssMap != null;
-    return enabled ? authorDropdownInner() : const SizedBox.shrink();
+    return enabled ? pickerAuthorInner() : const SizedBox.shrink();
   }
 
-  Widget authorDropdownInner() {
-    onChange(int? e) => setState(() {
-          _selectedAuthorIndex = e;
-          if (!provider.supportAdvancedSearch) {
-            _searchController.clear();
-            _selectedCategoryIndex = null;
-          }
-        });
+  Widget pickerAuthorInner() {
+    onChange(int? e) {
+      if (e == null) return;
+      authorIndex = e;
+      if (!provider.supportAdvancedSearch) {
+        _searchController.clear();
+      }
+      updateUrl();
+    }
+
+    ;
     if (!kIsDesktop) {
       return CupertinoPickerButton(
-          items: provider.authorRssMap?.keys,
-          itemBuilder: (e) => Text(e),
-          value: selectedAuthor?.key,
-          onPop: (e) {
-            if (e == null) {
-              return;
-            }
-            onChange(
-                provider.authorRssMap?.keys.toList(growable: false).indexOf(e));
-          });
+          items: List.generate(provider.authorRssMap?.length ?? 0, (i) => i,
+              growable: false),
+          itemBuilder: (i) => Text(provider.authorRssMap!.keys.elementAt(i)),
+          valueGetter: () => authorIndex,
+          onSelectedItemChanged: (i) => authorIndex = i,
+          onPop: (i) => onChange(i));
     }
 
     return MacosPopupButton(
-        value: _selectedAuthorIndex,
+        value: authorIndex,
         items: List.generate(provider.authorRssMap!.length, (index) {
           final key = provider.authorRssMap!.keys.elementAt(index);
           return MacosPopupMenuItem(
@@ -127,128 +236,37 @@ class _RSSTabState extends State<RSSTab> {
         onChanged: onChange);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (!mounted) {
-      return const SizedBox.shrink();
-    }
-    final url = provider.searchUrl(
-        query: _keyword,
-        author: selectedAuthor?.value,
-        category: selectedCategory?.value);
-    return FutureBuilder(
-        future: getItemsFromRSS(provider, url),
-        builder: (_, snapshot) {
-          if (snapshot.hasError) {
-            debugPrintStack(
-                label: snapshot.error.toString(),
-                stackTrace: snapshot.stackTrace);
-            return Center(child: Text(snapshot.error.toString()));
-          }
-          return Column(
-            children: [
-              if (kIsDesktop) urlBar(url),
-              if (!kIsDesktop) ...[
-                Row(
-                  children: [
-                    Expanded(child: searchBar(snapshot.data)),
-                    ...buttons
-                  ],
-                ),
-                const SizedBox(
-                  height: 4,
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CupertinoPickerButton(
-                          value: provider,
-                          items: kRssProviders,
-                          itemBuilder: (e) =>
-                              Text(e.name, style: kItemTitleTextStyle),
-                          onPop: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => provider = value);
-                          }),
-                    ),
-                    Expanded(child: categoryDropdown()),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    Expanded(child: authorDropdown())
-                  ],
-                )
-              ] else
-                Row(
-                  children: [
-                    Expanded(
-                      child: searchBar(snapshot.data),
-                    ),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    categoryDropdown(),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    authorDropdown(),
-                    ...buttons
-                  ],
-                ),
-              const SizedBox(
-                height: 8,
-              ),
-              Expanded(
-                child: (snapshot.hasData
-                    ? snapshot.data!.isEmpty
-                        ? const Text("No result found")
-                        : (provider.coverUrlGetter == null
-                            ? ItemListView(items: snapshot.data!)
-                            : ItemGridView(items: snapshot.data!))
-                    : const Center(
-                        child: CupertinoActivityIndicator(),
-                      )),
-              ),
-            ],
-          );
-        });
-  }
-
-  Widget categoryDropdown() {
-    final enabled = _keyword.isNotEmpty
+  Widget pickerCategory() {
+    final enabled = query.isNotEmpty
         ? provider.supportAdvancedSearch
             ? (provider.categoryRssMap?.isNotEmpty ?? false)
             : false
         : provider.categoryRssMap != null;
-    return enabled ? categoryDropdownInner() : const SizedBox.shrink();
+    return enabled ? pickerCategoryInner() : const SizedBox.shrink();
   }
 
-  Widget categoryDropdownInner() {
-    onChange(int? e) => setState(() {
-          _selectedCategoryIndex = e;
-          if (!provider.supportAdvancedSearch) {
-            _searchController.clear();
-            _selectedAuthorIndex = null;
-          }
-        });
+  Widget pickerCategoryInner() {
+    onChange(int? e) {
+      if (e == null) return;
+      categoryIndex = e;
+      if (!provider.supportAdvancedSearch) {
+        _searchController.clear();
+      }
+      updateUrl();
+    }
+
+    ;
     if (!kIsDesktop) {
       return CupertinoPickerButton(
-          items: provider.categoryRssMap?.keys,
-          itemBuilder: (e) => Text(e),
-          value: selectedCategory?.key,
-          onPop: (e) {
-            if (e == null) {
-              return;
-            }
-            onChange(provider.categoryRssMap?.keys
-                .toList(growable: false)
-                .indexOf(e));
-          });
+          items: List.generate(provider.categoryRssMap?.length ?? 0, (i) => i,
+              growable: false),
+          itemBuilder: (i) => Text(provider.categoryRssMap!.keys.elementAt(i)),
+          valueGetter: () => categoryIndex,
+          onSelectedItemChanged: (i) => categoryIndex = i,
+          onPop: (i) => onChange(i));
     }
     return MacosPopupButton(
-        value: _selectedCategoryIndex,
+        value: categoryIndex,
         items: List.generate(provider.categoryRssMap!.length, (index) {
           final key = provider.categoryRssMap!.keys.elementAt(index);
           return MacosPopupMenuItem(
@@ -257,55 +275,20 @@ class _RSSTabState extends State<RSSTab> {
         onChanged: onChange);
   }
 
-  @override
-  void didUpdateWidget(RSSTab oldWidget) {
-    if (provider.authorRssMap == null) {
-      _selectedAuthorIndex = null;
-    } else {
-      if (_selectedAuthorIndex! >= provider.authorRssMap!.length) {
-        _selectedAuthorIndex = 0;
-      }
-    }
-    if (provider.categoryRssMap == null) {
-      _selectedCategoryIndex = null;
-    } else {
-      if (_selectedCategoryIndex! >= provider.categoryRssMap!.length) {
-        _selectedCategoryIndex = 0;
-      }
-    }
-    super.didUpdateWidget(oldWidget);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    _searchController.addListener(() {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _keyword = _searchController.text;
-        if (!provider.supportAdvancedSearch) {
-          _selectedAuthorIndex = null;
-          _selectedCategoryIndex = null;
-        }
-      });
-    });
-    super.initState();
-  }
-
   Widget searchBar(List<Item>? results) {
     if (!kIsDesktop) {
       return CupertinoSearchTextField(
           autofocus: false,
           autocorrect: false,
           controller: _searchController,
-          placeholder: 'Search for something...');
+          placeholder: 'Search for something...',
+          onSubmitted: (_) => updateUrl(),
+          onChanged: (v) {
+            // called only on clear button
+            if (v.isEmpty) {
+              updateUrl();
+            }
+          });
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -320,18 +303,33 @@ class _RSSTabState extends State<RSSTab> {
               ?.map((e) =>
                   SearchResultItem(e.name, child: RssSearchResult(item: e)))
               .toList(growable: false),
+          onChanged: (_) => updateUrl(),
           onResultSelected: (e) =>
               (e.child as RssSearchResult).item.showDialog(context)),
     );
   }
 
+  void updateUrl() {
+    if (provider.authorRssMap != null &&
+        authorIndex >= provider.authorRssMap!.length) {
+      authorIndex = 0;
+    }
+    if (provider.categoryRssMap != null &&
+        categoryIndex >= provider.categoryRssMap!.length) {
+      categoryIndex = 0;
+    }
+    urlListenable.value = provider.searchUrl(
+        query: query, author: selectedAuthor, category: selectedCategory);
+  }
+
   Widget urlBar(String url) {
     return GestureDetector(
       onLongPress: () async {
-        await Clipboard.setData(ClipboardData(text: url))
-            .then((value) => showMacosAlertDialog(
+        await Clipboard.setData(ClipboardData(text: url)).then((value) {
+          if (kIsDesktop) {
+            return showMacosAlertDialog(
                 context: context,
-                builder: (_) => MacosAlertDialog(
+                builder: (context) => MacosAlertDialog(
                       appIcon: const SizedBox.shrink(),
                       title: const Text('Copied to clipboard'),
                       message: const SizedBox.shrink(),
@@ -339,28 +337,36 @@ class _RSSTabState extends State<RSSTab> {
                           controlSize: ControlSize.large,
                           onPressed: () => Navigator.of(context).pop(),
                           child: const Text('Dismiss')),
-                    )));
+                    ));
+          }
+          return showCupertinoDialog(
+              context: context,
+              builder: (context) => CupertinoAlertDialog(
+                    title: const Text('Copied to clipboard'),
+                    actions: [
+                      CupertinoDialogAction(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Dismiss'))
+                    ],
+                  ));
+        });
       },
       child: urlBarInner(url),
     );
   }
 
   Widget urlBarInner(String url) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: SizedBox(
-        width: double.infinity,
-        child: Container(
-            color: CupertinoColors.darkBackgroundGray,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                shape: BoxShape.rectangle),
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
-              child: Text(url, style: kMonoTextStyle),
-            )),
-      ),
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+          decoration: BoxDecoration(
+              color: CupertinoColors.darkBackgroundGray,
+              borderRadius: BorderRadius.circular(4),
+              shape: BoxShape.rectangle),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+            child: Text(url, style: kMonoTextStyle),
+          )),
     );
   }
 }

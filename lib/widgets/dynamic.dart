@@ -135,7 +135,7 @@ class DynamicTextButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kIsDesktop) {
       return MacosIconButton(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           icon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [icon, const SizedBox(width: 6), label],
@@ -143,10 +143,11 @@ class DynamicTextButton extends StatelessWidget {
           onPressed: onPressed);
     }
     return CupertinoButton(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         onPressed: onPressed,
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [icon, const SizedBox(width: 6), label],
         ));
   }

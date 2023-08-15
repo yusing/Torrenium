@@ -5,17 +5,19 @@ import '../utils/cupertino_picker_dialog.dart';
 class CupertinoPickerButton<T> extends StatefulWidget {
   final ValueChanged<int>? onSelectedItemChanged;
   final Iterable<T>? items;
-  final T? value;
+  final T Function() valueGetter;
   final Text Function(T item) itemBuilder;
   final void Function(T) onPop;
+  final Widget onEmpty;
 
   const CupertinoPickerButton({
     super.key,
     this.onSelectedItemChanged,
-    this.value,
     this.items,
+    required this.valueGetter,
     required this.itemBuilder,
     required this.onPop,
+    this.onEmpty = const SizedBox.shrink(),
   });
 
   @override
@@ -24,34 +26,47 @@ class CupertinoPickerButton<T> extends StatefulWidget {
 }
 
 class _CupertinoPickerButtonState<T> extends State<CupertinoPickerButton<T>> {
-  var _selectedItem = 0;
+  late FixedExtentScrollController _controller;
 
   @override
   Widget build(BuildContext context) {
     if (widget.items == null || widget.items!.isEmpty) {
-      return const SizedBox();
+      return widget.onEmpty;
     }
     return CupertinoButton(
-      onPressed: () => showPickerDialog(
-              context,
-              () => widget.items!.elementAt(_selectedItem) ?? widget.value,
-              CupertinoPicker(
-                  itemExtent: 32,
-                  onSelectedItemChanged: (i) {
-                    widget.onSelectedItemChanged?.call(i);
-                    setState(() {
-                      _selectedItem = i;
-                    });
-                  },
-                  children: widget.items!
-                      .map((e) => widget.itemBuilder(e))
-                      .toList(growable: false)))
-          .then((value) {
-        if (value == null) return;
-        widget.onPop.call(value);
-      }),
-      child: Text(
-          widget.itemBuilder(widget.items!.elementAt(_selectedItem)).data!),
+      padding: EdgeInsets.zero,
+      onPressed: () {
+        _controller = FixedExtentScrollController(
+            initialItem: widget.items!
+                .toList(growable: false)
+                .indexOf(widget.valueGetter()));
+        showPickerDialog(
+                context,
+                widget.valueGetter,
+                CupertinoPicker(
+                    scrollController: _controller,
+                    itemExtent: 32,
+                    onSelectedItemChanged: (i) =>
+                        widget.onSelectedItemChanged?.call(i),
+                    children: widget.items!
+                        .map((e) => widget.itemBuilder(e))
+                        .toList(growable: false)))
+            .then((value) {
+          _controller.dispose();
+          if (value == null) return;
+          widget.onPop.call(value);
+        });
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(widget.itemBuilder(widget.valueGetter()).data!),
+          const Padding(
+            padding: EdgeInsets.only(left: 5.0),
+            child: Icon(CupertinoIcons.chevron_down, size: 14),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 
-import '../utils/rss_providers.dart';
 import '../widgets/download_list_dialog.dart';
 import '../widgets/rss_tab.dart';
 import '../widgets/subscriptions_dialog.dart';
@@ -19,8 +18,7 @@ class MobileView extends StatefulWidget {
 
   static final _tabController = CupertinoTabController();
   static final kPages = [
-    MobileTab(
-        'Home', CupertinoIcons.home, RSSTab(provider: kRssProviders.first)),
+    const MobileTab('Home', CupertinoIcons.home, RSSTab()),
     MobileTab(
         'Subscriptions', CupertinoIcons.star, SubscriptionsDialog.content()),
     MobileTab(

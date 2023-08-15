@@ -45,6 +45,13 @@ class Subscription {
     return sub;
   }
 
+  String? get authorName =>
+      provider.authorRssMap?.entries.firstWhere((e) => e.value == author).key;
+
+  String? get categoryName => provider.categoryRssMap?.entries
+      .firstWhere((e) => e.value == category)
+      .key;
+
   @override
   int get hashCode =>
       providerName.hashCode ^
@@ -52,7 +59,7 @@ class Subscription {
       category.hashCode ^
       author.hashCode;
 
-  RSSProvider? get provider => kProvidersDict[providerName]!;
+  RSSProvider get provider => kProvidersDict[providerName]!;
 
   @override
   bool operator ==(Object other) {

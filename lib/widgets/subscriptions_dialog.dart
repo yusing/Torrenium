@@ -47,7 +47,7 @@ class SubscriptionsDialog extends MacosSheet {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                  'Provider: ${sub.providerName} Category: ${sub.category ?? "Any"} Author ${sub.author ?? "Any"}'),
+                                  '${sub.providerName} - ${sub.categoryName ?? "Any"} - ${sub.authorName ?? "Any"}'),
                               ValueListenableBuilder(
                                   valueListenable: sub.lastUpdateNotifier,
                                   builder: (_, value, __) => Text(

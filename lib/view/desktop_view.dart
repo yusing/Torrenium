@@ -7,18 +7,29 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../services/torrent.dart';
 import '../services/torrent_ext.dart';
-import '../utils/rss_providers.dart';
 import '../widgets/download_list_dialog.dart';
 import '../widgets/dynamic.dart';
 import '../widgets/rss_tab.dart';
 import '../widgets/subscriptions_dialog.dart';
 import '../widgets/toolbar_window_button.dart';
 
-class DesktopView extends StatefulWidget {
+class DesktopView extends StatelessWidget {
   const DesktopView({super.key});
 
   @override
-  State<DesktopView> createState() => _DesktopViewState();
+  Widget build(BuildContext context) {
+    return MacosScaffold(
+      toolBar: TitleBar(),
+      children: [
+        ContentArea(
+          builder: (context, scrollController) => const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
+            child: RSSTab(),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class TitleBar extends ToolBar {
@@ -142,48 +153,4 @@ class TitleBar extends ToolBar {
                 ],
               ),
             ));
-}
-
-class _DesktopViewState extends State<DesktopView> {
-  late final _tabController =
-      MacosTabController(length: kRssProviders.length, initialIndex: 0)
-        ..addListener(() {
-          setState(() {});
-        });
-
-  @override
-  Widget build(BuildContext context) {
-    return MacosScaffold(
-      toolBar: TitleBar(),
-      children: [
-        ContentArea(
-          builder: (context, scrollController) => Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-            child: Column(
-              children: [
-                Expanded(
-                    child: RSSTab(
-                  provider: kRssProviders[_tabController.index],
-                  key: Key(kRssProviders[_tabController.index].name),
-                )),
-                MacosSegmentedControl(
-                    tabs: List.generate(
-                        kRssProviders.length,
-                        (i) => MacosTab(
-                              label: kRssProviders[i].name,
-                            )),
-                    controller: _tabController)
-              ],
-            ),
-          ),
-        )
-      ],
-    );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 }
