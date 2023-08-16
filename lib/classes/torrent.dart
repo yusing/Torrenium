@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as pathlib;
 
 import '../services/storage.dart';
 import '../services/torrent.dart';
+import '../utils/connectivity.dart';
 import '../utils/ext_icons.dart';
 import '../utils/string.dart';
 import 'download_item.dart';
@@ -59,7 +61,6 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
       bytesDownloadedInitial:
           json['bytes_downloaded'] ?? json['progress'] * json['size'],
     );
-    final fp = torrent.fullPath;
     for (final file in json['files']) {
       torrent.files.add(TorrentFile.fromJson(file));
     }
@@ -128,23 +129,36 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
 
   void startSelfUpdate() {
     _startTime = DateTime.now();
-    _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (progress == 1.0 && bytesDownloaded != 0) {
+        stopSelfUpdate();
         return;
       }
+
       if (!paused) {
+        // pause torrent if limited connectivity, resume when connected
+        if (await isLimitedConnectivity()) {
+          gTorrentManager.pauseTorrent(this);
+          stopSelfUpdate();
+          late StreamSubscription sub;
+          sub = Connectivity().onConnectivityChanged.listen((event) async {
+            if (!await isLimitedConnectivity()) {
+              gTorrentManager.resumeTorrent(this);
+              startSelfUpdate();
+              sub.cancel();
+            }
+          });
+        }
+
         Torrent tNewer = gTorrentManager.getTorrentInfo(this);
         if (progress != tNewer.progress) {
           progress = tNewer.progress;
           bytesDownloaded = tNewer.bytesDownloaded;
           _downloadedTime = DateTime.now();
-          for (int i = 0; i < files.length; i++) {
-            assert(files[i].name == tNewer.files[i].name);
-            files[i] = tNewer.files[i];
-          }
+          files = tNewer.files;
+          stateNotifier.notifyListeners();
         }
       }
-      stateNotifier.notifyListeners();
     });
   }
 
@@ -169,10 +183,6 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
     if (json == null) {
       return [];
     }
-    final torrents = <Torrent>[];
-    for (final torrent in json) {
-      torrents.add(Torrent.fromJson(torrent));
-    }
-    return torrents;
+    return json.map<Torrent>((e) => Torrent.fromJson(e)).toList();
   }
 }

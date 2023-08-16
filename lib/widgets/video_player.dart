@@ -4,12 +4,13 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/services.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../classes/download_item.dart';
 import '../services/watch_history.dart';
-import '../utils/string.dart';
 import '../utils/units.dart';
 import 'cupertino_picker_button.dart';
 import 'dynamic.dart';
@@ -45,7 +46,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
     item.updateWatchPosition(_vlcController.value.position);
     WatchHistory.notifier.notifyListeners();
-    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     if (item.watchProgress >= .85) {
       showCupertinoDialog(
@@ -73,25 +73,39 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      child: Stack(
-        children: [
-          SizedBox.expand(
-            child: GestureDetector(onTap: () {
-              if (!_overlay.mounted) {
-                Overlay.of(context).insert(_overlay);
-              }
-            }),
-          ),
-          VlcPlayer(
-              controller: _vlcController,
-              aspectRatio: 16 / 9,
-              virtualDisplay: false,
-              placeholder: const ColoredBox(
-                  color: CupertinoColors.black,
-                  child: SizedBox.expand(
-                      child: Center(child: CupertinoActivityIndicator())))),
-        ],
+    return WillPopScope(
+      onWillPop: () async {
+        await SystemChrome.restoreSystemUIOverlays();
+        await SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        await SystemChrome.setPreferredOrientations(
+            [DeviceOrientation.portraitUp]);
+        WakelockPlus.disable();
+        return true;
+      },
+      child: CupertinoPageScaffold(
+        child: Stack(
+          children: [
+            SizedBox.expand(
+              child: GestureDetector(onTap: () {
+                if (!_overlay.mounted) {
+                  Overlay.of(context).insert(_overlay);
+                }
+              }),
+            ),
+            VlcPlayer(
+                controller: _vlcController,
+                aspectRatio: 16 / 9,
+                virtualDisplay: false,
+                placeholder: const ColoredBox(
+                    color: CupertinoColors.black,
+                    child: SizedBox.expand(
+                        child: Center(child: CupertinoActivityIndicator())))),
+          ],
+        ),
       ),
     );
   }
@@ -108,7 +122,28 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   void initState() {
-    _overlay = OverlayEntry(
+    _overlay = overlay();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    WakelockPlus.enable();
+    _vlcController = VlcPlayerController.file(File(item.fullPath),
+        options: VlcPlayerOptions(
+            video: VlcVideoOptions([
+          VlcVideoOptions.dropLateFrames(true),
+          VlcVideoOptions.skipFrames(true)
+        ])));
+    _vlcController.addOnInitListener(_onVlcInit);
+    _vlcController.addOnInitListener(() {
+      Overlay.of(context).insert(_overlay);
+    });
+    super.initState();
+  }
+
+  OverlayEntry overlay() {
+    return OverlayEntry(
       opaque: false,
       builder: (context) => GestureDetector(
         onTap: () => _overlay.remove(),
@@ -233,32 +268,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
       ),
     );
-    debugPrint(item.fullPath);
-    assert(File(item.fullPath).existsSync());
-    _vlcController = VlcPlayerController.file(File(item.fullPath),
-        autoPlay: true,
-        options: VlcPlayerOptions(
-            video: VlcVideoOptions([
-          VlcVideoOptions.dropLateFrames(true),
-          VlcVideoOptions.skipFrames(true)
-        ])));
-    _vlcController.addOnInitListener(_onVlcInit);
-    _vlcController.addOnInitListener(() {
-      Overlay.of(context).insert(_overlay);
-    });
-    super.initState();
   }
 
   Future<void> _onVlcInit() async {
-    Timer.periodic(const Duration(milliseconds: 100), (timer) async {
-      if (_vlcController.value.duration != Duration.zero) {
-        if (item.watchProgress > 0) {
-          await _vlcController.seekTo(item.lastPosition);
-        }
-        addToHistory();
-        timer.cancel();
+    if (_vlcController.value.duration != Duration.zero) {
+      if (item.watchProgress > 0) {
+        await _vlcController.seekTo(item.lastPosition);
       }
-    });
+      addToHistory();
+    }
 
     _vlcController.addListener(() {
       if (_vlcController.value.isEnded) {

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 
 import '../classes/item.dart' show Item;
+import '../utils/connectivity.dart';
 import '../utils/fetch_rss.dart' show parseRSSForItems;
 import '../utils/rss_providers.dart' show RSSProvider, kProvidersDict;
 import '../utils/string.dart';
@@ -153,15 +154,15 @@ class SubscriptionManager {
             const Duration(hours: 1)) {
       return;
     }
+    if (await isLimitedConnectivity()) {
+      // pause on cellular network or no network
+      return;
+    }
     final subsTasksDone =
         force ? [] : Storage.instance.getStringList('subsTasksDone_$sub') ?? [];
     subsTasksDone.addAll(getExclusions());
 
     final provider = sub.provider;
-    if (provider == null) {
-      Logger().e('Provider $provider not found');
-      return;
-    }
     final url = provider.searchUrl(
         query: sub.keyword, author: sub.author, category: sub.category);
     final resp = await http.get(Uri.parse(url));

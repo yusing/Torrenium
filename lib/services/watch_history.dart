@@ -6,7 +6,6 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:torrenium/classes/download_item.dart';
 import 'package:torrenium/services/torrent.dart';
 
-import '../classes/torrent.dart';
 import 'storage.dart';
 
 part 'watch_history.g.dart';

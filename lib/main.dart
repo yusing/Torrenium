@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:torrenium/services/error_reporter.dart';
@@ -12,36 +11,22 @@ import 'services/torrent.dart';
 import 'view/desktop_view.dart';
 import 'view/mobile_view.dart';
 
-// const kIsDesktop = false; // for testing
-
 late Future<void> gInitResult;
 
 Future<void> init() async {
+  await Storage.init();
   await TorrentManager.init();
   SubscriptionManager.init();
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Storage.init();
-  await initReporter();
-
-  gInitResult = init().then((value) => reportError(msg: 'OK')).onError(
-      (error, stackTrace) => reportError(
-          error: error, stackTrace: stackTrace, msg: 'Error initializing'));
-
   HttpOverrides.global = MyHttpOverrides();
 
+  gInitResult = init().onError((error, stackTrace) => reportError(
+      error: error, stackTrace: stackTrace, msg: 'Error initializing'));
+
   runApp(const TorreniumApp());
-  if (kIsDesktop) {
-    doWhenWindowReady(() {
-      appWindow.size = appWindow.minSize =
-          kIsDesktop ? const Size(1280, 720) : const Size(720, 1080);
-      appWindow.alignment = Alignment.center;
-      appWindow.title = 'Torrenium';
-      appWindow.show();
-    });
-  }
 }
 
 final kIsDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;

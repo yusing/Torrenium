@@ -1,20 +1,23 @@
-import 'dart:convert';
-import 'dart:io';
+// import 'dart:convert'
 
-late final WebSocket _webSocketChannel;
+import 'package:logger/logger.dart';
+// import 'dart:io';
 
-Future<void> initReporter() async {
-  _webSocketChannel = await WebSocket.connect(
-    'wss://err.yumar.org',
-  );
-}
+// late final WebSocket _webSocketChannel;
+
+// Future<void> initReporter() async {
+//   _webSocketChannel = await WebSocket.connect(
+//     'wss://err.yumar.org',
+//   );
+// }
 
 Future<void> reportError(
     {Object? error, String? msg, StackTrace? stackTrace}) async {
-  final kBody = jsonEncode({
-    'error': error.toString(),
-    'stackTrace': stackTrace.toString(),
-    'message': msg,
-  });
-  _webSocketChannel.add(kBody);
+  // final kBody = jsonEncode({
+  //   'error': error.toString(),
+  //   'stackTrace': stackTrace.toString(),
+  //   'message': msg,
+  // });
+  // _webSocketChannel.add(kBody);
+  Logger().e(msg, error, stackTrace);
 }

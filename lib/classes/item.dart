@@ -38,7 +38,7 @@ class Item {
     const kFinalFallback =
         'https://p.favim.com/orig/2018/08/16/anime-no-manga-Favim.com-6189353.png';
     final name = this.name.cleanTitle;
-    final cacheKey = 'cover:$name';
+    final cacheKey = 'cover:${name.sha1Hash}';
     if (Storage.hasCache(cacheKey)) {
       return Storage.getCache(cacheKey);
     }

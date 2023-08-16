@@ -13,6 +13,7 @@ extension TitleExtractor on String {
       .replaceAll(RegExp(r'\s+'), ' ')
       .replaceAll(RegExp(r'\d+'), '')
       .trim();
+  String get sha1Hash => sha1.convert(utf8.encode(this)).toString();
   String get sha256Hash => sha256.convert(utf8.encode(this)).toString();
 
   String encodeUrl() {
