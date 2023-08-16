@@ -160,8 +160,8 @@ Simply install the app and start using it.
 
 <!-- ROADMAP -->
 ## Roadmap
-- [*] Things listed in [Features](#features)
-- [*] Windows and Android build
+- [x] Things listed in [Features](#features)
+- [x] Windows and Android build
 - [ ] iOS build *(WIP)*
 - [ ] Linux and MacOS build
 - [ ] Custom RSS Provider Support
