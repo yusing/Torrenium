@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,11 +39,13 @@ class Storage {
     await instance.remove(key);
   }
 
-  static Future<void> setCache(
-      String key, String value, Duration expireAfter) async {
+  static Future<void> setCache(String key, String value,
+      [Duration? expireAfter]) async {
     await instance.setString(key.cacheKey, value);
-    await instance.setString(
-        key.cacheExpireKey, DateTime.now().add(expireAfter).toIso8601String());
+    if (expireAfter != null) {
+      await instance.setString(key.cacheExpireKey,
+          DateTime.now().add(expireAfter).toIso8601String());
+    }
   }
 
   static Future<void> setString(String key, String value) async {

@@ -127,7 +127,7 @@ class DynamicTextButton extends StatelessWidget {
 
   const DynamicTextButton(
       {super.key,
-      required this.icon,
+      this.icon = const SizedBox.shrink(),
       required this.label,
       required this.onPressed});
 

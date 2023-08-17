@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show ValueNotifier;
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 
 import '../classes/item.dart' show Item;
@@ -10,6 +9,7 @@ import '../utils/connectivity.dart';
 import '../utils/fetch_rss.dart' show parseRSSForItems;
 import '../utils/rss_providers.dart' show RSSProvider, kProvidersDict;
 import '../utils/string.dart';
+import 'http.dart';
 import 'storage.dart';
 
 SubscriptionManager get gSubscriptionManager => SubscriptionManager.instance;
@@ -165,9 +165,9 @@ class SubscriptionManager {
     final provider = sub.provider;
     final url = provider.searchUrl(
         query: sub.keyword, author: sub.author, category: sub.category);
-    final resp = await http.get(Uri.parse(url));
+    final resp = await http.get(url);
     if (resp.statusCode == 200) {
-      final items = parseRSSForItems(provider, utf8.decode(resp.bodyBytes));
+      final items = parseRSSForItems(provider, await resp.body());
       final tasks = items.fold(<String, Item>{}, (prev, item) {
         prev[item.name.sha256Hash.toString()] = item;
         return prev;

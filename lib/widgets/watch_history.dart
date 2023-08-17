@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:torrenium/style.dart';
-import 'package:torrenium/utils/open_file.dart';
+import '../style.dart';
+import '../utils/open_file.dart';
 
 import '../services/watch_history.dart';
 import 'dynamic.dart';

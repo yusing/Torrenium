@@ -10,6 +10,7 @@ import 'storage.dart';
 import 'torrent.dart';
 
 extension TorrentManagerExtension on TorrentManager {
+  // TODO: change this
   void download(Item item, {required BuildContext context, bool pop = false}) {
     item.startDownload().onError((error, stackTrace) async {
       Logger().e(error);

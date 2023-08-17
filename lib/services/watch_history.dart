@@ -3,8 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:torrenium/classes/download_item.dart';
-import 'package:torrenium/services/torrent.dart';
+import '../classes/download_item.dart';
+import '../services/torrent.dart';
 
 import 'storage.dart';
 

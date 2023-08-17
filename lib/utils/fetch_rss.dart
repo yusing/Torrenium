@@ -1,32 +1,33 @@
 import 'dart:convert';
 
-import 'package:http/http.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:xml/xml.dart';
 
 import '../classes/item.dart';
+import '../classes/rss_result_group.dart';
+import '../services/http.dart';
 import '../services/storage.dart';
+import '../widgets/rss_tab.dart';
 import 'rss_providers.dart';
 
 final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
 
-Future<List<Item>> getItemsFromRSS(RSSProvider provider, String url) async {
+Future<List<Item>> getRSSItems(RSSProvider provider, String url) async {
   String? body;
-  if (Storage.hasCache(url)) {
+  if (!kDebugMode && Storage.hasCache(url)) {
     body = Storage.getCache(url);
   } else {
-    final resp = await get(Uri.parse(url), headers: {
+    final resp = await http.get(url, headers: {
       'Content-Type': 'application/xml',
       'Accept': 'application/xml',
       'Encoding': 'UTF-8',
     });
     if (resp.statusCode == 200) {
-      try {
-        body = const Utf8Decoder().convert(resp.bodyBytes);
+      body = await resp.body();
+      if (!kDebugMode) {
         await Storage.setCache(url, body, const Duration(minutes: 3));
-      } catch (e) {
-        Logger().e(e);
       }
     } else {
       Logger().e('${resp.statusCode} $url');
@@ -36,6 +37,72 @@ Future<List<Item>> getItemsFromRSS(RSSProvider provider, String url) async {
     return [];
   }
   return parseRSSForItems(provider, body);
+}
+
+Future<Map<String, List<Item>>> getRSSItemsGrouped(
+    RSSProvider provider, String url) async {
+  var items = await getRSSItems(provider, url);
+  items.sort((a, b) => a.nameNoNum.compareTo(b.nameNoNum));
+
+  Map<String, List<Item>> grouped = {};
+
+  while (items.isNotEmpty) {
+    final root = items.removeAt(0);
+    if (items.isEmpty || root.numbersInName.isEmpty) {
+      grouped[items.first.nameCleaned] = [items.first];
+      continue;
+    }
+
+    List<int>? episodeIndexes;
+    grouped[root.nameNoNum] = [root];
+
+    for (int i = 0; i < items.length;) {
+      var current = items.first;
+      if (current.numbersInName.isEmpty) {
+        grouped[current.nameCleaned] = [current];
+        continue;
+      }
+      if (root.nameNoNum != current.nameNoNum) {
+        break;
+      }
+      current = items.removeAt(0);
+
+      if (root.numbersInName.length != current.numbersInName.length) {
+        current.episode = current.numbersInName.toSet().toList()..sort();
+        grouped[root.nameNoNum]!.add(current);
+        break;
+      }
+      if (episodeIndexes == null) {
+        episodeIndexes = <int>[];
+        for (int j = 0; j < root.numbersInName.length; ++j) {
+          if (current.numbersInName[j] != root.numbersInName[j]) {
+            episodeIndexes.add(j);
+          }
+        }
+      }
+      final group = grouped[root.nameNoNum]!;
+      root.episode ??= episodeIndexes.map((i) => root.numbersInName[i]).toList()
+        ..sort();
+      current.episode =
+          episodeIndexes.map((i) => current.numbersInName[i]).toList()..sort();
+      group.add(current);
+    }
+  }
+
+  return grouped;
+}
+
+Future<List<RssResultGroup>> getRSSResults(
+    RSSProvider provider, String url) async {
+  if (provider.supportTitleGroup) {
+    return (await getRSSItemsGrouped(provider, url))
+        .entries
+        .map((e) => RssResultGroup(e))
+        .toList();
+  }
+  return (await getRSSItems(provider, url))
+      .map((e) => RssResultGroup(MapEntry(e.nameCleaned, [e])))
+      .toList();
 }
 
 DateTime parsePubdate(String pubDate) {

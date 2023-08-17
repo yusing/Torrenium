@@ -1,17 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:http/http.dart' as http;
-import 'package:logger/logger.dart';
-import 'package:macos_ui/macos_ui.dart';
-
-import '../main.dart';
-import '../services/storage.dart';
+import '../services/http.dart';
 import '../services/torrent.dart';
 import '../utils/string.dart';
-import '../widgets/item_dialog.dart';
 
 class Item {
   final String name;
@@ -22,6 +13,11 @@ class Item {
   final String? author;
   final String? coverUrl;
   final String? size;
+  late final String nameCleaned;
+  late final List<int> numbersInName;
+  late final String nameNoNum;
+
+  Iterable<int>? episode;
 
   Item({
     required this.name,
@@ -32,104 +28,46 @@ class Item {
     this.coverUrl,
     this.size,
     required this.pubDate,
-  });
+  }) {
+    nameCleaned = name
+        .removeDelimiters('()[]{}【】★.-_')
+        .replaceAll(
+            RegExp(r'((1920\s?x\s?)?1080|(1280\s?x\s?)?720)\s?p?',
+                caseSensitive: false),
+            '')
+        .replaceAll(
+            RegExp(
+                r'(HEVC|AAC|AVC|8bit|10bit|MKV|MP4|MP3|WEBRIP|BAHA|TVB|WEBDL|WEB-DL|招募.+)',
+                caseSensitive: false),
+            '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    numbersInName = RegExp(r'\d+')
+        .allMatches(nameCleaned)
+        .map((m) => int.parse(m.group(0)!))
+        .toList();
+    nameNoNum = nameCleaned
+        .replaceAll(RegExp(r'\d+'), '')
+        .replaceAll(RegExp(r'\s+'), ' ');
+  }
 
   Future<String> coverPhotoFallback() async {
     const kFinalFallback =
         'https://p.favim.com/orig/2018/08/16/anime-no-manga-Favim.com-6189353.png';
-    final name = this.name.cleanTitle;
-    final cacheKey = 'cover:${name.sha1Hash}';
-    if (Storage.hasCache(cacheKey)) {
-      return Storage.getCache(cacheKey);
+    final searchUrl =
+        "https://kitsu.io/api/edge/anime?filter[text]=$nameNoNum&page[limit]=1";
+    final body = await (await gCacheManager.getSingleFile(searchUrl))
+        .readAsString()
+        .onError((error, stackTrace) => '{}');
+    final results = jsonDecode(body)["data"] as List?;
+    if (results == null || results.isEmpty) {
+      return kFinalFallback;
     }
-    final searchUrl = Uri.parse(
-        "https://kitsu.io/api/edge/anime?filter[text]=$name&page[limit]=1");
-    final resp = await http.get(searchUrl);
-    if (resp.statusCode == 200) {
-      final body = utf8.decode(resp.bodyBytes);
-      final results = jsonDecode(body)["data"] as List?;
-      if (results == null || results.isEmpty) {
-        return kFinalFallback;
-      }
-      final result = results.first["attributes"]["posterImage"]["original"];
-      if (result != null) {
-        final url = result as String;
-        await Storage.setCache(cacheKey, url, const Duration(days: 7));
-        return url;
-      }
-    }
-    Logger().e(resp.statusCode);
-    return kFinalFallback;
-  }
-
-  Future<void> showDialog(BuildContext context) async {
-    if (kIsDesktop) {
-      showMacosSheet(
-          context: context, builder: (context) => ItemDialog(context, this));
-    } else {
-      Navigator.push(
-          context,
-          CupertinoPageRoute(
-              builder: (context) => CupertinoPageScaffold(
-                  navigationBar: CupertinoNavigationBar(
-                    middle: Text(
-                      name,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                    ),
-                    trailing: CupertinoButton(
-                        padding: const EdgeInsets.all(0),
-                        child: const Icon(CupertinoIcons.down_arrow),
-                        onPressed: () {
-                          gTorrentManager.downloadItem(this);
-                          Navigator.of(context).pop();
-                        }),
-                  ),
-                  child: SafeArea(child: ItemDialog.content(context, this)))));
-    }
+    final result = results.first["attributes"]["posterImage"]["original"];
+    return result ?? kFinalFallback;
   }
 
   Future<void> startDownload() async {
     await gTorrentManager.downloadItem(this);
-  }
-}
-
-class TorreniumCacheManager extends CacheManager {
-  static const key = 'torreniumCacheManager';
-
-  static TorreniumCacheManager? _instance;
-
-  factory TorreniumCacheManager() {
-    _instance ??= TorreniumCacheManager._();
-    return _instance!;
-  }
-
-  TorreniumCacheManager._()
-      : super(Config(key,
-            stalePeriod: const Duration(days: 7),
-            maxNrOfCacheObjects: 100,
-            fileService: TorreniumHttpFileService()));
-}
-
-class TorreniumHttpFileService extends FileService {
-  TorreniumHttpFileService({HttpClient? httpClient});
-
-  @override
-  Future<FileServiceResponse> get(String url,
-      {Map<String, String>? headers = const {}}) async {
-    if (url == "") {
-      return HttpGetResponse(
-          http.StreamedResponse(Stream.value([]), 404, contentLength: 0));
-    }
-    final Uri resolved = Uri.base.resolve(url);
-    try {
-      final response = await http.readBytes(resolved, headers: headers);
-      return HttpGetResponse(http.StreamedResponse(Stream.value(response), 200,
-          contentLength: response.length));
-    } catch (e) {
-      Logger().e(e);
-      return HttpGetResponse(
-          http.StreamedResponse(Stream.value([]), 404, contentLength: 0));
-    }
   }
 }

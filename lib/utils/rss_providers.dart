@@ -8,6 +8,7 @@ const List<RSSProvider> kRssProviders = [
       rssPath: 'topics/rss/rss.xml',
       logoPath: 'images/sitelogo.gif',
       searchParams: '?keyword=%q&sort_id=%c&team_id=%a&order=date-desc',
+      supportTitleGroup: true,
       categoryRssMap: {
         '所有類別': '0',
         '動畫': '2',
@@ -105,6 +106,7 @@ const List<RSSProvider> kRssProviders = [
       mainPagePath: 'rss/latest',
       searchParams: '/search/%q',
       logoPath: 'lite/img/logo-20150506.png',
+      supportTitleGroup: true,
       authorNameTag: null,
       categoryTag: null,
       coverUrlGetter: descriptionCoverUrlGetter,
@@ -147,6 +149,7 @@ const List<RSSProvider> kRssProviders = [
       mainPagePath: '.xml',
       searchParams: '%c.xml?term=%q',
       coverUrlGetter: descriptionCoverUrlGetter,
+      supportTitleGroup: true,
       authorNameTag: null,
       categoryTag: null,
       categoryRssMap: {
@@ -248,6 +251,7 @@ class RSSProvider {
   final String? fileSizeTag;
   final String descriptionTag;
   final bool supportAdvancedSearch;
+  final bool supportTitleGroup;
   final XMLValueGetter? magnetUrlGetter;
   final XMLValueGetter? coverUrlGetter;
   final Map<String, String?>? categoryRssMap;
@@ -266,6 +270,7 @@ class RSSProvider {
       this.coverUrlGetter = descriptionCoverUrlGetter,
       this.fileSizeTag,
       this.supportAdvancedSearch = true,
+      this.supportTitleGroup = false,
       this.itemNameTag = 'title',
       this.authorNameTag = 'author',
       this.pubDateTag = 'pubDate',

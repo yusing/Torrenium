@@ -2,7 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
-import '../classes/item.dart';
+
+import '../services/http.dart';
 
 class CachedImage extends CachedNetworkImage {
   CachedImage(
@@ -45,6 +46,6 @@ class CachedImage extends CachedNetworkImage {
                     }
                   }),
           useOldImageOnUrlChange: true,
-          cacheManager: TorreniumCacheManager(),
+          cacheManager: gCacheManager,
         );
 }
