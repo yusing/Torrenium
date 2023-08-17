@@ -164,6 +164,7 @@ Simply install the app and start using it.
 - [x] Windows and Android build
 - [ ] iOS build *(WIP)*
 - [ ] Linux and MacOS build
+- [ ] Limit concurrent downloads
 - [ ] Custom RSS Provider Support
 - [ ] Group results by titles
 - [ ] Play next episode when video ends (if available)
