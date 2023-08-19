@@ -4,37 +4,35 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as pathlib;
 
-import '../services/storage.dart';
-import '../services/torrent.dart';
+import '../interface/download_item.dart';
+import '../interface/resumeable.dart';
+import '../services/torrent_mgr.dart';
 import '../utils/connectivity.dart';
-import '../utils/ext_icons.dart';
-import '../utils/string.dart';
-import 'download_item.dart';
 import 'item.dart';
 import 'torrent_file.dart';
 
-class Torrent extends DownloadItem implements Comparable<Torrent> {
-  String name, infoHash;
-  List<TorrentFile> files = [];
+class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
+  List<TorrentFile> _files = [];
+
+  String infoHash;
   Pointer<Void> torrentPtr;
-  int size, bytesDownloaded, bytesDownloadedInitial;
-  bool paused = false;
-  num progress;
-  ValueNotifier<void> stateNotifier = ValueNotifier(null);
+  int size, bytesDownloadedInitial;
   Timer? _updateTimer;
   late DateTime _startTime;
   DateTime? _downloadedTime;
 
+  @override
+  bool isPaused = false;
+
   Torrent(
-      {required this.name,
+      {required super.name,
+      required super.progress,
+      required super.bytesDownloaded,
       required this.infoHash,
       required this.size,
       required this.torrentPtr,
-      required this.progress,
-      required this.bytesDownloaded,
       required this.bytesDownloadedInitial});
   factory Torrent.fromJson(dynamic json) {
     if (json is String) {
@@ -68,18 +66,18 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
   }
   factory Torrent.placeholder(Item item) {
     return Torrent(
-        name: 'Downloading metadata... ${item.name}',
-        infoHash: item.name,
+        name: item.nameCleaned,
+        infoHash: 'placeholder:${item.nameCleaned.hashCode}',
         size: 0,
         torrentPtr: nullptr,
         progress: 0,
         bytesDownloaded: 0,
         bytesDownloadedInitial: 0);
   }
-  String get animeNameKey => 'animeName:${name.sha256Hash}';
 
   @override
-  String get displayName => Storage.getString(animeNameKey) ?? name;
+  String get displayName =>
+      isMultiFile ? '$nameCleaned (${files.length} files)' : name;
 
   DateTime get downloadedTime => _downloadedTime ??=
       FileStat.statSync(pathlib.join(gTorrentManager.savePath, name)).modified;
@@ -92,15 +90,30 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
           .toDouble();
 
   @override
+  List<TorrentFile> get files => _files;
+
+  @override
   String get fullPath => pathlib.join(gTorrentManager.savePath, name);
 
-  IconData get icon => getPathIcon(fullPath);
+  @override
+  int get hashCode => infoHash.hashCode;
 
+  @override
   bool get isComplete => progress == 1.0;
 
+  @override
   bool get isMultiFile => files.length > 1;
 
-  bool get isPlaceholder => infoHash == 'placeholder';
+  @override
+  bool get isPlaceholder => infoHash.startsWith('placeholder:');
+
+  @override
+  bool operator ==(Object other) {
+    if (other is Torrent) {
+      return infoHash == other.infoHash;
+    }
+    return false;
+  }
 
   @override
   int compareTo(Torrent other) {
@@ -123,9 +136,15 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
     gTorrentManager.deleteTorrent(this);
   }
 
-  Future<void> setDisplayName(String displayName) async =>
-      await Storage.setStringIfNotExists(animeNameKey,
-          displayName.trim().replaceAll('【', '[').replaceAll('】', ']'));
+  @override
+  void pause() {
+    gTorrentManager.pauseTorrent(this);
+  }
+
+  @override
+  void resume() {
+    gTorrentManager.resumeTorrent(this);
+  }
 
   void startSelfUpdate() {
     _startTime = DateTime.now();
@@ -135,7 +154,7 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
         return;
       }
 
-      if (!paused) {
+      if (!isPaused) {
         // pause torrent if limited connectivity, resume when connected
         if (await isLimitedConnectivity()) {
           gTorrentManager.pauseTorrent(this);
@@ -155,8 +174,8 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
           progress = tNewer.progress;
           bytesDownloaded = tNewer.bytesDownloaded;
           _downloadedTime = DateTime.now();
-          files = tNewer.files;
-          stateNotifier.notifyListeners();
+          _files = tNewer._files;
+          updateNotifier.notifyListeners();
         }
       }
     });
@@ -171,7 +190,7 @@ class Torrent extends DownloadItem implements Comparable<Torrent> {
     name = other.name;
     infoHash = other.infoHash;
     size = other.size;
-    files = other.files;
+    _files = other.files;
     torrentPtr = other.torrentPtr;
     bytesDownloadedInitial = other.bytesDownloadedInitial;
     progress = other.progress;

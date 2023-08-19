@@ -69,3 +69,12 @@ class TorreniumHttpResponse extends HttpGetResponse {
     return utf8.decodeStream(content);
   }
 }
+
+class TorreniumHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}

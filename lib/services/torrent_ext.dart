@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:torrenium/widgets/adaptive.dart';
 
-import '../classes/item.dart';
+import '../class/item.dart';
 import 'storage.dart';
-import 'torrent.dart';
+import 'torrent_mgr.dart';
 
 extension TorrentManagerExtension on TorrentManager {
   // TODO: change this
@@ -15,21 +15,11 @@ extension TorrentManagerExtension on TorrentManager {
     item.startDownload().onError((error, stackTrace) async {
       Logger().e(error);
 
-      await showMacosAlertDialog(
-          context: context,
-          builder: (context) {
-            return MacosAlertDialog(
-              title: const Text('Error'),
-              message: const Text('No torrent link found'),
-              appIcon: const SizedBox(), // TODO: replace this
-              primaryButton: PushButton(
-                  controlSize: ControlSize.large,
-                  child: const Text('Dismiss'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  }),
-            );
-          });
+      await showAdaptiveAlertDialog(
+        context: context,
+        title: const Text('Error'),
+        content: const Text('No torrent link found'),
+      );
     }).then((value) {
       if (pop) Navigator.pop(context);
     });

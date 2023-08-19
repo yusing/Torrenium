@@ -3,20 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_offline/flutter_offline.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../classes/item.dart';
-import '../classes/rss_result_group.dart';
+import '../class/rss_result_group.dart';
 import '../main.dart' show kIsDesktop;
 import '../services/subscription.dart';
 import '../style.dart';
 import '../utils/fetch_rss.dart';
 import '../utils/rss_providers.dart';
+import 'adaptive.dart';
 import 'cupertino_picker_button.dart';
 import 'rss_result_view.dart';
 
 var gRssProvider = kRssProviders.first;
 
 typedef KV = MapEntry<String, String?>;
-   class RSSTab extends StatefulWidget {
+
+class RSSTab extends StatefulWidget {
   const RSSTab({super.key});
 
   @override
@@ -27,13 +28,14 @@ class _RSSTabState extends State<RSSTab> {
   static final _searchController =
       TextEditingController(); // share across all tabs (RSSProvider)
 
-
-  late final _tabControllerDesktop = kIsDesktop
-      ? (MacosTabController(length: kRssProviders.length, initialIndex: 0)
+  late final MacosTabController? _tabControllerDesktop = kIsDesktop
+      ? (MacosTabController(length: kRssProviders.length)
         ..addListener(() {
+          gRssProvider = kRssProviders[_tabControllerDesktop!.index];
           updateUrl();
         }))
       : null;
+
   int categoryIndex = 0;
   int authorIndex = 0;
 
@@ -42,8 +44,9 @@ class _RSSTabState extends State<RSSTab> {
           query: query, author: selectedAuthor, category: selectedCategory));
 
   List<Widget> get buttons => [
-        CupertinoButton(
-            child: const Text('Subscribe'),
+        AdaptiveTextButton(
+            icon: const AdaptiveIcon(CupertinoIcons.star),
+            label: const Text('Subscribe'),
             onPressed: () async {
               if (query.trim().isEmpty) {
                 return;
@@ -152,7 +155,11 @@ class _RSSTabState extends State<RSSTab> {
         builder: (_, snapshot) {
           return Column(
             children: [
-              if (kIsDesktop) urlBar(url),
+              if (kIsDesktop)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: urlBar(url),
+                ),
               if (!kIsDesktop) ...[
                 Row(
                   children: [
@@ -160,13 +167,7 @@ class _RSSTabState extends State<RSSTab> {
                     ...buttons
                   ],
                 ),
-                const SizedBox(
-                  height: 4,
-                ),
                 urlBar(url),
-                const SizedBox(
-                  height: 4,
-                ),
                 Row(
                   children: [
                     Expanded(
@@ -250,7 +251,8 @@ class _RSSTabState extends State<RSSTab> {
       return CupertinoPickerButton(
           items: List.generate(gRssProvider.authorRssMap?.length ?? 0, (i) => i,
               growable: false),
-          itemBuilder: (i) => Text(gRssProvider.authorRssMap!.keys.elementAt(i)),
+          itemBuilder: (i) =>
+              Text(gRssProvider.authorRssMap!.keys.elementAt(i)),
           valueGetter: () => authorIndex,
           onSelectedItemChanged: (i) => authorIndex = i,
           onPop: (i) => onChange(i));
@@ -287,9 +289,11 @@ class _RSSTabState extends State<RSSTab> {
 
     if (!kIsDesktop) {
       return CupertinoPickerButton(
-          items: List.generate(gRssProvider.categoryRssMap?.length ?? 0, (i) => i,
+          items: List.generate(
+              gRssProvider.categoryRssMap?.length ?? 0, (i) => i,
               growable: false),
-          itemBuilder: (i) => Text(gRssProvider.categoryRssMap!.keys.elementAt(i)),
+          itemBuilder: (i) =>
+              Text(gRssProvider.categoryRssMap!.keys.elementAt(i)),
           valueGetter: () => categoryIndex,
           onSelectedItemChanged: (i) => categoryIndex = i,
           onPop: (i) => onChange(i));
@@ -325,7 +329,13 @@ class _RSSTabState extends State<RSSTab> {
           autofocus: false,
           autocorrect: false,
           maxLines: 1,
-          controller: _searchController,
+          controller: _searchController
+            ..addListener(() {
+              // clear button workaround
+              if (_searchController.text.isEmpty) {
+                updateUrl();
+              }
+            }),
           placeholder: 'Search for something...',
           maxResultsToShow: kIsDesktop ? 10 : 4,
           results: results?.map((e) => SearchResultItem(e.title)).toList(),

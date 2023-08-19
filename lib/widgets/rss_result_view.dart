@@ -2,11 +2,11 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../classes/rss_result_group.dart';
-import '../services/torrent.dart';
+import '../class/rss_result_group.dart';
 import '../services/torrent_ext.dart';
+import '../services/torrent_mgr.dart';
 import '../style.dart';
-import 'dynamic.dart';
+import 'adaptive.dart';
 import 'rss_result_card.dart';
 
 class RssResultGridView extends StatelessWidget {
@@ -17,7 +17,7 @@ class RssResultGridView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: GridView.builder(
           shrinkWrap: true,
           controller: controller,
@@ -44,17 +44,20 @@ class RssResultListView extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 18),
       itemCount: results.length,
       itemBuilder: ((context, index) {
+        assert(results[index].items.length == 1,
+            "RSSResultListView expect and support only one item per result\n${results[index].items}");
+
         final item = results[index].items.first;
-        return DynamicListTile(
+        return AdaptiveListTile(
           title: Text(results[index].title),
           trailing: [
-            DynamicIconButton(
+            AdaptiveIconButton(
               padding: const EdgeInsets.all(0),
               icon: const MacosIcon(CupertinoIcons.cloud_download, size: 18),
               onPressed: () => gTorrentManager.download(item, context: context),
             ),
             const SizedBox(width: 16),
-            DynamicIconButton(
+            AdaptiveIconButton(
               padding: const EdgeInsets.all(0),
               icon: const MacosIcon(
                 CupertinoIcons.info,

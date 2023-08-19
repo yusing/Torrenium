@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:logger/logger.dart';
 
-import '../classes/item.dart' show Item;
+import '../class/item.dart' show Item;
 import '../utils/connectivity.dart';
 import '../utils/fetch_rss.dart' show parseRSSForItems;
 import '../utils/rss_providers.dart' show RSSProvider, kProvidersDict;

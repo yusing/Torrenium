@@ -8,8 +8,9 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
 
-import '../classes/item.dart';
-import '../classes/torrent.dart';
+import '../class/item.dart';
+import '../class/torrent.dart';
+import '../interface/groupable.dart';
 import '../main.dart' show kIsDesktop;
 import '../services/error_reporter.dart';
 import '../utils/ffi.dart';
@@ -24,13 +25,9 @@ class TorrentManager {
   static late final TorrentManager instance;
   static final _isolateToMain = ReceivePort()
     ..listen((message) async {
-      final torrent = instance.torrentList.firstWhere(
-          (t) => t.infoHash == message['displayName'],
-          orElse: () => throw Exception('Torrent not found'));
+      final torrent = message['placeholder']!();
       torrent.updateDetail(Torrent.fromJson(message['torrent']));
       torrent.startSelfUpdate();
-      await torrent.setDisplayName(message['displayName']);
-      instance.torrentList.sort();
       instance.updateNotifier.notifyListeners();
     });
 
@@ -44,15 +41,21 @@ class TorrentManager {
       torrent_binding.TorrentGoBinding(_dylib);
   final updateNotifier = ValueNotifier(null);
 
-  var torrentList = <Torrent>[];
+  final placeholders = <Torrent>[];
+
+  late var torrentsMap = <String, List<Torrent>>{
+    "Downloading Metadata...": placeholders
+  };
 
   late final Directory docDir;
+
   late String savePath;
 
   void deleteTorrent(Torrent t) {
+    assert(!t.isPlaceholder, 'Cannot delete placeholder torrent');
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
-    torrentList.remove(t);
+    torrentsMap[t.group]?.remove(t);
     WatchHistory.remove(t.nameHash);
     gSubscriptionManager.addExclusion(t.nameHash);
     updateNotifier.notifyListeners();
@@ -64,13 +67,13 @@ class TorrentManager {
     }
     final url = item.torrentUrl!;
     final placeholder = Torrent.placeholder(item);
-    torrentList.add(placeholder);
+    placeholders.add(placeholder);
     await Isolate.spawn((message) {
       message.send({
         "torrent": jsonDecode.cStringCall(url.startsWith('magnet:')
             ? go.AddMagnet.dartStringCall(url)
             : go.AddTorrent.dartStringCall(url)),
-        "displayName": item.name
+        "placeholder": () => placeholder
       });
     }, _isolateToMain.sendPort);
     updateNotifier.notifyListeners();
@@ -81,12 +84,12 @@ class TorrentManager {
 
   void pauseTorrent(Torrent t) {
     t.stopSelfUpdate();
-    t.paused = true;
+    t.isPaused = true;
     go.PauseTorrent(t.torrentPtr);
   }
 
   void resumeTorrent(Torrent t) {
-    t.paused = false;
+    t.isPaused = false;
     t.torrentPtr =
         Pointer<Void>.fromAddress(go.ResumeTorrent.dartStringCall(t.infoHash));
     t.bytesDownloadedInitial = t.bytesDownloaded;
@@ -131,11 +134,30 @@ class TorrentManager {
     Logger().d('TorrentClient initialized');
 
     // load last session
-    instance.torrentList = Torrent.listFromJson.cStringCall(go.GetTorrentList())
-      ..sort()
-      ..forEach((t) => t.startSelfUpdate());
+    instance.torrentsMap =
+        (Torrent.listFromJson.cStringCall(go.GetTorrentList())
+              ..sort()
+              ..forEach((t) => t.startSelfUpdate()))
+            .group();
 
     Logger().d(
-        'TorrentManager initialized ${instance.torrentList.length} torrents');
+        'TorrentManager initialized ${instance.torrentsMap.length} torrents');
+  }
+
+  Torrent? findTorrent(String nameHash) {
+    for (final group in torrentsMap.values) {
+      for (final torrent in group) {
+        if (torrent.isMultiFile) {
+          for (final file in torrent.files) {
+            if (file.nameHash == nameHash) {
+              return torrent;
+            }
+          }
+        } else if (torrent.nameHash == nameHash) {
+          return torrent;
+        }
+      }
+    }
+    return null;
   }
 }

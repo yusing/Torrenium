@@ -1,16 +1,15 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:macos_ui/macos_ui.dart';
+import 'package:flutter/widgets.dart';
 
 import '../services/subscription.dart';
 import '../style.dart';
-import 'dynamic.dart';
+import 'adaptive.dart';
 
-class SubscriptionsDialog extends MacosSheet {
-  SubscriptionsDialog(BuildContext context, {super.key})
-      : super(child: content());
+class SubscriptionsDialog extends StatelessWidget {
+  const SubscriptionsDialog({super.key});
 
-  static StatefulWidget content() => ValueListenableBuilder(
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder(
       valueListenable: gSubscriptionManager.updateNotifier,
       builder: (context, _, __) {
         return Padding(
@@ -22,7 +21,7 @@ class SubscriptionsDialog extends MacosSheet {
                 : ListView.separated(
                     itemBuilder: (context, index) {
                       final sub = gSubscriptionManager.subscriptions[index];
-                      return DynamicListTile(
+                      return AdaptiveListTile(
                           title: Text(
                             sub.keyword,
                             style: kItemTitleTextStyle,
@@ -30,13 +29,13 @@ class SubscriptionsDialog extends MacosSheet {
                             maxLines: 2,
                           ),
                           trailing: [
-                            DynamicIconButton(
+                            AdaptiveIconButton(
                                 icon: const Icon(CupertinoIcons.refresh),
                                 onPressed: () async =>
                                     await gSubscriptionManager.updateSub(
                                         sub, true)),
                             const SizedBox(width: 16),
-                            DynamicIconButton(
+                            AdaptiveIconButton(
                               icon: const Icon(CupertinoIcons.delete),
                               onPressed: () =>
                                   gSubscriptionManager.removeSubscription(sub),

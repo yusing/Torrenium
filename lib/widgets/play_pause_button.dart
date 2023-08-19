@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class PlayPauseButton extends CupertinoButton {
+import 'adaptive.dart';
+
+class PlayPauseButton extends AdaptiveIconButton {
   final VoidCallback play;
   final VoidCallback pause;
   final bool isPlaying;
@@ -15,7 +17,7 @@ class PlayPauseButton extends CupertinoButton {
       required this.isPlaying})
       : super(
           key: key,
-          child: FaIcon(
+          icon: AdaptiveIcon(
             isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
             size: iconSize,
             color: color,

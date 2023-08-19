@@ -17,6 +17,7 @@ class RssResultGroup {
     if (kIsDesktop) {
       showMacosSheet(
           context: context,
+          barrierDismissible: true,
           builder: (context) => RssResultDialog(context, this));
     } else {
       Navigator.push(
@@ -31,7 +32,11 @@ class RssResultGroup {
                     ),
                   ),
                   child: SafeArea(
-                      child: RssResultDialog.content(context, this)))));
+                      child: SingleChildScrollView(
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children:
+                                  RssResultDialog.content(context, this)))))));
     }
   }
 }

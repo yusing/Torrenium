@@ -3,22 +3,19 @@ import 'dart:io';
 
 import 'package:path/path.dart' as pathlib;
 
-import '../services/torrent.dart';
-import 'download_item.dart';
+import '../interface/download_item.dart';
+import '../services/torrent_mgr.dart';
 
 class TorrentFile extends DownloadItem {
-  final String name;
   final int size;
   final String relativePath;
-  int bytesDownloaded;
-  num progress;
 
   TorrentFile({
-    required this.name,
+    required super.name,
     required this.size,
     required this.relativePath,
-    required this.bytesDownloaded,
-    required this.progress,
+    required super.bytesDownloaded,
+    required super.progress,
   });
 
   factory TorrentFile.fromJson(dynamic json) {
@@ -45,10 +42,23 @@ class TorrentFile extends DownloadItem {
   bool get exists => File(fullPath).existsSync();
 
   @override
-  String get fullPath {
-    return pathlib.join(gTorrentManager.savePath, relativePath);
-  }
+  String get fullPath => pathlib.join(gTorrentManager.savePath, relativePath);
+
+  @override
+  bool get isComplete => true;
+
+  @override
+  bool get isMultiFile => false;
+
+  @override
+  bool get isPlaceholder => false;
 
   @override
   void delete() => File(fullPath).deleteSync();
+
+  @override
+  String toString() {
+    // for debugging
+    return group;
+  }
 }

@@ -9,11 +9,11 @@ import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../classes/download_item.dart';
+import '../interface/download_item.dart';
 import '../services/watch_history.dart';
 import '../utils/units.dart';
+import 'adaptive.dart';
 import 'cupertino_picker_button.dart';
-import 'dynamic.dart';
 import 'play_pause_button.dart';
 
 class VideoPlayerPage extends StatefulWidget {
@@ -302,7 +302,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  DynamicListTile(
+                  AdaptiveListTile(
                       leading: const Icon(Icons.speed_outlined),
                       title: const Text('Playback Speed'),
                       trailing: [
@@ -319,7 +319,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               await _vlcController.setPlaybackSpeed(speed);
                             })
                       ]),
-                  DynamicListTile(
+                  AdaptiveListTile(
                       leading: const Icon(Icons.audiotrack_outlined),
                       title: const Text('Audio Track'),
                       trailing: [
@@ -344,7 +344,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                     ),
                                   ))
                       ]),
-                  DynamicListTile(
+                  AdaptiveListTile(
                       leading: const Icon(Icons.subtitles_outlined),
                       title: const Text('Subtitle'),
                       trailing: [

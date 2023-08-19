@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 
-import '../classes/download_item.dart';
+import '../interface/download_item.dart';
 import 'show_video_player.dart';
 
 Future<void> openItem(BuildContext context, DownloadItem item) async {

@@ -4,16 +4,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import 'services/error_reporter.dart';
+import 'services/http.dart';
 import 'services/storage.dart';
 import 'services/subscription.dart';
-import 'services/torrent.dart';
-import 'utils/http.dart';
+import 'services/torrent_mgr.dart';
 import 'view/desktop_view.dart';
 import 'view/mobile_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  HttpOverrides.global = MyHttpOverrides();
+  HttpOverrides.global = TorreniumHttpOverrides();
 
   gInitResult = init().onError((error, stackTrace) => reportError(
       error: error, stackTrace: stackTrace, msg: 'Error initializing'));
@@ -42,8 +42,7 @@ class TorreniumApp extends StatelessWidget {
     return kIsDesktop
         ? MacosApp(
             title: 'Torrenium',
-            theme: MacosThemeData.light(),
-            darkTheme: MacosThemeData.dark(),
+            theme: MacosThemeData.dark(),
             debugShowCheckedModeBanner: false,
             home: content())
         : CupertinoApp(

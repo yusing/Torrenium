@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import '../classes/download_item.dart';
+
+import '../interface/download_item.dart';
 import '../widgets/video_player.dart';
 
 Future<void> showVideoPlayer(BuildContext context, DownloadItem item) async {

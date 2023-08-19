@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import '../style.dart';
-import '../utils/open_file.dart';
+import 'package:torrenium/services/torrent_mgr.dart';
 
 import '../services/watch_history.dart';
-import 'dynamic.dart';
+import '../style.dart';
+import '../utils/open_file.dart';
+import 'adaptive.dart';
 
 class WatchHistoryPage extends StatefulWidget {
   const WatchHistoryPage({super.key});
@@ -24,23 +25,33 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemCount: WatchHistory.list.length,
               itemBuilder: (context, index) {
-                final item = WatchHistory.list
+                final entry = WatchHistory.list
                     .elementAt(WatchHistory.list.length - index - 1);
-                return DynamicListTile(
+                return AdaptiveListTile(
                   title: Text(
-                    item.title,
+                    entry.title,
                     style: kItemTitleTextStyle,
                     maxLines: 2,
                     softWrap: true,
                   ),
                   subtitle: SizedBox(
                     width: double.infinity,
-                    child: DynamicProgressBar(
-                      value: item.progress,
+                    child: AdaptiveProgressBar(
+                      value: entry.progress,
                       trackColor: CupertinoColors.systemPurple,
                     ),
                   ),
-                  onTap: () => openItem(context, item.item),
+                  onTap: () {
+                    final item = gTorrentManager.findTorrent(entry.nameHash);
+                    if (item == null) {
+                      showAdaptiveAlertDialog(
+                          context: context,
+                          title: const Text('Error'),
+                          content: const Text('Item not found!'));
+                      return;
+                    }
+                    openItem(context, item);
+                  },
                 );
               },
             );

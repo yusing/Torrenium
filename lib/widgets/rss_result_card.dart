@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import '../classes/rss_result_group.dart';
+
+import '../class/rss_result_group.dart';
 import '../style.dart';
 import 'cached_image.dart';
 
@@ -25,7 +26,7 @@ class RSSResultCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               child: CachedImage(
                   url: result.items.first.coverUrl,
-                  fallbackGetter: result.items.first.coverPhotoFallback,
+                  fallbackGetter: result.items.first.coverPhotoFallbackUrl,
                   width: kCoverPhotoWidth),
             )),
             Padding(

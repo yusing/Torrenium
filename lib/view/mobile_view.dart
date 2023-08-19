@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
-import '../widgets/download_list_dialog.dart';
+import '../widgets/group_list_dialog.dart';
 import '../widgets/rss_tab.dart';
 import '../widgets/subscriptions_dialog.dart';
 import '../widgets/watch_history.dart';
@@ -8,7 +8,7 @@ import '../widgets/watch_history.dart';
 class MobileTab {
   final String title;
   final IconData icon;
-  final StatefulWidget child;
+  final Widget child;
 
   const MobileTab(this.title, this.icon, this.child);
 }
@@ -17,13 +17,11 @@ class MobileView extends StatefulWidget {
   // TODO: fix download, subs tab not updating
 
   static final _tabController = CupertinoTabController();
-  static final kPages = [
-    const MobileTab('Home', CupertinoIcons.home, RSSTab()),
-    MobileTab(
-        'Subscriptions', CupertinoIcons.star, SubscriptionsDialog.content()),
-    MobileTab(
-        'Downloads', CupertinoIcons.down_arrow, DownloadListDialog.content()),
-    const MobileTab('History', CupertinoIcons.time, WatchHistoryPage())
+  static const kPages = [
+    MobileTab('Home', CupertinoIcons.home, RSSTab()),
+    MobileTab('Subscriptions', CupertinoIcons.star, SubscriptionsDialog()),
+    MobileTab('Downloads', CupertinoIcons.down_arrow, DownloadListDialog()),
+    MobileTab('History', CupertinoIcons.time, WatchHistoryPage())
   ];
   const MobileView({super.key});
 
