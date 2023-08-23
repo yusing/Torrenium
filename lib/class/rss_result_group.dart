@@ -32,11 +32,9 @@ class RssResultGroup {
                     ),
                   ),
                   child: SafeArea(
-                      child: SingleChildScrollView(
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children:
-                                  RssResultDialog.content(context, this)))))));
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: RssResultDialog.content(context, this))))));
     }
   }
 }

@@ -7,15 +7,15 @@ extension DateTimeExt on DateTime {
     final now = DateTime.now();
     final diff = now.difference(this);
     if (diff.inDays > 0) {
-      return '${diff.inDays} days ago';
+      return '${diff.inDays} day${diff.inDays > 1 ? "s" : ""} ago';
     }
     if (diff.inHours > 0) {
-      return '${diff.inHours} hours ago';
+      return '${diff.inHours} hour${diff.inHours > 1 ? "s" : ""} ago';
     }
     if (diff.inMinutes > 0) {
-      return '${diff.inMinutes} minutes ago';
+      return '${diff.inMinutes} minute${diff.inMinutes > 1 ? "s" : ""} ago';
     }
-    return '${diff.inSeconds} seconds ago';
+    return '${diff.inSeconds} second${diff.inSeconds > 1 ? "s" : ""} ago';
   }
 }
 

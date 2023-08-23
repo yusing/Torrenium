@@ -57,9 +57,9 @@ abstract class DownloadItem extends Groupable {
       );
 
   Future<String?> defaultCoverUrlFallback() async {
-    final coverUrl = await YouTube.search(title)
-        .then((value) => value.first.items.first.coverUrl);
-    this.coverUrl = coverUrl;
+    final coverUrl = await YouTube.search(title).then(
+        (value) => value.isEmpty ? null : value.first.items.first.coverUrl);
+    this.coverUrl ??= coverUrl;
     return coverUrl;
   }
 

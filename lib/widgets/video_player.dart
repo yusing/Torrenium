@@ -29,6 +29,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.error,
           ready: onReady,
           libass: true,
+          bufferSize: 4 * 1024 * 1024,
           libassAndroidFont: item.externalSubtitltFontPath)));
 
   late final media = Media(widget.item.videoPath);

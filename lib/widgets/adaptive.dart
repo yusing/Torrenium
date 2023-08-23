@@ -309,75 +309,77 @@ class _AdaptiveDropDownState<T> extends State<AdaptiveDropDown<T>> {
 }
 
 class _AdaptiveListTileState extends State<AdaptiveListTile> {
-  bool _hovering = false;
-
   @override
   Widget build(BuildContext context) {
-    if (kIsDesktop) {
-      return GestureDetector(
-        onTap: widget.onTap,
-        child: MouseRegion(
-          onHover: (_) => setState(() => _hovering = true),
-          onExit: (_) => setState(() => _hovering = false),
-          child: Container(
-            color:
-                _hovering ? MacosColors.systemBlueColor.withOpacity(.1) : null,
-            padding: const EdgeInsets.all(4.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (widget.leading != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: widget.leading!,
-                      ),
-                    Expanded(
-                        child: DefaultTextStyle(
-                            style: kItemTitleTextStyle,
-                            softWrap: true,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                            child: widget.title)),
-                    if (widget.trailing != null) ...[
-                      const SizedBox(width: 16),
-                      ...widget.trailing!
-                    ]
-                  ],
-                ),
-                if (widget.subtitle != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: DefaultTextStyle(
-                      style: MacosTheme.of(context)
-                          .typography
-                          .subheadline
-                          .copyWith(
-                              color: MacosColors.systemGrayColor,
-                              fontWeight: FontWeight.w500),
-                      maxLines: 1,
-                      child: widget.subtitle!,
+    // if (kIsDesktop) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (widget.leading != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: widget.leading!,
                     ),
-                  )
-              ],
-            ),
+                  Expanded(
+                      child: DefaultTextStyle(
+                          style: kItemTitleTextStyle,
+                          softWrap: true,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          child: widget.title)),
+                  if (widget.trailing != null) ...[
+                    const SizedBox(width: 16),
+                    ...widget.trailing!
+                  ]
+                ],
+              ),
+              if (widget.subtitle != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: DefaultTextStyle(
+                    style: kIsDesktop
+                        ? MacosTheme.of(context)
+                            .typography
+                            .subheadline
+                            .copyWith(
+                                color: MacosColors.systemGrayColor,
+                                fontWeight: FontWeight.w500)
+                        : CupertinoTheme.of(context)
+                            .textTheme
+                            .textStyle
+                            .copyWith(
+                                fontSize: 12,
+                                color: CupertinoColors.systemGrey,
+                                fontWeight: FontWeight.w500),
+                    maxLines: 1,
+                    child: widget.subtitle!,
+                  ),
+                )
+            ],
           ),
         ),
-      );
-    }
-    return CupertinoListTile(
-      title: widget.title,
-      subtitle: widget.subtitle,
-      leading: widget.leading,
-      onTap: widget.onTap,
-      trailing: widget.trailing == null
-          ? null
-          : widget.trailing!.length == 1
-              ? widget.trailing!.first
-              : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
+      ),
     );
+    // }
+    // return CupertinoListTile(
+    //   title: widget.title,
+    //   subtitle: widget.subtitle,
+    //   leading: widget.leading,
+    //   onTap: widget.onTap,
+    //   trailing: widget.trailing == null
+    //       ? null
+    //       : widget.trailing!.length == 1
+    //           ? widget.trailing!.first
+    //           : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
+    // );
   }
 }

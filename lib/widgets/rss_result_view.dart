@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -23,8 +25,8 @@ class RssResultGridView extends StatelessWidget {
           controller: controller,
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: gRssProvider.isYouTube
-                  ? 480
-                  : MediaQuery.of(context).size.width / 4,
+                  ? min(480, MediaQuery.of(context).size.width)
+                  : max(300, MediaQuery.of(context).size.width / 4),
               crossAxisSpacing: 16.0,
               mainAxisSpacing: 16.0,
               childAspectRatio: gRssProvider.isYouTube ? 16 / 9 : 3 / 4),
