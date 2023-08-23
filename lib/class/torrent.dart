@@ -61,7 +61,7 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
           json['bytes_downloaded'] ?? json['progress'] * json['size'],
     );
     for (final file in json['files']) {
-      torrent.files.add(TorrentFile.fromJson(file));
+      torrent.files.add(TorrentFile.fromJson(file)..parent = torrent);
     }
     return torrent;
   }
@@ -94,19 +94,16 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   List<TorrentFile> get files => _files;
 
   @override
-  String get videoPath => pathlib.join(gTorrentManager.savePath, name);
-
-  @override
   int get hashCode => infoHash.hashCode;
-
-  @override
-  bool get isComplete => progress == 1.0;
 
   @override
   bool get isMultiFile => files.length > 1;
 
   @override
   bool get isPlaceholder => infoHash.startsWith('placeholder:');
+
+  @override
+  String get videoPath => pathlib.join(gTorrentManager.savePath, name);
 
   @override
   bool operator ==(Object other) {

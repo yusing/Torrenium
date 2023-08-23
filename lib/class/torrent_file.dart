@@ -54,9 +54,6 @@ class TorrentFile extends DownloadItem {
   bool get isPlaceholder => false;
 
   @override
-  void delete() => File(videoPath).deleteSync();
-
-  @override
   String toString() {
     // for debugging
     return group;

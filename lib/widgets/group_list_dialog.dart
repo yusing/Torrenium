@@ -33,22 +33,17 @@ class GroupListDialog extends StatelessWidget {
       : groups = map.sortedGroup();
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-      valueListenable: gTorrentManager.updateNotifier,
-      builder: (context, _, __) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          child: groups.isEmpty
-              ? const Center(child: Text('Nothing Here...'))
-              : ListView.separated(
-                  separatorBuilder: (_, index) => const SizedBox(height: 24),
-                  itemCount: groups.length,
-                  itemBuilder: ((_, index) {
-                    return ItemGroupWidget(groups[index]);
-                  }),
-                ),
-        );
-      });
+  Widget build(BuildContext context) {
+    return groups.isEmpty
+        ? const Center(child: Text('Nothing Here...'))
+        : ListView.separated(
+            separatorBuilder: (_, index) => const SizedBox(height: 24),
+            itemCount: groups.length,
+            itemBuilder: ((_, index) {
+              return ItemGroupWidget(groups[index]);
+            }),
+          );
+  }
 }
 
 class ItemGroupWidget extends StatelessWidget {
@@ -68,8 +63,7 @@ class ItemGroupWidget extends StatelessWidget {
     }
 
     final episodes = group.value
-      ..sort((a, b) => (a.episodeNumbers?.reduce((x, y) => x + y) ?? '')
-          .compareTo((b.episodeNumbers?.reduce((x, y) => x + y)) ?? ''));
+      ..sort((a, b) => a.episode?.compareTo(b.episode ?? '') ?? 0);
 
     return AdaptiveListTile(
         leading: group.value.first.coverImageWidget(),
@@ -91,7 +85,9 @@ class ItemListTile extends ValueListenableBuilder<void> {
   ItemListTile(DownloadItem item, {super.key})
       : super(
           valueListenable: item.updateNotifier,
-          builder: ((context, __, ___) => _ItemListTileInner(context, item)),
+          builder: ((context, __, ___) => Visibility(
+              visible: !item.deleted,
+              child: _ItemListTileInner(context, item))),
         );
 }
 

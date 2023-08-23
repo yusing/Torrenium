@@ -1,5 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:json_annotation/json_annotation.dart';
+
+import '/services/storage.dart';
+import '/services/youtube.dart';
+import '/utils/string.dart';
+import '/widgets/cached_image.dart';
 
 part 'groupable.g.dart';
 
@@ -26,7 +31,7 @@ class Groupable {
   Iterable<String>? episodeNumbers;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
-  ValueNotifier<void> updateNotifier = ValueNotifier(null);
+  ValueNotifier<void>? _updateNotifier;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   bool? _isMusic;
@@ -34,10 +39,39 @@ class Groupable {
   @JsonKey(includeFromJson: false, includeToJson: false)
   List<int>? episodeIndexes;
 
-  Groupable({required this.name});
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  String? _coverUrl;
+
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  CachedImage? _coverImageWidget;
+
+  Groupable? parent;
+
+  Groupable({required this.name, this.parent});
+
+  factory Groupable.fromJson(Map<String, dynamic> json) =>
+      _$GroupableFromJson(json);
+
+  String? get coverUrl => parent != null
+      ? parent!.coverUrl
+      : _coverUrl ??= Storage.getString('cover-$nameHash');
+
+  set coverUrl(String? url) {
+    if (url == null) {
+      return;
+    }
+    if (parent != null) {
+      parent!.coverUrl = url;
+      return;
+    }
+    _coverUrl = url;
+    Storage.setStringIfNotExists('cover-$nameHash', url);
+  }
 
   String? get episode => episodeNumbers?.join(" - ");
+
   String get group => nameCleanedNoNum;
+
   bool get isMusic => _isMusic ??=
       RegExp(r'(flac|mp3|320k)', caseSensitive: false).hasMatch(name);
   String get nameCleaned => _nameCleaned ??= Title(name).value;
@@ -46,6 +80,8 @@ class Groupable {
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
+  String get nameHash => name.sha256Hash;
+
   List<int> get numbersInName => _numbersInName ??= RegExp(r'\d+')
       .allMatches(nameCleaned)
       .map((m) => int.parse(m.group(0)!))
@@ -53,6 +89,28 @@ class Groupable {
     ..sort();
 
   String get title => name;
+
+  ValueNotifier<void> get updateNotifier => parent != null
+      ? parent!.updateNotifier
+      : _updateNotifier ??= ValueNotifier(null);
+
+  CachedImage coverImageWidget() => parent != null
+      ? parent!.coverImageWidget()
+      : _coverImageWidget ??= CachedImage(
+          url: coverUrl,
+          fallbackGetter: defaultCoverUrlFallback,
+          height: 50,
+          fit: BoxFit.contain,
+        );
+
+  Future<String?> defaultCoverUrlFallback() async {
+    final coverUrl = await YouTube.search(title).then(
+        (value) => value.isEmpty ? null : value.first.items.first.coverUrl);
+    this.coverUrl ??= coverUrl;
+    return coverUrl;
+  }
+
+  Map<String, dynamic> toJson() => _$GroupableToJson(this);
 
   void updateEpisodes(List<int> indexes) {
     final splitted = nameCleaned.split(' ');
@@ -137,11 +195,12 @@ extension GroupHelpers<T extends Groupable> on List<T> {
             .episodeIndexes!
             .map((index) => root[index])
             .toList(growable: false);
-        this[i].episodeIndexes = this[rootIndex].episodeIndexes;
+        // this[i].episodeIndexes = this[rootIndex].episodeIndexes;
         this[i].episodeNumbers = this[rootIndex]
             .episodeIndexes!
             .map((index) => current[index])
             .toList(growable: false);
+        this[i].parent = this[rootIndex];
         ++i;
       }
       if (grouped[this[rootIndex].nameCleanedNoNum]!.length == 1) {

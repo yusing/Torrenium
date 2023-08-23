@@ -1,19 +1,20 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'groupable.dart';
+part of 'download_item.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Groupable _$GroupableFromJson(Map<String, dynamic> json) => Groupable(
+DownloadItem _$DownloadItemFromJson(Map<String, dynamic> json) => DownloadItem(
       name: json['name'] as String,
       parent: json['parent'] == null
           ? null
           : Groupable.fromJson(json['parent'] as Map<String, dynamic>),
     )..coverUrl = json['coverUrl'] as String?;
 
-Map<String, dynamic> _$GroupableToJson(Groupable instance) => <String, dynamic>{
+Map<String, dynamic> _$DownloadItemToJson(DownloadItem instance) =>
+    <String, dynamic>{
       'name': instance.name,
       'parent': instance.parent,
       'coverUrl': instance.coverUrl,

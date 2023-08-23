@@ -30,15 +30,6 @@ class YouTubeItem extends DownloadItem {
   String get videoPath => videoUrl;
 
   @override
-  bool get isComplete => true;
-
-  @override
-  bool get isMultiFile => false;
-
-  @override
-  bool get isPlaceholder => false;
-
-  @override
   void delete() {}
 
   Future<void> init() async {

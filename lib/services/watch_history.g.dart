@@ -13,11 +13,17 @@ WatchHistoryEntry _$WatchHistoryEntryFromJson(Map<String, dynamic> json) =>
       audioPath: json['audioPath'] as String?,
       duration: json['duration'] as int?,
       position: json['position'] as int?,
-    );
+    )
+      ..parent = json['parent'] == null
+          ? null
+          : Groupable.fromJson(json['parent'] as Map<String, dynamic>)
+      ..coverUrl = json['coverUrl'] as String?;
 
 Map<String, dynamic> _$WatchHistoryEntryToJson(WatchHistoryEntry instance) =>
     <String, dynamic>{
       'name': instance.name,
+      'parent': instance.parent,
+      'coverUrl': instance.coverUrl,
       'path': instance.path,
       'audioPath': instance.audioPath,
       'duration': instance.duration,
