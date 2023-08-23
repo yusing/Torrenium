@@ -1,39 +1,71 @@
 import 'package:flutter/foundation.dart';
 
-import '../utils/string.dart';
+const tagHD = r'(1920\s?x\s?1080|1080p|mp4|aac|avc|x264|x265|hevc)';
+const tagSD = r'(1280\s?x\s?720|720p)';
+const tag10Bit = r'10\-?bit';
+const tagFLAC = r'flac(\s+\d+kHz\/\d+bit)?';
+const tagMP3 = r'(MP3\s+)?\d{3}k';
+
+class Title {
+  final hasTag = {
+    tagHD: false,
+    tagSD: false,
+    tag10Bit: false,
+    tagFLAC: false,
+    tagMP3: false,
+  };
+
+  static const kTagRepr = {
+    tagHD: '1080P',
+    tagSD: '720P',
+    tag10Bit: '10-bit',
+    tagFLAC: 'FLAC Music',
+    tagMP3: 'MP3 Music',
+  };
+
+  late String value;
+
+  Title(String title) {
+    StringBuffer suffixes = StringBuffer();
+    for (final tag in hasTag.keys) {
+      hasTag[tag] = RegExp(tag, caseSensitive: false).hasMatch(title);
+      if (hasTag[tag]!) {
+        suffixes.write(' ${kTagRepr[tag]}');
+      }
+    }
+    for (final tag in hasTag.keys) {
+      title = title.replaceAll(RegExp(tag, caseSensitive: false), '');
+    }
+    value = (title
+                .replaceFirst(RegExp('內[嵌封]'), '')
+                .replaceAll(RegExp(r'[\(\)\[\]\{\}（）【】★_\-－——\s+]'), ' ')
+                .replaceAll(RegExp(r'\s[a-zA-Z]+\D^!'), ' ') +
+            suffixes.toString())
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+}
 
 class Groupable {
   String name;
   String? _nameCleaned;
   List<int>? _numbersInName;
   String? _nameCleanedNoNum;
-  Iterable<int>? episodeNumbers;
+  Iterable<String>? episodeNumbers;
   ValueNotifier<void> updateNotifier = ValueNotifier(null);
   bool? _isMusic;
 
-  Groupable({required this.name});
+  List<int>? episodeIndexes;
 
-  String? get episode =>
-      episodeNumbers == null ? null : 'Episode ${episodeNumbers?.join(" - ")}';
+  Groupable({required this.name});
+  String? get episode => episodeNumbers?.join(" - ");
 
   String get group => nameCleanedNoNum;
 
   bool get isMusic => _isMusic ??=
       RegExp(r'(flac|mp3|320k)', caseSensitive: false).hasMatch(name);
 
-  String get nameCleaned => _nameCleaned ??= name
-      .removeDelimiters('()[]{}【】★.-_')
-      .replaceAll(
-          RegExp(r'((1920\s?x\s?)?1080|(1280\s?x\s?)?720)\s?p?',
-              caseSensitive: false),
-          '')
-      .replaceAll(
-          RegExp(
-              r'(x264|HEVC|AAC|AVC|8bit|10bit|MKV|MP4|MP3|WEBRIP|BAHA|TVB|WEB[\-\s]?DL|招募.+)',
-              caseSensitive: false),
-          '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  String get nameCleaned => _nameCleaned ??= Title(name).value;
 
   String get nameCleanedNoNum => _nameCleanedNoNum ??= nameCleaned
       .replaceAll(RegExp(r'\d+'), '')
@@ -43,50 +75,62 @@ class Groupable {
   List<int> get numbersInName => _numbersInName ??= RegExp(r'\d+')
       .allMatches(nameCleaned)
       .map((m) => int.parse(m.group(0)!))
-      .toList();
+      .toList()
+    ..sort();
+
+  void updateEpisodes(List<int> indexes) {
+    final splitted = nameCleaned.split(' ');
+    episodeNumbers =
+        indexes.map((index) => splitted[index]).toList(growable: false);
+  }
 }
 
 extension GroupHelpers<T extends Groupable> on List<T> {
   Map<String, List<T>> group() {
-    sort((a, b) => a.nameCleanedNoNum.compareTo(b.nameCleanedNoNum));
-
-    Map<String, List<T>> grouped = {};
+    sort((a, b) => a.name.compareTo(b.name));
+    final grouped = <String, List<T>>{};
+    final splitted =
+        map((e) => e.nameCleaned.split(' ')).toList(growable: false);
 
     int i = 0;
-    while (i < length) {
-      final root = this[i++];
-      if (isEmpty || root.numbersInName.isEmpty || root.isMusic) {
-        // music
-        grouped[root.nameCleaned] = [root];
+    List<String> root;
+    int rootIndex;
+    while (i < splitted.length) {
+      root = splitted[i];
+      rootIndex = i++;
+      grouped[this[rootIndex].nameCleanedNoNum] = [this[rootIndex]];
+
+      if (!RegExp(r'\d+').hasMatch(this[rootIndex].name)) {
         continue;
       }
 
-      List<int>? episodeIndexes;
-      final group = grouped[root.nameCleanedNoNum] = [root];
-      while (i < length) {
-        final current = this[i];
+      while (i < splitted.length &&
+          root.length == splitted[i].length &&
+          (root.length > 1 && root[1] == splitted[i][1]) &&
+          root.last == splitted[i].last) {
+        final current = splitted[i];
 
-        if (current.numbersInName.isEmpty ||
-            root.nameCleanedNoNum != current.nameCleanedNoNum ||
-            root.numbersInName.length != current.numbersInName.length) {
-          break;
-        }
-        if (episodeIndexes == null) {
-          episodeIndexes = <int>[];
-          for (int j = 0; j < root.numbersInName.length; ++j) {
-            if (current.numbersInName[j] != root.numbersInName[j]) {
-              episodeIndexes.add(j);
-            }
+        grouped[this[rootIndex].nameCleanedNoNum]!.add(this[i]);
+        this[rootIndex].episodeIndexes = <int>[];
+        for (int j = 0; j < root.length; ++j) {
+          if (root[j] != current[j]) {
+            this[rootIndex].episodeIndexes!.add(j);
           }
         }
-        root.episodeNumbers ??= episodeIndexes
-            .map((index) => root.numbersInName[index])
+        this[rootIndex].episodeNumbers ??= this[rootIndex]
+            .episodeIndexes!
+            .map((index) => root[index])
             .toList(growable: false);
-        current.episodeNumbers ??= episodeIndexes
-            .map((index) => current.numbersInName[index])
+        this[i].episodeIndexes = this[rootIndex].episodeIndexes;
+        this[i].episodeNumbers = this[rootIndex]
+            .episodeIndexes!
+            .map((index) => current[index])
             .toList(growable: false);
-        group.add(current);
         ++i;
+      }
+      if (grouped[this[rootIndex].nameCleanedNoNum]!.length == 1) {
+        final old = grouped.remove(this[rootIndex].nameCleanedNoNum);
+        grouped[this[rootIndex].nameCleaned] = old!;
       }
     }
 

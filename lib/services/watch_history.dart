@@ -41,11 +41,11 @@ class WatchHistory {
   static const _key = 'watch_histories';
 
   static ValueNotifier notifier = ValueNotifier(null);
-  static WatchHistories list = get();
+  static WatchHistories histories = get();
 
   static Future<void> add(WatchHistoryEntry entry) async {
-    list.map.remove(entry.nameHash);
-    list.map[entry.nameHash] = entry;
+    histories.map.remove(entry.nameHash);
+    histories.map[entry.nameHash] = entry;
     await update();
   }
 
@@ -60,12 +60,16 @@ class WatchHistory {
     }
   }
 
+  static bool has(String nameHash) {
+    return histories.map.containsKey(nameHash);
+  }
+
   static Duration getDuration(String nameHash) {
-    return Duration(seconds: list.map[nameHash]?.duration ?? 0);
+    return Duration(seconds: histories.map[nameHash]?.duration ?? 0);
   }
 
   static int getIndex(String nameHash) {
-    return list.map[nameHash]?.position ?? 0;
+    return histories.map[nameHash]?.position ?? 0;
   }
 
   static Duration getPosition(String nameHash) {
@@ -82,23 +86,23 @@ class WatchHistory {
   }
 
   static Future<void> remove(String nameHash) async {
-    list.map.remove(nameHash);
+    histories.map.remove(nameHash);
     await update();
   }
 
   static Future<void> update() async {
-    await Storage.setString(_key, jsonEncode(list));
+    await Storage.setString(_key, jsonEncode(histories));
     notifier.notifyListeners();
   }
 
   static Future<void> updateDuration(String nameHash, Duration duration) async {
-    list.map[nameHash]?.duration = duration.inSeconds;
+    histories.map[nameHash]?.duration = duration.inSeconds;
     await update();
   }
 
   /* Image */
   static Future<void> updateIndex(String nameHash, int index) async {
-    list.map[nameHash]?.position = index;
+    histories.map[nameHash]?.position = index;
     await update();
   }
 

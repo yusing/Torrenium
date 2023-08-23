@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 
-import '../services/subscription.dart';
-import '../style.dart';
+import '/services/subscription.dart';
+import '/style.dart';
 import 'adaptive.dart';
 
 class SubscriptionsDialog extends StatelessWidget {

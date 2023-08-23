@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../services/http.dart';
+import '/services/http.dart';
 
 class CachedImage extends CachedNetworkImage {
   CachedImage(
@@ -45,7 +45,7 @@ class CachedImage extends CachedNetworkImage {
                       return const Center(child: ProgressCircle());
                     }
                   }),
-          useOldImageOnUrlChange: true,
+          useOldImageOnUrlChange: false,
           cacheManager: gCacheManager,
         );
 }

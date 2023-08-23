@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as pathlib;
 
-import '../interface/download_item.dart';
-import '../services/torrent_mgr.dart';
+import '/interface/download_item.dart';
+import '/services/torrent_mgr.dart';
 
 class TorrentFile extends DownloadItem {
   final int size;

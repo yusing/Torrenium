@@ -4,13 +4,12 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../services/torrent_ext.dart';
-import '../services/torrent_mgr.dart';
-import '../style.dart';
-import '../widgets/adaptive.dart';
-import '../widgets/group_list_dialog.dart';
-import '../widgets/rss_tab.dart';
-import '../widgets/subscriptions_dialog.dart';
+import '/services/torrent_mgr.dart';
+import '/style.dart';
+import '/widgets/adaptive.dart';
+import '/widgets/group_list_dialog.dart';
+import '/widgets/rss_tab.dart';
+import '/widgets/subscriptions_dialog.dart';
 
 class DesktopView extends StatelessWidget {
   const DesktopView({super.key});
@@ -35,19 +34,11 @@ class TitleBar extends ToolBar {
   static final _progressUpdateNotifier = ValueNotifier(100.0);
   // ignore: unused_field
   final _progressUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-    if (gTorrentManager.torrentsMap.isEmpty) {
-      _progressUpdateNotifier.value = 100;
-      return;
-    }
-    final progress = gTorrentManager.torrentsMap.values
-        .map((torrents) =>
-            torrents
-                .map((torrent) => torrent.progress)
-                .reduce((a, b) => a + b) /
-            torrents.length)
-        .reduce((a, b) => a + b);
-    _progressUpdateNotifier.value =
-        progress / gTorrentManager.torrentsMap.length * 100;
+    final inProgress =
+        gTorrentManager.torrentList.map((e) => e.progress).where((p) => p < 1);
+    _progressUpdateNotifier.value = inProgress.isEmpty
+        ? 100
+        : inProgress.reduce((a, b) => (a + b) / 2) * 100.0;
   });
 
   TitleBar({super.key})
@@ -77,12 +68,11 @@ class TitleBar extends ToolBar {
                                       CupertinoIcons.cloud_download);
                             }),
                         onPressed: () async {
-                          if (gTorrentManager.torrentsMap.isEmpty) {
+                          if (gTorrentManager.torrentList.isEmpty) {
                             return await showAdaptiveAlertDialog(
                                 context: context,
                                 title: const Text('Oops'),
-                                content: const Text('Download list is empty'),
-                                confirmLabel: 'Dismiss');
+                                content: const Text('Download list is empty'));
                           }
                           await showAdaptivePopup(
                               barrierDismissible: true,
@@ -99,12 +89,12 @@ class TitleBar extends ToolBar {
                         icon: const MacosIcon(CupertinoIcons.star),
                         label: const Text('Subscriptions'),
                       )),
-              CustomToolbarItem(inToolbarBuilder: (context) {
-                return AdaptiveTextButton(
-                  onPressed: () async => await gTorrentManager.selectSavePath(),
-                  icon: const MacosIcon(CupertinoIcons.folder_badge_plus),
-                  label: const Text('Change Path'),
-                );
-              })
+              // CustomToolbarItem(inToolbarBuilder: (context) {
+              //   return AdaptiveTextButton(
+              //     onPressed: () async => await gTorrentManager.selectSavePath(),
+              //     icon: const MacosIcon(CupertinoIcons.folder_badge_plus),
+              //     label: const Text('Change Path'),
+              //   );
+              // })
             ]);
 }

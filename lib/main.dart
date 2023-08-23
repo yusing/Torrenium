@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
+import 'package:media_kit/media_kit.dart';
 
 import 'services/error_reporter.dart';
 import 'services/http.dart';
@@ -13,6 +15,7 @@ import 'view/mobile_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   HttpOverrides.global = TorreniumHttpOverrides();
 
   gInitResult = init().onError((error, stackTrace) => reportError(
@@ -44,6 +47,8 @@ class TorreniumApp extends StatelessWidget {
             title: 'Torrenium',
             theme: MacosThemeData.dark(),
             debugShowCheckedModeBanner: false,
+            navigatorObservers: [BotToastNavigatorObserver()],
+            builder: BotToastInit(),
             home: content())
         : CupertinoApp(
             title: 'Torrenium',
@@ -51,6 +56,8 @@ class TorreniumApp extends StatelessWidget {
                 brightness: Brightness.dark,
                 primaryColor: CupertinoColors.activeOrange),
             debugShowCheckedModeBanner: false,
+            navigatorObservers: [BotToastNavigatorObserver()],
+            builder: BotToastInit(),
             home: content());
   }
 

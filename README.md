@@ -98,8 +98,9 @@ Torrenium is an app that fetch resources from different rss providers.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Features
-- Get latest content or search from different rss providers
+- Get latest content or search from different rss providers and YouTube
 - Results grouped and sorted by title
+- Direct playback for YouTube content
 - Download torrent/magnet from rss providers
 - Subscribe to keywords, authors and categories and automatically download new content (updated hourly or manually)
 - Video playback on Android/iOS
@@ -163,11 +164,13 @@ Simply install the app and start using it.
 ## Roadmap
 - [x] Things listed in [Features](#features)
 - [x] Windows and Android build
+- [ ] YouTube Video Download
+- [ ] Watch History On Windows
+- [ ] Play next episode when video ends (if available)
 - [ ] iOS build *(WIP)*
 - [ ] Linux and MacOS build
 - [ ] Limit concurrent downloads
 - [ ] Custom RSS Provider Support
-- [ ] Play next episode when video ends (if available)
 - [ ] Manual add torrent/magnet to torrent client by link
 - [ ] Ability to decompress downloaded files (i.e. *.zip, *.rar, *.7z, etc.)
 - [ ] Manga reader (for contents that extracts into images, or epub, etc.)

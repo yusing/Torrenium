@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
-import '../utils/cupertino_picker_dialog.dart';
+import 'cupertino_picker_dialog.dart';
 
 class CupertinoPickerButton<T> extends StatefulWidget {
   final ValueChanged<int>? onSelectedItemChanged;

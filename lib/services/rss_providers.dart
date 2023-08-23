@@ -22,21 +22,22 @@ const List<RSSProvider> kRssProviders = [
       },
       authorRssMap: {
         '所有字幕組': '0',
-        '拨雪寻春': '823',
-        '動漫花園': '117',
+        'ANi': '816',
         'NC-Raws': '801',
         '喵萌奶茶屋': '669',
         'Lilith-Raws': '803',
+        'LoliHouse': '657',
+        '幻樱字幕组': '241',
+        '拨雪寻春': '823',
+        '動漫花園': '117',
         '魔星字幕团': '648',
         '桜都字幕组': '619',
         '天月動漫&amp;發佈組': '767',
         '极影字幕社': '185',
-        'LoliHouse': '657',
         '悠哈C9字幕社': '151',
         '幻月字幕组': '749',
         '天使动漫论坛': '390',
         '动漫国字幕组': '303',
-        '幻樱字幕组': '241',
         '爱恋字幕社': '47',
         'DBD制作组': '805',
         'c.c动漫': '604',
@@ -97,7 +98,6 @@ const List<RSSProvider> kRssProviders = [
         'EMe': '817',
         'Alchemist': '818',
         '黑岩射手吧字幕组': '819',
-        'ANi': '816',
       }),
   RSSProvider(
       name: 'Bangumi Moe',
@@ -107,9 +107,8 @@ const List<RSSProvider> kRssProviders = [
       searchParams: '/search/%q',
       logoPath: 'lite/img/logo-20150506.png',
       supportTitleGroup: true,
-      authorNameTag: null,
-      categoryTag: null,
-      coverUrlGetter: descriptionCoverUrlGetter,
+      tags: RSSItemTags.alternative,
+      detailGetter: RSSDetailGetter.alternative,
       supportAdvancedSearch: false,
       categoryRssMap: {
         '所有類別': null,
@@ -148,10 +147,9 @@ const List<RSSProvider> kRssProviders = [
       rssPath: '',
       mainPagePath: '.xml',
       searchParams: '%c.xml?term=%q',
-      coverUrlGetter: descriptionCoverUrlGetter,
+      detailGetter: RSSDetailGetter.alternative,
+      tags: RSSItemTags.alternative,
       supportTitleGroup: true,
-      authorNameTag: null,
-      categoryTag: null,
       categoryRssMap: {
         '所有類別': null,
         '動畫': '1',
@@ -167,11 +165,8 @@ const List<RSSProvider> kRssProviders = [
       rssPath: '?page=rss',
       searchParams: '&q=%q&c=%c&f=0',
       logoPath: 'static/favicon.png',
-      magnetUrlGetter: linkMangerUrlGetter,
-      coverUrlGetter: null,
-      authorNameTag: null,
-      categoryTag: 'nyaa:category',
-      fileSizeTag: 'nyaa:size',
+      detailGetter: RSSDetailGetter.nyaa,
+      tags: RSSItemTags.nyaa,
       categoryRssMap: {
         'All Catergories': '0_0',
         'Anime': '1_0',
@@ -198,11 +193,8 @@ const List<RSSProvider> kRssProviders = [
       rssPath: '?page=rss',
       searchParams: '&page=rss&q=%q&c=%c&f=0',
       logoPath: 'static/favicon.png',
-      magnetUrlGetter: linkMangerUrlGetter,
-      coverUrlGetter: null,
-      authorNameTag: null,
-      categoryTag: 'nyaa:category',
-      fileSizeTag: 'nyaa:size',
+      detailGetter: RSSDetailGetter.nyaa,
+      tags: RSSItemTags.nyaa,
       categoryRssMap: {
         'All Catergories': '0_0',
         'Art': '1_0',
@@ -215,17 +207,45 @@ const List<RSSProvider> kRssProviders = [
         'Real Life - Photobooks and Pictures': '2_1',
         'Real Life - Videos': '2_2',
       }),
+  YouTubeProvider('YouTube', 'UC45ONEZZfMDZCnEhgYmVu-A'),
+  // YouTubeProvider('Ani-One Asia', 'UC0wNSTMWIL3qaorLx0jie6A'),
   RSSHubProvider('U9A9', 'u9a9'),
   RSSHubProvider('U3C3', 'u3c3'),
 ];
 
+const _kMonths = {
+  'Jan': '01',
+  'Feb': '02',
+  'Mar': '03',
+  'Apr': '04',
+  'May': '05',
+  'Jun': '06',
+  'Jul': '07',
+  'Aug': '08',
+  'Sep': '09',
+  'Oct': '10',
+  'Nov': '11',
+  'Dec': '12'
+};
+
 final kProvidersDict = kRssProviders.fold<Map<String, RSSProvider>>(
     {}, (prev, element) => prev..[element.name] = element);
 
-String? descriptionCoverUrlGetter(XmlElement e) {
-  String? desc = e.findElements('description').first.innerText;
-  return RegExp(r'<img src="(.+?)"').firstMatch(desc)?.group(1);
+String? defaultDescriptionGetter(XmlElement e) =>
+    e.findElements('description').first.innerText;
+
+DateTime defaultPubDateParser(String pubDate) {
+  final year = pubDate.substring(12, 16),
+      month = _kMonths[pubDate.substring(8, 11)] ?? '',
+      day = pubDate.substring(5, 7),
+      hour = pubDate.substring(17, 25); //Get the hour section [22:00:00]
+
+  return DateTime.parse('$year-$month-$day $hour');
 }
+
+String? descriptionCoverUrlGetter(XmlElement e) => RegExp(r'<img src="(.+?)"')
+    .firstMatch(e.findElements('description').first.innerText)
+    ?.group(1);
 
 String? enclosureMangetUrlGetter(XmlElement e) =>
     e.findElements('enclosure').first.getAttribute('url');
@@ -233,56 +253,149 @@ String? enclosureMangetUrlGetter(XmlElement e) =>
 String? linkMangerUrlGetter(XmlElement e) =>
     e.findElements('link').first.innerText;
 
-typedef UrlParamGetter = String Function(String);
+String? youTubeContentUrlGetter(XmlElement e) =>
+    e.findElements('link').first.getAttribute('href');
 
+String? youTubeCoverUrlGetter(XmlElement e) => e
+    .findElements('media:group')
+    .first
+    .findElements('media:thumbnail')
+    .first
+    .getAttribute('url')
+    ?.replaceFirst('hqdefault', 'mqdefault'); // remove black bars
+
+String? youTubeDescriptionGetter(XmlElement e) => e
+    .findElements('media:group')
+    .first
+    .findElements('media:description')
+    .first
+    .innerText;
+
+String? youTubeLikesGetter(XmlElement e) => e
+    .findElements('media:group')
+    .first
+    .findElements('media:community')
+    .first
+    .findElements('media:starRating')
+    .first
+    .getAttribute('count');
+
+DateTime youTubePubDateParser(String pubDate) => DateTime.parse(pubDate);
+
+String? youTubeViewsGetter(XmlElement e) => e
+    .findElements('media:group')
+    .first
+    .findElements('media:community')
+    .first
+    .findElements('media:statistics')
+    .first
+    .getAttribute('views');
+
+typedef PubDateParser = DateTime Function(String);
+typedef UrlParamGetter = String Function(String);
 typedef XMLValueGetter = String? Function(XmlElement);
 
+class RSSDetailGetter {
+  static const RSSDetailGetter youTube = RSSDetailGetter(
+          getMagnetUrl: youTubeContentUrlGetter,
+          getCoverUrl: youTubeCoverUrlGetter,
+          getDescription: youTubeDescriptionGetter,
+          getViews: youTubeViewsGetter,
+          getLikes: youTubeLikesGetter),
+      common = RSSDetailGetter(
+          getMagnetUrl: enclosureMangetUrlGetter,
+          getCoverUrl: descriptionCoverUrlGetter,
+          getDescription: defaultDescriptionGetter),
+      alternative = RSSDetailGetter(getCoverUrl: descriptionCoverUrlGetter),
+      nyaa =
+          RSSDetailGetter(getMagnetUrl: linkMangerUrlGetter, getCoverUrl: null),
+      rsshub = RSSDetailGetter(
+          getCoverUrl: null,
+          getMagnetUrl: enclosureMangetUrlGetter,
+          getDescription: defaultDescriptionGetter);
+
+  final XMLValueGetter? getMagnetUrl, getCoverUrl, getViews, getLikes;
+  final XMLValueGetter getDescription;
+
+  const RSSDetailGetter(
+      {this.getMagnetUrl = enclosureMangetUrlGetter,
+      this.getCoverUrl = descriptionCoverUrlGetter,
+      this.getDescription = defaultDescriptionGetter,
+      this.getViews,
+      this.getLikes});
+}
+
+class RSSHubProvider extends RSSProvider {
+  const RSSHubProvider(String name, String endPoint)
+      : super(
+            name: name,
+            homePageUrl: 'https://rsshub.app/$endPoint',
+            rssPath: '',
+            searchParams: '/search/%q',
+            detailGetter: RSSDetailGetter.rsshub,
+            tags: RSSItemTags.rsshub);
+}
+
+class RSSItemTags {
+  static const RSSItemTags common = RSSItemTags(),
+      alternative = RSSItemTags(authorName: null, category: null),
+      youTube =
+          RSSItemTags(item: 'entry', pubDate: 'published', category: null),
+      nyaa = RSSItemTags(
+          authorName: null, category: 'nyaa:category', fileSize: 'nyaa:size'),
+      rsshub = RSSItemTags(authorName: null, category: null);
+
+  final String item, title, pubDate;
+  final String? authorName, category, fileSize;
+
+  const RSSItemTags(
+      {this.item = 'item',
+      this.title = 'title',
+      this.authorName = 'author',
+      this.pubDate = 'pubDate',
+      this.category = 'category',
+      this.fileSize});
+}
+
 class RSSProvider {
-  final String name;
-  final String homePageUrl;
-  final String logoPath;
-  final String rssPath;
+  final RSSItemTags tags;
+  final String name, homePageUrl, searchParams, logoPath, rssPath;
   final String? mainPagePath;
-  final String searchParams;
-  final String itemNameTag;
-  final String? authorNameTag;
-  final String pubDateTag;
-  final String? categoryTag;
-  final String? fileSizeTag;
-  final String descriptionTag;
-  final bool supportAdvancedSearch;
-  final bool supportTitleGroup;
-  final XMLValueGetter? magnetUrlGetter;
-  final XMLValueGetter? coverUrlGetter;
-  final Map<String, String?>? categoryRssMap;
-  final Map<String, String?>? authorRssMap;
+  final bool supportAdvancedSearch, supportTitleGroup;
+  final RSSDetailGetter detailGetter;
+  final PubDateParser pubDateParser;
+  final Map<String, String?>? categoryRssMap, authorRssMap;
 
-  const RSSProvider(
-      {this.logoPath = '/favicon.ico',
-      required this.name,
-      required this.homePageUrl,
-      required this.rssPath,
-      required this.searchParams,
-      this.mainPagePath,
-      this.categoryRssMap,
-      this.authorRssMap,
-      this.magnetUrlGetter = enclosureMangetUrlGetter,
-      this.coverUrlGetter = descriptionCoverUrlGetter,
-      this.fileSizeTag,
-      this.supportAdvancedSearch = true,
-      this.supportTitleGroup = false,
-      this.itemNameTag = 'title',
-      this.authorNameTag = 'author',
-      this.pubDateTag = 'pubDate',
-      this.categoryTag = 'category',
-      this.descriptionTag = 'description'});
+  const RSSProvider({
+    this.tags = RSSItemTags.common,
+    this.logoPath = '/favicon.ico',
+    required this.name,
+    required this.homePageUrl,
+    required this.rssPath,
+    required this.searchParams,
+    this.mainPagePath,
+    this.categoryRssMap,
+    this.authorRssMap,
+    this.detailGetter = RSSDetailGetter.common,
+    this.supportAdvancedSearch = true,
+    this.supportTitleGroup = false,
+    this.pubDateParser = defaultPubDateParser,
+  });
+
+  bool get isYouTube => homePageUrl == 'https://www.youtube.com/';
   String get logoUrl => homePageUrl + logoPath;
-
   String get rssUrl => homePageUrl + rssPath;
 
   String searchUrl({String? query, String? author, String? category}) {
+    query = query?.trim();
     if (query != null && query.isEmpty) {
       query = null;
+    }
+
+    if (isYouTube) {
+      return query == null || query.isEmpty
+          ? (homePageUrl + rssPath)
+          : (homePageUrl + searchParams.replaceAll('%q', query));
     }
 
     if (query == null) {
@@ -308,18 +421,16 @@ class RSSProvider {
   }
 }
 
-class RSSHubProvider extends RSSProvider {
-  const RSSHubProvider(String name, String endPoint)
+class YouTubeProvider extends RSSProvider {
+  const YouTubeProvider(String name, String channelId)
       : super(
             name: name,
-            homePageUrl: 'https://rsshub.app/$endPoint',
-            rssPath: '',
-            searchParams: '/search/%q',
-            coverUrlGetter: null,
-            magnetUrlGetter: enclosureMangetUrlGetter,
-            authorNameTag: null,
-            categoryTag: null);
+            homePageUrl: 'https://www.youtube.com/',
+            rssPath: 'feeds/videos.xml?channel_id=$channelId',
+            searchParams: 'results?search_query=%q',
+            tags: RSSItemTags.youTube,
+            detailGetter: RSSDetailGetter.youTube,
+            // supportTitleGroup: false,
+            supportAdvancedSearch: false,
+            pubDateParser: youTubePubDateParser);
 }
-// TODO: open in browser
-// TODO: group tags in a class
-// TODO: group paths in a class

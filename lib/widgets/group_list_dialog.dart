@@ -1,15 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart' show MacosColors;
 
-import '../class/torrent.dart';
-import '../interface/download_item.dart';
-import '../interface/groupable.dart';
-import '../interface/resumeable.dart';
-import '../main.dart' show kIsDesktop;
-import '../services/torrent_mgr.dart';
-import '../style.dart';
-import '../utils/open_file.dart';
-import '../utils/units.dart';
+import '/class/torrent.dart';
+import '/interface/download_item.dart';
+import '/interface/groupable.dart';
+import '/interface/resumeable.dart';
+import '/main.dart' show kIsDesktop;
+import '/services/torrent_mgr.dart';
+import '/style.dart';
+import '/utils/open_file.dart';
+import '/utils/string.dart';
 import 'adaptive.dart';
 import 'play_pause_button.dart';
 
@@ -21,7 +21,7 @@ class DownloadListDialog extends StatelessWidget {
     return ValueListenableBuilder(
         valueListenable: gTorrentManager.updateNotifier,
         builder: (context, _, __) {
-          return GroupListDialog(gTorrentManager.torrentsMap);
+          return GroupListDialog(gTorrentManager.torrentList.group());
         });
   }
 }
@@ -40,22 +40,13 @@ class GroupListDialog extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16.0),
           child: groups.isEmpty
               ? const Center(child: Text('Nothing Here...'))
-              : groups.length == 1
-                  ? ListView.separated(
-                      shrinkWrap: true,
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
-                      itemCount: groups.first.value.length,
-                      itemBuilder: (context, i) =>
-                          ItemListTile(groups.first.value[i]),
-                    )
-                  : ListView.separated(
-                      separatorBuilder: (_, index) =>
-                          const SizedBox(height: 24),
-                      itemCount: groups.length,
-                      itemBuilder: ((_, index) {
-                        return ItemGroupWidget(groups[index]);
-                      }),
-                    ),
+              : ListView.separated(
+                  separatorBuilder: (_, index) => const SizedBox(height: 24),
+                  itemCount: groups.length,
+                  itemBuilder: ((_, index) {
+                    return ItemGroupWidget(groups[index]);
+                  }),
+                ),
         );
       });
 }
@@ -69,15 +60,17 @@ class ItemGroupWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // placeholder list may be empty
     // assert(group.value.isNotEmpty);
+    if (group.value.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-    if (group.value.length == 1 && group.value.first.isMultiFile) {
+    if (group.value.length == 1) {
       return ItemListTile(group.value.first);
     }
 
     final episodes = group.value
-      ..sort((b, a) =>
-          (a.episodeNumbers?.reduce((x, y) => x + y)) ??
-          0.compareTo((b.episodeNumbers?.reduce((x, y) => x + y)) ?? 0));
+      ..sort((a, b) => (a.episodeNumbers?.reduce((x, y) => x + y) ?? '')
+          .compareTo((b.episodeNumbers?.reduce((x, y) => x + y)) ?? ''));
 
     return AdaptiveListTile(
         leading: const AdaptiveIcon(CupertinoIcons.list_bullet,
@@ -117,6 +110,7 @@ class _ItemListTileInner extends AdaptiveListTile {
               size: kDownloadListTileIconSize),
           title: Text(
             item.episode ?? item.displayName,
+            // item.displayName, // TODO: remove this
             style: item.watchProgress == 0
                 ? kItemTitleTextStyle
                 : kItemTitleTextStyle.copyWith(
@@ -146,7 +140,7 @@ class _ItemListTileInner extends AdaptiveListTile {
                         onPressed: () {
                           item.delete();
                           if (kIsDesktop &&
-                              gTorrentManager.torrentsMap.isEmpty) {
+                              gTorrentManager.torrentList.isEmpty) {
                             Navigator.of(context).pop();
                           }
                         });
@@ -173,7 +167,7 @@ class _ItemListTileInner extends AdaptiveListTile {
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
                       child: Text(
-                          "${item.bytesDownloaded.humanReadableUnit} of ${item.size.humanReadableUnit} - ${item.etaSecs.timeUnit} remaining",
+                          "${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit} - ${item.etaSecs.timeUnit} remaining",
                           style: kItemTitleTextStyle),
                     )
                   ],

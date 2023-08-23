@@ -6,13 +6,12 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.18.2'
+  sdk: '>=3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.2
   macos_ui: ^2.0.0
   ffi: ^2.0.1
   cached_network_image: ^3.2.2
@@ -22,21 +21,33 @@ dependencies:
   path_provider: ^2.0.11
   path: ^1.8.2
   logger: ^1.1.0
-  intl: ^0.17.0
   flutter_cache_manager: ^3.3.0
   # url_launcher: ^6.1.12
   font_awesome_flutter: ^10.5.0
   shared_preferences: ^2.2.0
   file_picker: ^5.2.10
   crypto: ^3.0.3
-  flutter_vlc_player: ^7.2.0
   json_annotation: ^4.8.1
   json_serializable: ^6.7.1
   cupertino_progress_bar: ^0.2.0
-  wakelock_plus: ^1.1.1
+  
   flutter_acrylic: ^1.1.3
   flutter_offline: ^3.0.0
   connectivity_plus: ^4.0.2
+  intl: ^0.18.1
+  cupertino_icons: ^1.0.5
+  media_kit: ^1.1.5
+  media_kit_video: ^1.1.6                        # For video rendering.
+  
+  media_kit_native_event_loop: ^1.0.7            # Support for higher number of concurrent instances & better performance.
+  
+  media_kit_libs_android_video: ^1.3.2           # Android package for video native libraries.
+  media_kit_libs_ios_video: ^1.1.3               # iOS package for video native libraries.
+  media_kit_libs_macos_video: ^1.1.3             # macOS package for video native libraries.
+  media_kit_libs_windows_video: ^1.0.7           # Windows package for video native libraries.
+  media_kit_libs_linux: ^1.1.1                   # GNU/Linux dependency package.
+  youtube_explode_dart: ^2.0.2
+  bot_toast: ^4.0.4
 
 dev_dependencies:
   flutter_test:

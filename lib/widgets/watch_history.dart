@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:torrenium/services/torrent_mgr.dart';
 
-import '../services/watch_history.dart';
-import '../style.dart';
-import '../utils/open_file.dart';
+import '/services/torrent_mgr.dart';
+import '/services/watch_history.dart';
+import '/style.dart';
+import '/utils/open_file.dart';
 import 'adaptive.dart';
 
 class WatchHistoryPage extends StatefulWidget {
@@ -23,10 +23,10 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
           builder: (context, v, _) {
             return ListView.separated(
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemCount: WatchHistory.list.length,
+              itemCount: WatchHistory.histories.length,
               itemBuilder: (context, index) {
-                final entry = WatchHistory.list
-                    .elementAt(WatchHistory.list.length - index - 1);
+                final entry = WatchHistory.histories
+                    .elementAt(WatchHistory.histories.length - index - 1);
                 return AdaptiveListTile(
                   title: Text(
                     entry.title,

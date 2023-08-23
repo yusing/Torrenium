@@ -3,8 +3,19 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="33"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="33"/> -->
+    <!--
+      Storage access permissions.
+      Android 12 or lower.
+      -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--
+      Media access permissions.
+      Android 13 or higher.
+      https://developer.android.com/about/versions/13/behavior-changes-13#granular-media-permissions
+      -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
    <application
         android:label="Torrenium"
         android:name="${applicationName}"
@@ -30,6 +41,9 @@
               />
             <meta-data
                 android:name="android.allow_multiple_resumed_activities"
+                android:value="true" />
+            <meta-data
+                android:name="io.flutter.embedding.android.EnableImpeller"
                 android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

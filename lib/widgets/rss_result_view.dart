@@ -2,12 +2,13 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../class/rss_result_group.dart';
-import '../services/torrent_ext.dart';
-import '../services/torrent_mgr.dart';
-import '../style.dart';
+import '/class/rss_result_group.dart';
+import '/services/torrent_ext.dart';
+import '/services/torrent_mgr.dart';
+import '/utils/string.dart';
 import 'adaptive.dart';
 import 'rss_result_card.dart';
+import 'rss_tab.dart';
 
 class RssResultGridView extends StatelessWidget {
   final ScrollController? controller;
@@ -19,13 +20,14 @@ class RssResultGridView extends StatelessWidget {
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: GridView.builder(
-          shrinkWrap: true,
           controller: controller,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: kCoverPhotoWidth,
-              crossAxisSpacing: 8.0,
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: gRssProvider.isYouTube
+                  ? 480
+                  : MediaQuery.of(context).size.width / 4,
+              crossAxisSpacing: 16.0,
               mainAxisSpacing: 16.0,
-              childAspectRatio: 0.7),
+              childAspectRatio: gRssProvider.isYouTube ? 16 / 9 : 3 / 4),
           itemCount: results.length,
           itemBuilder: (_, index) => RSSResultCard(result: results[index]),
         ));
@@ -67,7 +69,11 @@ class RssResultListView extends StatelessWidget {
             )
           ],
           subtitle: Text(
-              "${item.category ?? 'Unknown'}: Published at ${item.pubDate} ${item.size != null ? 'Size: ${item.size}' : ''}",
+              [
+                item.category ?? 'Unknown Category',
+                if (item.pubDate != null) 'Published ${item.pubDate!.relative}',
+                if (item.size != null) item.size
+              ].join(' | '),
               style: const TextStyle(fontSize: 12)),
         );
       }),

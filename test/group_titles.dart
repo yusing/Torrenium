@@ -1,14 +1,18 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:torrenium/interface/groupable.dart';
+import 'package:torrenium/services/http.dart';
+import 'package:torrenium/services/rss_providers.dart';
 import 'package:torrenium/utils/fetch_rss.dart';
-import 'package:torrenium/utils/rss_providers.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   final url = kRssProviders.first.searchUrl();
-  final items = await getRSSResults(kRssProviders.first, url);
-  final episodes = Map.fromEntries(items.map((e) => MapEntry(
-      e.title, e.items.map((i) => i.episodeNumbers?.join('-')).toList())));
+  final body = await http.get(url).then((value) => value.body());
+  final items = parseRSSForItems(kRssProviders.first, body).group();
+  final episodes = Map.fromEntries(items.entries.map((e) => MapEntry(e.key,
+      e.value.map((item) => item.episode ?? item.nameCleaned).toList())));
   final jsonStr = const JsonEncoder.withIndent('  ').convert(episodes);
   debugPrint(jsonStr);
 }

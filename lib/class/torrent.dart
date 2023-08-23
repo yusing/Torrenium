@@ -6,10 +6,10 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:path/path.dart' as pathlib;
 
-import '../interface/download_item.dart';
-import '../interface/resumeable.dart';
-import '../services/torrent_mgr.dart';
-import '../utils/connectivity.dart';
+import '/interface/download_item.dart';
+import '/interface/resumeable.dart';
+import '/services/torrent_mgr.dart';
+import '/utils/connectivity.dart';
 import 'item.dart';
 import 'torrent_file.dart';
 
@@ -66,7 +66,7 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   }
   factory Torrent.placeholder(Item item) {
     return Torrent(
-        name: item.nameCleaned,
+        name: 'Downloading metadata...: ${item.nameCleaned}',
         infoHash: 'placeholder:${item.nameCleaned.hashCode}',
         size: 0,
         torrentPtr: nullptr,

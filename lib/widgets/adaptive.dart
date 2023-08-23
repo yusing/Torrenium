@@ -2,16 +2,21 @@ import 'dart:ui';
 
 import 'package:cupertino_progress_bar/cupertino_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../main.dart' show kIsDesktop;
+import '/main.dart' show kIsDesktop;
+import 'cupertino_picker_button.dart';
 
 Future<T?> showAdaptiveAlertDialog<T>({
   required BuildContext context,
   required Widget title,
   required Widget content,
   VoidCallback? onConfirm,
-  String confirmLabel = "OK",
+  String confirmLabel = "Dismiss",
+  VoidCallback? onCancel,
+  String cancelLabel = "Cancel",
+  TextStyle? onConfirmStyle,
 }) async {
   onConfirm ?? () => Navigator.of(context).pop();
   if (kIsDesktop) {
@@ -24,11 +29,25 @@ Future<T?> showAdaptiveAlertDialog<T>({
             child: MacosAlertDialog(
               title: title,
               message: content,
-              appIcon: const SizedBox.shrink(), // TODO: replace this
+              appIcon: const SizedBox.shrink(),
               primaryButton: PushButton(
-                  controlSize: ControlSize.large,
-                  onPressed: onConfirm ?? () => Navigator.of(context).pop(),
-                  child: Text(confirmLabel)),
+                controlSize: ControlSize.large,
+                onPressed: () {
+                  onConfirm?.call();
+                  Navigator.of(context).pop();
+                },
+                child: Text(confirmLabel, style: onConfirmStyle),
+              ),
+              secondaryButton: onCancel == null
+                  ? null
+                  : PushButton(
+                      controlSize: ControlSize.large,
+                      onPressed: () {
+                        onCancel.call();
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(cancelLabel),
+                    ),
             ),
           );
         });
@@ -37,30 +56,30 @@ Future<T?> showAdaptiveAlertDialog<T>({
       context: context,
       barrierDismissible: true,
       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-      builder: (_) => Container(
-          height: MediaQuery.of(context).size.height * .8,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: CupertinoColors.systemBackground
-                .resolveFrom(context)
-                .withOpacity(.8),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          margin: const EdgeInsets.all(16),
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                title,
-                const SizedBox(height: 16),
-                content,
-                const SizedBox(height: 16),
+      builder: (_) => AlertDialog(
+              alignment: Alignment.center,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.0)),
+              title: title,
+              content: content,
+              actions: [
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  onPressed: onConfirm ?? () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    onConfirm?.call();
+                    Navigator.of(context).pop();
+                  },
                   child: Text(confirmLabel),
                 ),
-              ])));
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    onCancel?.call();
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(cancelLabel),
+                ),
+              ]));
 }
 
 Future<T?> showAdaptivePopup<T>({
@@ -105,6 +124,25 @@ Future<T?> showAdaptivePopup<T>({
       },
       barrierDismissible: barrierDismissible,
       useRootNavigator: useRootNavigator);
+}
+
+class AdaptiveDropDown<T> extends StatefulWidget {
+  final Iterable<T> items;
+  final String Function(T) textGetter;
+  final int value;
+  final void Function(int) onChange;
+  final bool Function(String)? enabledFilter;
+
+  const AdaptiveDropDown(
+      {super.key,
+      required this.value,
+      required this.items,
+      required this.textGetter,
+      required this.onChange,
+      this.enabledFilter});
+
+  @override
+  State<AdaptiveDropDown<T>> createState() => _AdaptiveDropDownState<T>();
 }
 
 class AdaptiveIcon extends StatelessWidget {
@@ -163,48 +201,6 @@ class AdaptiveListTile extends StatefulWidget {
 
   @override
   State<AdaptiveListTile> createState() => _AdaptiveListTileState();
-}
-
-class _AdaptiveListTileState extends State<AdaptiveListTile> {
-  bool _hovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (kIsDesktop) {
-      return MouseRegion(
-        onHover: (_) => setState(() => _hovering = true),
-        onExit: (_) => setState(() => _hovering = false),
-        child: Container(
-          color: _hovering ? MacosColors.systemBlueColor.withOpacity(.1) : null,
-          child: MacosListTile(
-            title: widget.trailing == null
-                ? widget.title
-                : Row(
-                    children: [
-                      Expanded(child: widget.title),
-                      const SizedBox(width: 16),
-                      ...widget.trailing!,
-                    ],
-                  ),
-            subtitle: widget.subtitle,
-            leading: widget.leading,
-            onClick: widget.onTap,
-          ),
-        ),
-      );
-    }
-    return CupertinoListTile(
-      title: widget.title,
-      subtitle: widget.subtitle,
-      leading: widget.leading,
-      onTap: widget.onTap,
-      trailing: widget.trailing == null
-          ? null
-          : widget.trailing!.length == 1
-              ? widget.trailing!.first
-              : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
-    );
-  }
 }
 
 class AdaptiveProgressBar extends StatelessWidget {
@@ -272,6 +268,83 @@ class AdaptiveTextButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6),
       onPressed: onPressed,
       child: child,
+    );
+  }
+}
+
+class _AdaptiveDropDownState<T> extends State<AdaptiveDropDown<T>> {
+  late var _value = widget.value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsDesktop) {
+      return CupertinoPickerButton(
+          items: List.generate(widget.items.length, (i) => i, growable: false),
+          itemBuilder: (i) =>
+              Text(widget.textGetter(widget.items.elementAt(i))),
+          valueGetter: () => _value,
+          onSelectedItemChanged: (i) => setState(() => _value = i),
+          onPop: widget.onChange);
+    }
+
+    return MacosPopupButton(
+        value: _value,
+        items: List.generate(widget.items.length, (index) {
+          final item = widget.items.elementAt(index);
+          return MacosPopupMenuItem(
+              value: index,
+              enabled:
+                  widget.enabledFilter?.call(widget.textGetter(item)) ?? true,
+              child: Text(widget.textGetter(item)));
+        }),
+        onChanged: (i) {
+          if (i == null) return;
+          setState(() {
+            _value = i;
+          });
+          widget.onChange(i);
+        });
+  }
+}
+
+class _AdaptiveListTileState extends State<AdaptiveListTile> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsDesktop) {
+      return MouseRegion(
+        onHover: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: Container(
+          color: _hovering ? MacosColors.systemBlueColor.withOpacity(.1) : null,
+          child: MacosListTile(
+            title: widget.trailing == null
+                ? widget.title
+                : Row(
+                    children: [
+                      Expanded(child: widget.title),
+                      const SizedBox(width: 16),
+                      ...widget.trailing!,
+                    ],
+                  ),
+            subtitle: widget.subtitle,
+            leading: widget.leading,
+            onClick: widget.onTap,
+          ),
+        ),
+      );
+    }
+    return CupertinoListTile(
+      title: widget.title,
+      subtitle: widget.subtitle,
+      leading: widget.leading,
+      onTap: widget.onTap,
+      trailing: widget.trailing == null
+          ? null
+          : widget.trailing!.length == 1
+              ? widget.trailing!.first
+              : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
     );
   }
 }

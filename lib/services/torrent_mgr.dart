@@ -8,13 +8,12 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
 
-import '../class/item.dart';
-import '../class/torrent.dart';
-import '../interface/groupable.dart';
-import '../main.dart' show kIsDesktop;
-import '../services/error_reporter.dart';
-import '../utils/ffi.dart';
-import '../utils/torrent_binding.dart' as torrent_binding;
+import '/class/item.dart';
+import '/class/torrent.dart';
+import '/main.dart' show kIsDesktop;
+import '/services/error_reporter.dart';
+import '/utils/ffi.dart';
+import '/utils/torrent_binding.dart' as torrent_binding;
 import 'storage.dart';
 import 'subscription.dart';
 import 'watch_history.dart';
@@ -23,13 +22,6 @@ TorrentManager get gTorrentManager => TorrentManager.instance;
 
 class TorrentManager {
   static late final TorrentManager instance;
-  static final _isolateToMain = ReceivePort()
-    ..listen((message) async {
-      final torrent = message['placeholder']!();
-      torrent.updateDetail(Torrent.fromJson(message['torrent']));
-      torrent.startSelfUpdate();
-      instance.updateNotifier.notifyListeners();
-    });
 
   /* !Must be static otherwise invalid argument inside isolate */
   static final DynamicLibrary _dylib = Platform.isWindows
@@ -41,21 +33,20 @@ class TorrentManager {
       torrent_binding.TorrentGoBinding(_dylib);
   final updateNotifier = ValueNotifier(null);
 
+  late var _torrentList = <Torrent>[];
   final placeholders = <Torrent>[];
-
-  late var torrentsMap = <String, List<Torrent>>{
-    "Downloading Metadata...": placeholders
-  };
 
   late final Directory docDir;
 
   late String savePath;
 
+  List<Torrent> get torrentList => placeholders + _torrentList;
+
   void deleteTorrent(Torrent t) {
     assert(!t.isPlaceholder, 'Cannot delete placeholder torrent');
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
-    torrentsMap[t.group]?.remove(t);
+    _torrentList.remove(t);
     WatchHistory.remove(t.nameHash);
     gSubscriptionManager.addExclusion(t.nameHash);
     updateNotifier.notifyListeners();
@@ -68,15 +59,35 @@ class TorrentManager {
     final url = item.torrentUrl!;
     final placeholder = Torrent.placeholder(item);
     placeholders.add(placeholder);
+    updateNotifier.notifyListeners();
+
+    final recvPort = ReceivePort()..listen(_addTorrent);
     await Isolate.spawn((message) {
-      message.send({
+      // spawn in isolate to avoid blocking main thread
+      (message.first as SendPort).send({
         "torrent": jsonDecode.cStringCall(url.startsWith('magnet:')
             ? go.AddMagnet.dartStringCall(url)
             : go.AddTorrent.dartStringCall(url)),
-        "placeholder": () => placeholder
+        "infoHash": message[1]
       });
-    }, _isolateToMain.sendPort);
-    updateNotifier.notifyListeners();
+    }, [recvPort.sendPort, placeholder.infoHash]);
+  }
+
+  Torrent? findTorrent(String nameHash) {
+    for (final torrent in _torrentList) {
+      if (torrent.isMultiFile) {
+        for (final file in torrent.files) {
+          if (file.nameHash == nameHash) {
+            return torrent;
+          }
+        }
+      }
+      if (torrent.nameHash == nameHash) {
+        return torrent;
+      }
+    }
+
+    return null;
   }
 
   Torrent getTorrentInfo(Torrent t) =>
@@ -134,30 +145,20 @@ class TorrentManager {
     Logger().d('TorrentClient initialized');
 
     // load last session
-    instance.torrentsMap =
-        (Torrent.listFromJson.cStringCall(go.GetTorrentList())
-              ..sort()
-              ..forEach((t) => t.startSelfUpdate()))
-            .group();
+    instance._torrentList =
+        Torrent.listFromJson.cStringCall(go.GetTorrentList())
+          ..sort()
+          ..forEach((t) => t.startSelfUpdate());
 
     Logger().d(
-        'TorrentManager initialized ${instance.torrentsMap.length} torrents');
+        'TorrentManager initialized ${instance._torrentList.length} torrents');
   }
 
-  Torrent? findTorrent(String nameHash) {
-    for (final group in torrentsMap.values) {
-      for (final torrent in group) {
-        if (torrent.isMultiFile) {
-          for (final file in torrent.files) {
-            if (file.nameHash == nameHash) {
-              return torrent;
-            }
-          }
-        } else if (torrent.nameHash == nameHash) {
-          return torrent;
-        }
-      }
-    }
-    return null;
+  static _addTorrent(dynamic message) {
+    instance.placeholders.firstWhere((t) => t.infoHash == message['infoHash'],
+        orElse: () => throw Exception('Placeholder not found'))
+      ..updateDetail(Torrent.fromJson(message['torrent']))
+      ..startSelfUpdate();
+    instance.updateNotifier.notifyListeners();
   }
 }

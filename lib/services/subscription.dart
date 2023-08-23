@@ -4,12 +4,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:logger/logger.dart';
 
-import '../class/item.dart' show Item;
-import '../utils/connectivity.dart';
-import '../utils/fetch_rss.dart' show parseRSSForItems;
-import '../utils/rss_providers.dart' show RSSProvider, kProvidersDict;
-import '../utils/string.dart';
+import '/class/item.dart' show Item;
+import '/utils/connectivity.dart';
+import '/utils/fetch_rss.dart' show parseRSSForItems;
+import '/utils/string.dart';
 import 'http.dart';
+import 'rss_providers.dart' show RSSProvider, kProvidersDict;
 import 'storage.dart';
 
 SubscriptionManager get gSubscriptionManager => SubscriptionManager.instance;

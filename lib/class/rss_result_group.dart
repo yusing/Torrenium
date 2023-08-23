@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../main.dart' show kIsDesktop;
-import '../widgets/rss_result_dialog.dart';
+import '/main.dart' show kIsDesktop;
+import '/widgets/rss_result_dialog.dart';
 import 'item.dart';
 
 class RssResultGroup {

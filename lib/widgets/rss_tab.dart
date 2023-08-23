@@ -1,19 +1,57 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_offline/flutter_offline.dart';
+import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../class/rss_result_group.dart';
-import '../main.dart' show kIsDesktop;
-import '../services/subscription.dart';
-import '../style.dart';
-import '../utils/fetch_rss.dart';
-import '../utils/rss_providers.dart';
+import '/class/rss_result_group.dart';
+import '/main.dart' show kIsDesktop;
+import '/services/rss_providers.dart';
+import '/services/subscription.dart';
+import '/style.dart';
+import '/utils/fetch_rss.dart';
 import 'adaptive.dart';
 import 'cupertino_picker_button.dart';
 import 'rss_result_view.dart';
 
+var gAuthorIndex = 0;
+var gCategoryIndex = 0;
+var gQuery = '';
 var gRssProvider = kRssProviders.first;
+
+final searchController = TextEditingController(text: gQuery)
+  ..addListener(searchBarListener); // shared across all tabs (RSSProvider)
+
+final urlListenable = ValueNotifier(gRssProvider.searchUrl(
+    query: gQuery, author: gSelectedAuthor, category: gSelectedCategory));
+
+String? get gSelectedAuthor =>
+    gRssProvider.authorRssMap?.values.elementAt(gAuthorIndex);
+
+String? get gSelectedCategory =>
+    gRssProvider.categoryRssMap?.values.elementAt(gCategoryIndex);
+
+void searchBarListener() {
+  gQuery = searchController.text;
+  // clear button workaround
+  if (searchController.text.isEmpty) {
+    updateUrl();
+  }
+}
+
+void updateUrl() {
+  if (gRssProvider.authorRssMap != null &&
+      gAuthorIndex >= gRssProvider.authorRssMap!.length) {
+    gAuthorIndex = 0;
+  }
+  if (gRssProvider.categoryRssMap != null &&
+      gCategoryIndex >= gRssProvider.categoryRssMap!.length) {
+    gCategoryIndex = 0;
+  }
+  urlListenable.value = gRssProvider.searchUrl(
+      query: gQuery, author: gSelectedAuthor, category: gSelectedCategory);
+}
 
 typedef KV = MapEntry<String, String?>;
 
@@ -25,87 +63,38 @@ class RSSTab extends StatefulWidget {
 }
 
 class _RSSTabState extends State<RSSTab> {
-  static final _searchController =
-      TextEditingController(); // share across all tabs (RSSProvider)
-
-  late final MacosTabController? _tabControllerDesktop = kIsDesktop
+  late final MacosTabController? tabControllerDesktop = kIsDesktop
       ? (MacosTabController(length: kRssProviders.length)
         ..addListener(() {
-          gRssProvider = kRssProviders[_tabControllerDesktop!.index];
+          gRssProvider = kRssProviders[tabControllerDesktop!.index];
           updateUrl();
         }))
       : null;
-
-  int categoryIndex = 0;
-  int authorIndex = 0;
-
-  late final ValueNotifier<String> urlListenable = ValueNotifier(
-      gRssProvider.searchUrl(
-          query: query, author: selectedAuthor, category: selectedCategory));
 
   List<Widget> get buttons => [
         AdaptiveTextButton(
             icon: const AdaptiveIcon(CupertinoIcons.star),
             label: const Text('Subscribe'),
             onPressed: () async {
-              if (query.trim().isEmpty) {
+              if (gQuery.trim().isEmpty) {
                 return;
               }
               await gSubscriptionManager
                   .addSubscription(
                       providerName: gRssProvider.name,
-                      keyword: query,
-                      category: selectedCategory,
-                      author: selectedAuthor)
-                  .then((value) async {
-                if (kIsDesktop) {
-                  await showMacosAlertDialog(
-                      context: context,
-                      builder: (context) {
-                        return MacosAlertDialog(
-                          title: Text(value ? 'Success' : 'Error'),
-                          message: Text(value
-                              ? 'Subscription added $query from ${gRssProvider.name}'
-                              : 'Subscription already exists'),
-                          appIcon: const SizedBox(), // TODO: replace this
-                          primaryButton: PushButton(
-                              controlSize: ControlSize.large,
-                              child: const Text('Dismiss'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              }),
-                        );
-                      });
-                } else {
-                  await showCupertinoDialog(
-                      context: context,
-                      builder: (context) {
-                        return CupertinoAlertDialog(
-                          title: Text(value ? 'Success' : 'Error'),
-                          content: Text(value
-                              ? 'Subscription added $query from ${gRssProvider.name}'
-                              : 'Subscription already exists'),
-                          actions: [
-                            CupertinoDialogAction(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text('Dismiss'))
-                          ],
-                        );
-                      });
-                }
-              });
+                      keyword: gQuery,
+                      category: gSelectedCategory,
+                      author: gSelectedAuthor)
+                  .then((value) => showAdaptiveAlertDialog(
+                        context: context,
+                        title:
+                            value ? const Text('Success') : const Text('Error'),
+                        content: Text(value
+                            ? 'Subscription added $gQuery from ${gRssProvider.name}'
+                            : 'Subscription already exists'),
+                      ));
             })
       ];
-
-  String get query => _searchController.text;
-
-  String? get selectedAuthor =>
-      gRssProvider.authorRssMap?.values.elementAt(authorIndex);
-
-  String? get selectedCategory =>
-      gRssProvider.categoryRssMap?.values.elementAt(categoryIndex);
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +115,7 @@ class _RSSTabState extends State<RSSTab> {
                       (i) => MacosTab(
                             label: kRssProviders[i].name,
                           )),
-                  controller: _tabControllerDesktop!)
+                  controller: tabControllerDesktop!)
             ]);
           }
           return OfflineBuilder(
@@ -151,8 +140,14 @@ class _RSSTabState extends State<RSSTab> {
   }
 
   Widget content(String url) => FutureBuilder(
-        future: getRSSResults(gRssProvider, url),
+        future: getRSSResults(gRssProvider,
+            query: gQuery,
+            author: gSelectedAuthor,
+            category: gSelectedCategory),
         builder: (_, snapshot) {
+          if (snapshot.hasError) {
+            Logger().e(snapshot.stackTrace, snapshot.error);
+          }
           return Column(
             children: [
               if (kIsDesktop)
@@ -216,7 +211,7 @@ class _RSSTabState extends State<RSSTab> {
                     : (snapshot.hasData
                         ? snapshot.data!.isEmpty
                             ? const Text("No result found")
-                            : (gRssProvider.coverUrlGetter == null
+                            : (gRssProvider.detailGetter.getCoverUrl == null
                                 ? RssResultListView(snapshot.data!)
                                 : RssResultGridView(snapshot.data!))
                         : const Center(
@@ -228,84 +223,53 @@ class _RSSTabState extends State<RSSTab> {
         },
       );
 
+  @override
+  void initState() {
+    gAuthorIndex = 0;
+    gCategoryIndex = 0;
+    super.initState();
+  }
+
   Widget pickerAuthor() {
-    final enabled = query.isNotEmpty
+    final enabled = gQuery.isNotEmpty
         ? gRssProvider.supportAdvancedSearch
             ? (gRssProvider.authorRssMap?.isNotEmpty ?? false)
             : false
         : gRssProvider.authorRssMap != null;
-    return enabled ? pickerAuthorInner() : const SizedBox.shrink();
-  }
-
-  Widget pickerAuthorInner() {
-    onChange(int? e) {
-      if (e == null) return;
-      authorIndex = e;
-      if (!gRssProvider.supportAdvancedSearch) {
-        _searchController.clear();
-      }
-      updateUrl();
-    }
-
-    if (!kIsDesktop) {
-      return CupertinoPickerButton(
-          items: List.generate(gRssProvider.authorRssMap?.length ?? 0, (i) => i,
-              growable: false),
-          itemBuilder: (i) =>
-              Text(gRssProvider.authorRssMap!.keys.elementAt(i)),
-          valueGetter: () => authorIndex,
-          onSelectedItemChanged: (i) => authorIndex = i,
-          onPop: (i) => onChange(i));
-    }
-
-    return MacosPopupButton(
-        value: authorIndex,
-        items: List.generate(gRssProvider.authorRssMap!.length, (index) {
-          final key = gRssProvider.authorRssMap!.keys.elementAt(index);
-          return MacosPopupMenuItem(
-              value: index, enabled: !key.startsWith('*'), child: Text(key));
-        }),
-        onChanged: onChange);
+    return enabled
+        ? AdaptiveDropDown(
+            value: gAuthorIndex,
+            items: gRssProvider.authorRssMap!.entries,
+            textGetter: (entry) => entry.key,
+            onChange: (int e) {
+              gAuthorIndex = e;
+              if (!gRssProvider.supportAdvancedSearch) {
+                searchController.clear();
+              }
+              updateUrl();
+            })
+        : const SizedBox.shrink();
   }
 
   Widget pickerCategory() {
-    final enabled = query.isNotEmpty
+    final enabled = gQuery.isNotEmpty
         ? gRssProvider.supportAdvancedSearch
             ? (gRssProvider.categoryRssMap?.isNotEmpty ?? false)
             : false
         : gRssProvider.categoryRssMap != null;
-    return enabled ? pickerCategoryInner() : const SizedBox.shrink();
-  }
-
-  Widget pickerCategoryInner() {
-    onChange(int? e) {
-      if (e == null) return;
-      categoryIndex = e;
-      if (!gRssProvider.supportAdvancedSearch) {
-        _searchController.clear();
-      }
-      updateUrl();
-    }
-
-    if (!kIsDesktop) {
-      return CupertinoPickerButton(
-          items: List.generate(
-              gRssProvider.categoryRssMap?.length ?? 0, (i) => i,
-              growable: false),
-          itemBuilder: (i) =>
-              Text(gRssProvider.categoryRssMap!.keys.elementAt(i)),
-          valueGetter: () => categoryIndex,
-          onSelectedItemChanged: (i) => categoryIndex = i,
-          onPop: (i) => onChange(i));
-    }
-    return MacosPopupButton(
-        value: categoryIndex,
-        items: List.generate(gRssProvider.categoryRssMap!.length, (index) {
-          final key = gRssProvider.categoryRssMap!.keys.elementAt(index);
-          return MacosPopupMenuItem(
-              value: index, enabled: !key.startsWith('*'), child: Text(key));
-        }),
-        onChanged: onChange);
+    return enabled
+        ? AdaptiveDropDown(
+            value: gCategoryIndex,
+            items: gRssProvider.categoryRssMap!.entries,
+            textGetter: (entry) => entry.key,
+            onChange: (int e) {
+              gCategoryIndex = e;
+              if (!gRssProvider.supportAdvancedSearch) {
+                searchController.clear();
+              }
+              updateUrl();
+            })
+        : const SizedBox.shrink();
   }
 
   Widget searchBar(List<RssResultGroup>? results) {
@@ -313,7 +277,7 @@ class _RSSTabState extends State<RSSTab> {
       return CupertinoSearchTextField(
           autofocus: false,
           autocorrect: false,
-          controller: _searchController,
+          controller: searchController,
           placeholder: 'Search for something...',
           onSubmitted: (_) => updateUrl(),
           onChanged: (v) {
@@ -329,13 +293,7 @@ class _RSSTabState extends State<RSSTab> {
           autofocus: false,
           autocorrect: false,
           maxLines: 1,
-          controller: _searchController
-            ..addListener(() {
-              // clear button workaround
-              if (_searchController.text.isEmpty) {
-                updateUrl();
-              }
-            }),
+          controller: searchController,
           placeholder: 'Search for something...',
           maxResultsToShow: kIsDesktop ? 10 : 4,
           results: results?.map((e) => SearchResultItem(e.title)).toList(),
@@ -345,47 +303,11 @@ class _RSSTabState extends State<RSSTab> {
     );
   }
 
-  void updateUrl() {
-    if (gRssProvider.authorRssMap != null &&
-        authorIndex >= gRssProvider.authorRssMap!.length) {
-      authorIndex = 0;
-    }
-    if (gRssProvider.categoryRssMap != null &&
-        categoryIndex >= gRssProvider.categoryRssMap!.length) {
-      categoryIndex = 0;
-    }
-    urlListenable.value = gRssProvider.searchUrl(
-        query: query, author: selectedAuthor, category: selectedCategory);
-  }
-
   Widget urlBar(String url) {
     return GestureDetector(
       onLongPress: () async {
-        await Clipboard.setData(ClipboardData(text: url)).then((value) {
-          if (kIsDesktop) {
-            return showMacosAlertDialog(
-                context: context,
-                builder: (context) => MacosAlertDialog(
-                      appIcon: const SizedBox.shrink(),
-                      title: const Text('Copied to clipboard'),
-                      message: const SizedBox.shrink(),
-                      primaryButton: PushButton(
-                          controlSize: ControlSize.large,
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Dismiss')),
-                    ));
-          }
-          return showCupertinoDialog(
-              context: context,
-              builder: (context) => CupertinoAlertDialog(
-                    title: const Text('Copied to clipboard'),
-                    actions: [
-                      CupertinoDialogAction(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Dismiss'))
-                    ],
-                  ));
-        });
+        await Clipboard.setData(ClipboardData(text: url))
+            .then((value) => BotToast.showText(text: 'Copied to clipboard'));
       },
       child: urlBarInner(url),
     );

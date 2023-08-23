@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
-import 'package:torrenium/widgets/adaptive.dart';
 
-import '../class/item.dart';
+import '/class/item.dart';
+import '/widgets/adaptive.dart';
 import 'storage.dart';
 import 'torrent_mgr.dart';
 
@@ -34,6 +34,7 @@ extension TorrentManagerExtension on TorrentManager {
     if (selectedPath == null) {
       return false;
     }
+    gTorrentManager.savePath = selectedPath;
     Storage.setString('savePath', selectedPath);
     try {
       await Directory(selectedPath).create(recursive: true);

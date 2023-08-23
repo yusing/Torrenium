@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 
-import '../widgets/group_list_dialog.dart';
-import '../widgets/rss_tab.dart';
-import '../widgets/subscriptions_dialog.dart';
-import '../widgets/watch_history.dart';
+import '/widgets/group_list_dialog.dart';
+import '/widgets/rss_tab.dart';
+import '/widgets/subscriptions_dialog.dart';
+import '/widgets/watch_history.dart';
 
 class MobileTab {
   final String title;

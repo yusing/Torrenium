@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import '../services/watch_history.dart';
-import '../utils/file_type_icons.dart';
-import '../utils/string.dart';
+import '/services/watch_history.dart';
+import '/utils/file_type_icons.dart';
+import '/utils/string.dart';
 import 'groupable.dart';
 
 abstract class DownloadItem extends Groupable {
@@ -15,14 +15,18 @@ abstract class DownloadItem extends Groupable {
       required this.progress});
 
   String get displayName;
+  String? get externalAudioPath => null;
+  Map<String, String> get externalSubtitlePaths => {}; // TODO: test
+  String? get externalSubtitltFontPath => null; // TODO: test
+
   List<DownloadItem> get files => throw UnimplementedError();
   String get fullPath;
   IconData get icon => getPathIcon(fullPath);
   bool get isComplete;
   bool get isMultiFile;
   bool get isPlaceholder;
-  Duration get lastPosition => WatchHistory.getPosition(nameHash);
 
+  Duration get lastPosition => WatchHistory.getPosition(nameHash);
   String get nameHash => displayName.sha256Hash;
   double get watchProgress => WatchHistory.getProgress(nameHash);
 

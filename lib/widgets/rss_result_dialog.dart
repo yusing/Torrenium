@@ -1,33 +1,29 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
+import 'package:torrenium/utils/fetch_rss.dart';
 
-import '../class/item.dart';
-import '../class/rss_result_group.dart';
-import '../main.dart' show kIsDesktop;
-import '../services/torrent_ext.dart';
-import '../services/torrent_mgr.dart';
-import '../style.dart';
-import '../utils/fetch_rss.dart';
-import '../widgets/rss_tab.dart';
+import '/class/item.dart';
+import '/class/rss_result_group.dart';
+import '/class/youtube_item.dart';
+import '/main.dart' show kIsDesktop;
+import '/services/torrent_ext.dart';
+import '/services/torrent_mgr.dart';
+import '/style.dart';
+import '/utils/show_video_player.dart';
 import 'adaptive.dart';
+import 'rss_tab.dart';
 
-class DownloadButtons extends StatelessWidget {
+class PlayDownloadButtons extends StatelessWidget {
   final List<Item> results;
 
-  const DownloadButtons(this.results, {super.key});
+  const PlayDownloadButtons(this.results, {super.key});
 
   @override
   Widget build(BuildContext context) {
     if (results.isEmpty) {
       return const SizedBox.shrink();
-    }
-    if (results.length == 1) {
-      return AdaptiveTextButton(
-          icon: const AdaptiveIcon(CupertinoIcons.cloud_download),
-          label: const Text('Download'),
-          onPressed: () =>
-              gTorrentManager.download(results.first, context: context));
     }
     return LayoutBuilder(builder: (context, constraints) {
       return GridView.builder(
@@ -41,12 +37,33 @@ class DownloadButtons extends StatelessWidget {
           itemBuilder: (context, i) => FittedBox(
                 fit: BoxFit.fitWidth,
                 child: AdaptiveTextButton(
-                    icon: const AdaptiveIcon(CupertinoIcons.cloud_download),
-                    label: Text('Episode $i'),
-                    onPressed: () =>
-                        gTorrentManager.download(results[i], context: context)),
+                    icon: gRssProvider.isYouTube
+                        ? const AdaptiveIcon(CupertinoIcons.play)
+                        : const AdaptiveIcon(CupertinoIcons.cloud_download),
+                    label: Text(results[i].episode ??
+                        (gRssProvider.isYouTube ? 'Play' : 'Download')),
+                    onPressed: () => openOrDownloadItem(context, results[i])),
               ));
     });
+  }
+
+  void openOrDownloadItem(BuildContext context, Item item) {
+    if (gRssProvider.isYouTube) {
+      final ytItem = YouTubeItem(item);
+      ytItem
+          .init()
+          .then((_) => showVideoPlayer(context, ytItem))
+          .onError((error, st) {
+        Logger().e('Failed to load video', error, st);
+        showAdaptiveAlertDialog(
+            context: context,
+            title: const Text('Failed to load video'),
+            content: Text(error.toString()));
+        return;
+      });
+    } else {
+      gTorrentManager.download(item, context: context);
+    }
   }
 }
 
@@ -68,29 +85,32 @@ class RssResultDialog extends MacosSheet {
                       ...content(context, result),
                     ])));
   static List<Widget> content(BuildContext context, RssResultGroup result) => [
-        result.items.first.isMusic
-            ? DownloadButtons(result.items)
-            : FutureBuilder(
-                future: getRSSResults(
-                    gRssProvider, gRssProvider.searchUrl(query: result.title)),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError ||
-                      !snapshot.hasData ||
-                      snapshot.data!.isEmpty) {
-                    return DownloadButtons(result.items);
-                  }
-                  if (snapshot.data!.length == 1) {
-                    return DownloadButtons(snapshot.data!.first.items);
-                  }
-                  return DownloadButtons(snapshot.data!
-                      .reduce((a, b) => a.items.length > b.items.length ? a : b)
-                      .items);
-                }),
+        FutureBuilder(
+            future: getRSSResults(gRssProvider,
+                query: gQuery,
+                author: gSelectedAuthor,
+                category: gSelectedCategory),
+            builder: (context, snapshot) {
+              if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data!.isEmpty ||
+                  snapshot.data!.length < result.items.length) {
+                return PlayDownloadButtons(result.items);
+              }
+              if (snapshot.data!.length == 1) {
+                return PlayDownloadButtons(snapshot.data!.first.items);
+              }
+              return PlayDownloadButtons(snapshot.data!
+                  .reduce((a, b) => a.items.length >= b.items.length ? a : b)
+                  .items);
+            }),
         Expanded(
           child: SingleChildScrollView(
-            child: Html(
-              data: result.items.first.description,
-            ),
+            child: gRssProvider.isYouTube
+                ? Text(result.items.first.description)
+                : Html(
+                    data: result.items.first.description,
+                  ),
           ),
         ),
       ];
