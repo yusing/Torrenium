@@ -8,16 +8,18 @@ part of 'watch_history.dart';
 
 WatchHistoryEntry _$WatchHistoryEntryFromJson(Map<String, dynamic> json) =>
     WatchHistoryEntry(
-      nameHash: json['nameHash'] as String,
-      title: json['title'] as String,
+      name: json['name'] as String,
+      path: json['path'] as String?,
+      audioPath: json['audioPath'] as String?,
       duration: json['duration'] as int?,
       position: json['position'] as int?,
     );
 
 Map<String, dynamic> _$WatchHistoryEntryToJson(WatchHistoryEntry instance) =>
     <String, dynamic>{
-      'nameHash': instance.nameHash,
-      'title': instance.title,
+      'name': instance.name,
+      'path': instance.path,
+      'audioPath': instance.audioPath,
       'duration': instance.duration,
       'position': instance.position,
     };

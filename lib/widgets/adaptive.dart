@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/main.dart' show kIsDesktop;
+import '/style.dart';
 import 'cupertino_picker_button.dart';
 
 Future<T?> showAdaptiveAlertDialog<T>({
@@ -313,24 +314,56 @@ class _AdaptiveListTileState extends State<AdaptiveListTile> {
   @override
   Widget build(BuildContext context) {
     if (kIsDesktop) {
-      return MouseRegion(
-        onHover: (_) => setState(() => _hovering = true),
-        onExit: (_) => setState(() => _hovering = false),
-        child: Container(
-          color: _hovering ? MacosColors.systemBlueColor.withOpacity(.1) : null,
-          child: MacosListTile(
-            title: widget.trailing == null
-                ? widget.title
-                : Row(
-                    children: [
-                      Expanded(child: widget.title),
+      return GestureDetector(
+        onTap: widget.onTap,
+        child: MouseRegion(
+          onHover: (_) => setState(() => _hovering = true),
+          onExit: (_) => setState(() => _hovering = false),
+          child: Container(
+            color:
+                _hovering ? MacosColors.systemBlueColor.withOpacity(.1) : null,
+            padding: const EdgeInsets.all(4.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (widget.leading != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: widget.leading!,
+                      ),
+                    Expanded(
+                        child: DefaultTextStyle(
+                            style: kItemTitleTextStyle,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                            child: widget.title)),
+                    if (widget.trailing != null) ...[
                       const SizedBox(width: 16),
-                      ...widget.trailing!,
-                    ],
-                  ),
-            subtitle: widget.subtitle,
-            leading: widget.leading,
-            onClick: widget.onTap,
+                      ...widget.trailing!
+                    ]
+                  ],
+                ),
+                if (widget.subtitle != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: DefaultTextStyle(
+                      style: MacosTheme.of(context)
+                          .typography
+                          .subheadline
+                          .copyWith(
+                              color: MacosColors.systemGrayColor,
+                              fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      child: widget.subtitle!,
+                    ),
+                  )
+              ],
+            ),
           ),
         ),
       );

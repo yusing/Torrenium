@@ -29,15 +29,12 @@ class Item extends Groupable {
   Future<String> coverPhotoFallbackUrl() async {
     const kFinalFallback =
         'https://p.favim.com/orig/2018/08/16/anime-no-manga-Favim.com-6189353.png';
-    final searchUrl =
+    final apiUrl =
         "https://kitsu.io/api/edge/anime?filter[text]=$nameCleanedNoNum&page[limit]=1";
-    final body = await (await gCacheManager.getSingleFile(searchUrl,
-            key: nameCleanedNoNum,
-            headers: {
-          'Accept-Language': 'zh-HK,zh;q=0.9,en-US;q=0.8,en;q=0.7'
-        }))
-        .readAsString()
-        .onError((error, stackTrace) => '{}');
+    final body =
+        await (await gCacheManager.getSingleFile(apiUrl, key: nameCleanedNoNum))
+            .readAsString()
+            .onError((error, stackTrace) => '{}');
     // Logger().d(body);
     final results = jsonDecode(body)["data"] as List?;
     if (results == null || results.isEmpty) {

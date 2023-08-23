@@ -13,19 +13,21 @@ class YouTubeItem extends DownloadItem {
 
   YouTubeItem(Item item)
       : videoID = item.torrentUrl!.split('=').last,
-        super(name: item.name, bytesDownloaded: 0, progress: 0);
+        super(name: item.name, bytesDownloaded: 0, progress: 0) {
+    coverUrl = item.coverUrl;
+  }
 
   @override
   String get displayName => name;
 
   @override
-  String get externalAudioPath => audioUrl;
+  String get audioTrackPath => audioUrl;
 
   @override
   // Map<String, String> get externalSubtitlePaths => subtitlePaths;
 
   @override
-  String get fullPath => videoUrl;
+  String get videoPath => videoUrl;
 
   @override
   bool get isComplete => true;

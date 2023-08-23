@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:torrenium/utils/fetch_rss.dart';
 
 import '/class/item.dart';
 import '/class/rss_result_group.dart';
@@ -11,6 +10,7 @@ import '/main.dart' show kIsDesktop;
 import '/services/torrent_ext.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
+import '/utils/fetch_rss.dart';
 import '/utils/show_video_player.dart';
 import 'adaptive.dart';
 import 'rss_tab.dart';
@@ -50,6 +50,7 @@ class PlayDownloadButtons extends StatelessWidget {
   void openOrDownloadItem(BuildContext context, Item item) {
     if (gRssProvider.isYouTube) {
       final ytItem = YouTubeItem(item);
+      Logger().d(item.torrentUrl);
       ytItem
           .init()
           .then((_) => showVideoPlayer(context, ytItem))
@@ -86,10 +87,12 @@ class RssResultDialog extends MacosSheet {
                     ])));
   static List<Widget> content(BuildContext context, RssResultGroup result) => [
         FutureBuilder(
-            future: getRSSResults(gRssProvider,
-                query: gQuery,
-                author: gSelectedAuthor,
-                category: gSelectedCategory),
+            future: gRssProvider.isYouTube
+                ? Future.value(<RssResultGroup>[])
+                : getRSSResults(gRssProvider,
+                    query: gQuery,
+                    author: gSelectedAuthor,
+                    category: gSelectedCategory),
             builder: (context, snapshot) {
               if (snapshot.hasError ||
                   !snapshot.hasData ||

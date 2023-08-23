@@ -1,26 +1,81 @@
 import 'package:flutter/foundation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-const tagHD = r'(1920\s?x\s?1080|1080p|mp4|aac|avc|x264|x265|hevc)';
-const tagSD = r'(1280\s?x\s?720|720p)';
+part 'groupable.g.dart';
+
 const tag10Bit = r'10\-?bit';
 const tagFLAC = r'flac(\s+\d+kHz\/\d+bit)?';
+const tagHD = r'(1920\s?x\s?1080|1080p|mp4|aac|avc|x264|x265|hevc)';
 const tagMP3 = r'(MP3\s+)?\d{3}k';
+const tagSD = r'(1280\s?x\s?720|720p)';
+
+@JsonSerializable()
+class Groupable {
+  String name;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  String? _nameCleaned;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  List<int>? _numbersInName;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  String? _nameCleanedNoNum;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Iterable<String>? episodeNumbers;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  ValueNotifier<void> updateNotifier = ValueNotifier(null);
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool? _isMusic;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  List<int>? episodeIndexes;
+
+  Groupable({required this.name});
+
+  String? get episode => episodeNumbers?.join(" - ");
+  String get group => nameCleanedNoNum;
+  bool get isMusic => _isMusic ??=
+      RegExp(r'(flac|mp3|320k)', caseSensitive: false).hasMatch(name);
+  String get nameCleaned => _nameCleaned ??= Title(name).value;
+  String get nameCleanedNoNum => _nameCleanedNoNum ??= nameCleaned
+      .replaceAll(RegExp(r'\d+'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+
+  List<int> get numbersInName => _numbersInName ??= RegExp(r'\d+')
+      .allMatches(nameCleaned)
+      .map((m) => int.parse(m.group(0)!))
+      .toList()
+    ..sort();
+
+  String get title => name;
+
+  void updateEpisodes(List<int> indexes) {
+    final splitted = nameCleaned.split(' ');
+    episodeNumbers =
+        indexes.map((index) => splitted[index]).toList(growable: false);
+  }
+}
 
 class Title {
-  final hasTag = {
-    tagHD: false,
-    tagSD: false,
-    tag10Bit: false,
-    tagFLAC: false,
-    tagMP3: false,
-  };
-
   static const kTagRepr = {
     tagHD: '1080P',
     tagSD: '720P',
     tag10Bit: '10-bit',
     tagFLAC: 'FLAC Music',
     tagMP3: 'MP3 Music',
+  };
+
+  final hasTag = {
+    tagHD: false,
+    tagSD: false,
+    tag10Bit: false,
+    tagFLAC: false,
+    tagMP3: false,
   };
 
   late String value;
@@ -43,45 +98,6 @@ class Title {
             suffixes.toString())
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-  }
-}
-
-class Groupable {
-  String name;
-  String? _nameCleaned;
-  List<int>? _numbersInName;
-  String? _nameCleanedNoNum;
-  Iterable<String>? episodeNumbers;
-  ValueNotifier<void> updateNotifier = ValueNotifier(null);
-  bool? _isMusic;
-
-  List<int>? episodeIndexes;
-
-  Groupable({required this.name});
-  String? get episode => episodeNumbers?.join(" - ");
-
-  String get group => nameCleanedNoNum;
-
-  bool get isMusic => _isMusic ??=
-      RegExp(r'(flac|mp3|320k)', caseSensitive: false).hasMatch(name);
-
-  String get nameCleaned => _nameCleaned ??= Title(name).value;
-
-  String get nameCleanedNoNum => _nameCleanedNoNum ??= nameCleaned
-      .replaceAll(RegExp(r'\d+'), '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
-
-  List<int> get numbersInName => _numbersInName ??= RegExp(r'\d+')
-      .allMatches(nameCleaned)
-      .map((m) => int.parse(m.group(0)!))
-      .toList()
-    ..sort();
-
-  void updateEpisodes(List<int> indexes) {
-    final splitted = nameCleaned.split(' ');
-    episodeNumbers =
-        indexes.map((index) => splitted[index]).toList(growable: false);
   }
 }
 

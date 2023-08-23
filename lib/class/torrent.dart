@@ -8,6 +8,7 @@ import 'package:path/path.dart' as pathlib;
 
 import '/interface/download_item.dart';
 import '/interface/resumeable.dart';
+import '/services/storage.dart';
 import '/services/torrent_mgr.dart';
 import '/utils/connectivity.dart';
 import 'item.dart';
@@ -93,7 +94,7 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   List<TorrentFile> get files => _files;
 
   @override
-  String get fullPath => pathlib.join(gTorrentManager.savePath, name);
+  String get videoPath => pathlib.join(gTorrentManager.savePath, name);
 
   @override
   int get hashCode => infoHash.hashCode;
@@ -134,6 +135,7 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   @override
   void delete() {
     gTorrentManager.deleteTorrent(this);
+    Storage.removeKey('cover-$infoHash');
   }
 
   @override

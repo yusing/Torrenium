@@ -10,6 +10,7 @@ import '/widgets/adaptive.dart';
 import '/widgets/group_list_dialog.dart';
 import '/widgets/rss_tab.dart';
 import '/widgets/subscriptions_dialog.dart';
+import '/widgets/watch_history.dart';
 
 class DesktopView extends StatelessWidget {
   const DesktopView({super.key});
@@ -88,6 +89,15 @@ class TitleBar extends ToolBar {
                             builder: (_) => const SubscriptionsDialog()),
                         icon: const MacosIcon(CupertinoIcons.star),
                         label: const Text('Subscriptions'),
+                      )),
+              CustomToolbarItem(
+                  inToolbarBuilder: (context) => AdaptiveTextButton(
+                        onPressed: () => showAdaptivePopup(
+                            barrierDismissible: true,
+                            context: context,
+                            builder: (_) => const WatchHistoryPage()),
+                        icon: const MacosIcon(CupertinoIcons.time),
+                        label: const Text('Watch History'),
                       )),
               // CustomToolbarItem(inToolbarBuilder: (context) {
               //   return AdaptiveTextButton(

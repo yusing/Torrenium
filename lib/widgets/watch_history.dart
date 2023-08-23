@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 
-import '/services/torrent_mgr.dart';
 import '/services/watch_history.dart';
 import '/style.dart';
 import '/utils/open_file.dart';
@@ -21,6 +20,11 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
       child: ValueListenableBuilder(
           valueListenable: WatchHistory.notifier,
           builder: (context, v, _) {
+            if (WatchHistory.histories.map.isEmpty) {
+              return const Center(
+                child: Text('No history'),
+              );
+            }
             return ListView.separated(
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemCount: WatchHistory.histories.length,
@@ -28,6 +32,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                 final entry = WatchHistory.histories
                     .elementAt(WatchHistory.histories.length - index - 1);
                 return AdaptiveListTile(
+                  leading: entry.coverImageWidget(),
                   title: Text(
                     entry.title,
                     style: kItemTitleTextStyle,
@@ -41,17 +46,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                       trackColor: CupertinoColors.systemPurple,
                     ),
                   ),
-                  onTap: () {
-                    final item = gTorrentManager.findTorrent(entry.nameHash);
-                    if (item == null) {
-                      showAdaptiveAlertDialog(
-                          context: context,
-                          title: const Text('Error'),
-                          content: const Text('Item not found!'));
-                      return;
-                    }
-                    openItem(context, item);
-                  },
+                  onTap: () => openItem(context, entry),
                 );
               },
             );

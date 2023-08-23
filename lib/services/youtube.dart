@@ -30,6 +30,6 @@ class YouTube {
                 likeCount: e.engagement.likeCount,
               )
             ])))
-        .toList();
+        .toList(growable: false);
   }
 }

@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:torrenium/interface/download_item.dart';
+import 'package:torrenium/services/torrent_mgr.dart';
 
 import 'storage.dart';
 
@@ -115,22 +117,27 @@ class WatchHistory {
 }
 
 @JsonSerializable()
-class WatchHistoryEntry {
-  final String nameHash;
-  String title;
+class WatchHistoryEntry extends DownloadItem {
+  @JsonKey(defaultValue: null)
+  String? path;
+  @JsonKey(defaultValue: null)
+  String? audioPath;
   int? duration; // vnameHasheo/music duration in seconds, or index for image
   int? position; // vnameHasheo/music position in seconds, or pages for images
 
-  WatchHistoryEntry(
-      {required this.nameHash,
-      required this.title,
-      this.duration,
-      this.position});
+  WatchHistoryEntry({
+    required super.name,
+    this.path,
+    this.audioPath,
+    this.duration,
+    this.position,
+  });
 
   factory WatchHistoryEntry.fromJson(Map<String, dynamic> json) =>
       _$WatchHistoryEntryFromJson(json);
   Map<String, dynamic> toJson() => _$WatchHistoryEntryToJson(this);
 
+  @override
   double get progress {
     if (duration == null || duration == 0) {
       return 0;
@@ -140,6 +147,22 @@ class WatchHistoryEntry {
     }
     return position! / duration!;
   }
+
+  @override
+  String get videoPath =>
+      path ?? gTorrentManager.findTorrent(nameHash)?.videoPath ?? '';
+
+  @override
+  String? get audioTrackPath => audioPath;
+
+  @override
+  bool get isComplete => true;
+
+  @override
+  bool get isMultiFile => false;
+
+  @override
+  bool get isPlaceholder => false;
 }
 
 enum WatchHistoryEntryType { vnameHasheo, image, audio, all }

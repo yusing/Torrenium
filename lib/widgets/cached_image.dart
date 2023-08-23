@@ -8,7 +8,7 @@ import '/services/http.dart';
 class CachedImage extends CachedNetworkImage {
   CachedImage(
       {required String? url,
-      Future<String> Function()? fallbackGetter,
+      Future<String?> Function()? fallbackGetter,
       double? width,
       double? height,
       BoxFit? fit,
@@ -33,7 +33,7 @@ class CachedImage extends CachedNetworkImage {
                     if (snapshot.hasData) {
                       // Logger().i(snapshot.data);
                       return CachedImage(
-                          url: snapshot.data!,
+                          url: snapshot.data,
                           width: width,
                           height: height,
                           fit: fit);

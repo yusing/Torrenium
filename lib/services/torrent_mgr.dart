@@ -68,9 +68,10 @@ class TorrentManager {
         "torrent": jsonDecode.cStringCall(url.startsWith('magnet:')
             ? go.AddMagnet.dartStringCall(url)
             : go.AddTorrent.dartStringCall(url)),
-        "infoHash": message[1]
+        "infoHash": message[1],
+        "coverUrl": message[2],
       });
-    }, [recvPort.sendPort, placeholder.infoHash]);
+    }, [recvPort.sendPort, placeholder.infoHash, placeholder.coverUrl]);
   }
 
   Torrent? findTorrent(String nameHash) {
@@ -158,7 +159,8 @@ class TorrentManager {
     instance.placeholders.firstWhere((t) => t.infoHash == message['infoHash'],
         orElse: () => throw Exception('Placeholder not found'))
       ..updateDetail(Torrent.fromJson(message['torrent']))
-      ..startSelfUpdate();
+      ..startSelfUpdate()
+      ..coverUrl = message['coverUrl'];
     instance.updateNotifier.notifyListeners();
   }
 }

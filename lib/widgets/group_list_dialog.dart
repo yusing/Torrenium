@@ -59,7 +59,6 @@ class ItemGroupWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // placeholder list may be empty
-    // assert(group.value.isNotEmpty);
     if (group.value.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -73,8 +72,7 @@ class ItemGroupWidget extends StatelessWidget {
           .compareTo((b.episodeNumbers?.reduce((x, y) => x + y)) ?? ''));
 
     return AdaptiveListTile(
-        leading: const AdaptiveIcon(CupertinoIcons.list_bullet,
-            size: kDownloadListTileIconSize),
+        leading: group.value.first.coverImageWidget(),
         title: Text('${group.key} (${group.value.length} items)',
             style: kItemTitleTextStyle),
         onTap: () => showAdaptivePopup(
@@ -103,11 +101,7 @@ class _ItemListTileInner extends AdaptiveListTile {
 
   _ItemListTileInner(this.context, this.item)
       : super(
-          leading: AdaptiveIcon(item.icon,
-              color: item.isMultiFile
-                  ? MacosColors.appleYellow
-                  : MacosColors.white,
-              size: kDownloadListTileIconSize),
+          leading: item.coverImageWidget(),
           title: Text(
             item.episode ?? item.displayName,
             // item.displayName, // TODO: remove this

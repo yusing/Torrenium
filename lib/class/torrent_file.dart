@@ -39,10 +39,10 @@ class TorrentFile extends DownloadItem {
   @override
   String get displayName => name;
 
-  bool get exists => File(fullPath).existsSync();
+  bool get exists => File(videoPath).existsSync();
 
   @override
-  String get fullPath => pathlib.join(gTorrentManager.savePath, relativePath);
+  String get videoPath => pathlib.join(gTorrentManager.savePath, relativePath);
 
   @override
   bool get isComplete => true;
@@ -54,7 +54,7 @@ class TorrentFile extends DownloadItem {
   bool get isPlaceholder => false;
 
   @override
-  void delete() => File(fullPath).deleteSync();
+  void delete() => File(videoPath).deleteSync();
 
   @override
   String toString() {

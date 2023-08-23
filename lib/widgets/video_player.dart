@@ -31,7 +31,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           libass: true,
           libassAndroidFont: item.externalSubtitltFontPath)));
 
-  late final media = Media(widget.item.fullPath);
+  late final media = Media(widget.item.videoPath);
 
   late final StreamSubscription<void> positionSub;
   late final StreamSubscription<bool> playbackEndSub;
@@ -60,14 +60,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void initState() {
     super.initState();
     player.open(media).then((_) async {
-      if (item.externalAudioPath != null) {
+      if (item.audioTrackPath != null) {
         await player.setAudioTrack(
-            AudioTrack.uri(item.externalAudioPath!, title: 'external audio'));
+            AudioTrack.uri(item.audioTrackPath!, title: 'external audio'));
       }
-      // for (final sub in item.externalSubtitlePaths.entries) {
-      //   player.setSubtitleTrack(
-      //       SubtitleTrack.uri(sub.value, language: sub.key, title: sub.key));
-      // }
       if (item.externalSubtitlePaths.isNotEmpty) {
         await player.setSubtitleTrack(SubtitleTrack.uri(
             item.externalSubtitlePaths.values.first,
@@ -80,22 +76,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Future<void> onReady() async {
     await player.stream.duration
         .firstWhere((d) => d.inSeconds > 0)
-        .then((duration) {
+        .then((duration) async {
       if (WatchHistory.has(item.nameHash)) {
-        player.seek(item.lastPosition);
+        await player.seek(item.lastPosition);
         BotToast.showText(
             text: 'Resuming from ${item.lastPosition.toStringNoMs()}');
         Logger().d('Restoring position to ${item.lastPosition}');
-      } else {
-        WatchHistory.add(WatchHistoryEntry(
-            title: item.displayName,
-            nameHash: item.nameHash,
-            duration: duration.inSeconds,
-            position: player.state.position.inSeconds));
       }
+      // add even if already exists to push to top
+      await WatchHistory.add(WatchHistoryEntry(
+          name: item.name,
+          path: item.videoPath,
+          audioPath: item.audioTrackPath,
+          duration: player.state.duration.inSeconds,
+          position: player.state.position.inSeconds));
     });
-    positionSub = Stream.periodic(const Duration(seconds: 2)).listen((_) async {
-      await widget.item.updateWatchPosition(player.state.position);
+    positionSub = Stream.periodic(const Duration(seconds: 2)).listen((_) {
+      widget.item.updateWatchPosition(player.state.position);
     });
 
     playbackEndSub = player.stream.completed.listen((event) {
