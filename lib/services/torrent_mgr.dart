@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
@@ -11,18 +12,16 @@ import 'package:path_provider/path_provider.dart';
 import '/class/item.dart';
 import '/class/torrent.dart';
 import '/main.dart' show kIsDesktop;
-import '/services/error_reporter.dart';
 import '/utils/ffi.dart';
 import '/utils/torrent_binding.dart' as torrent_binding;
 import 'storage.dart';
 import 'subscription.dart';
-import 'watch_history.dart';
 
 TorrentManager get gTorrentManager => TorrentManager.instance;
 
 class TorrentManager {
   static late final TorrentManager instance;
-
+  static final recvPort = ReceivePort()..listen(_addTorrent);
   /* !Must be static otherwise invalid argument inside isolate */
   static final DynamicLibrary _dylib = Platform.isWindows
       ? DynamicLibrary.open('libtorrent_go.dll')
@@ -47,7 +46,7 @@ class TorrentManager {
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
     _torrentList.remove(t);
-    WatchHistory.remove(t.nameHash);
+    // WatchHistory.remove(t.nameHash);
     gSubscriptionManager.addExclusion(t.nameHash);
     updateNotifier.notifyListeners();
   }
@@ -61,7 +60,6 @@ class TorrentManager {
     placeholders.add(placeholder);
     updateNotifier.notifyListeners();
 
-    final recvPort = ReceivePort()..listen(_addTorrent);
     await Isolate.spawn((message) {
       // spawn in isolate to avoid blocking main thread
       (message.first as SendPort).send({
@@ -136,20 +134,20 @@ class TorrentManager {
       });
     }
 
-    try {
-      go.InitTorrentClient.dartStringCall(instance.savePath);
-    } on Exception catch (e, st) {
-      reportError(
-          stackTrace: st, msg: 'Failed to load libtorrent_go', error: e);
-      rethrow;
-    }
+    final initClientIsolate = ReceivePort();
+    await Isolate.spawn((message) {
+      go.InitTorrentClient.dartStringCall(message.last as String);
+      (message.first as SendPort)
+          .send(go.GetTorrentList().cast<Utf8>().toDartString());
+    }, [initClientIsolate.sendPort, instance.savePath]);
+
     Logger().d('TorrentClient initialized');
 
     // load last session
-    instance._torrentList =
-        Torrent.listFromJson.cStringCall(go.GetTorrentList())
-          ..sort()
-          ..forEach((t) => t.startSelfUpdate());
+    instance._torrentList = Torrent.listFromJson(
+        await initClientIsolate.firstWhere((element) => element is String))
+      ..sort()
+      ..forEach((t) => t.startSelfUpdate());
 
     Logger().d(
         'TorrentManager initialized ${instance._torrentList.length} torrents');

@@ -430,7 +430,7 @@ class YouTubeProvider extends RSSProvider {
             searchParams: 'results?search_query=%q',
             tags: RSSItemTags.youTube,
             detailGetter: RSSDetailGetter.youTube,
-            // supportTitleGroup: false,
+            supportTitleGroup: false,
             supportAdvancedSearch: false,
             pubDateParser: youTubePubDateParser);
 }

@@ -44,8 +44,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   Widget build(BuildContext context) {
     return Video(
-      controller: controller,
-      controls: MaterialDesktopVideoControls, // TODO: implement controls
+      controller: controller, // TODO: implement controls
     );
   }
 
@@ -77,7 +76,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Future<void> onReady() async {
     await player.stream.duration
         .firstWhere((d) => d.inSeconds > 0)
-        .then((duration) async {
+        .then((_) async {
       if (WatchHistory.has(item.nameHash)) {
         await player.seek(item.lastPosition);
         BotToast.showText(

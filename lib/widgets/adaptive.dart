@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:cupertino_progress_bar/cupertino_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -185,7 +184,7 @@ class AdaptiveIconButton extends StatelessWidget {
   }
 }
 
-class AdaptiveListTile extends StatefulWidget {
+class AdaptiveListTile extends StatelessWidget {
   final Widget title;
   final Widget? subtitle;
   final Widget? leading;
@@ -201,13 +200,75 @@ class AdaptiveListTile extends StatefulWidget {
       this.onTap});
 
   @override
-  State<AdaptiveListTile> createState() => _AdaptiveListTileState();
+  Widget build(BuildContext context) {
+    // if (kIsDesktop) {
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (leading != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: leading!,
+                ),
+              Expanded(
+                  child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DefaultTextStyle(
+                      style: kItemTitleTextStyle,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      child: title),
+                  if (subtitle != null)
+                    DefaultTextStyle(
+                      style: kItemSubtitleTextStyle,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      child: subtitle!,
+                    )
+                ],
+              )),
+              if (trailing != null) ...[const SizedBox(width: 8), ...trailing!]
+            ],
+          ),
+        ),
+      ),
+    );
+    // }
+    // return CupertinoListTile(
+    //   title: widget.title,
+    //   subtitle: widget.subtitle,
+    //   leading: widget.leading,
+    //   onTap: widget.onTap,
+    //   trailing: widget.trailing == null
+    //       ? null
+    //       : widget.trailing!.length == 1
+    //           ? widget.trailing!.first
+    //           : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
+    // );
+  }
 }
 
 class AdaptiveProgressBar extends StatelessWidget {
   final double value;
   final Color? trackColor;
-  const AdaptiveProgressBar({super.key, required this.value, this.trackColor})
+  final Color backgroundColor;
+  final double height;
+
+  const AdaptiveProgressBar(
+      {super.key,
+      required this.value,
+      this.trackColor,
+      this.backgroundColor = MacosColors.systemGrayColor,
+      this.height = 4.0})
       : assert(value >= 0 && value <= 1);
 
   @override
@@ -216,19 +277,25 @@ class AdaptiveProgressBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
     if (kIsDesktop) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 4.0),
-        child: ProgressBar(
-          value: value * 100,
-          trackColor: trackColor,
-        ),
+      return ProgressBar(
+        value: value * 100,
+        trackColor: trackColor,
+        backgroundColor: backgroundColor,
+        height: height,
       );
     }
-    return Padding(
-      padding: const EdgeInsets.only(top: 4.0),
-      child: CupertinoProgressBar(
-        value: value,
-        valueColor: trackColor,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: height,
+        maxHeight: height,
+        minWidth: 80.0,
+      ),
+      child: CustomPaint(
+        painter: _ProgressBarPainter(
+            value: value,
+            trackColor: trackColor ?? CupertinoTheme.of(context).primaryColor,
+            backgroundColor: backgroundColor,
+            height: height),
       ),
     );
   }
@@ -273,6 +340,49 @@ class AdaptiveTextButton extends StatelessWidget {
   }
 }
 
+class _ProgressBarPainter extends CustomPainter {
+  final double value;
+  final Color trackColor;
+  final Color backgroundColor;
+  final double height;
+
+  const _ProgressBarPainter(
+      {required this.value,
+      this.trackColor = CupertinoColors.activeGreen,
+      this.backgroundColor = CupertinoColors.systemGrey,
+      this.height = 4.0});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Draw the background line
+    canvas.drawRRect(
+      const BorderRadius.all(Radius.circular(100)).toRRect(
+        Offset.zero & size,
+      ),
+      Paint()
+        ..color = backgroundColor
+        ..style = PaintingStyle.fill,
+    );
+
+    // Draw the active tick line
+    canvas.drawRRect(
+      const BorderRadius.horizontal(left: Radius.circular(100)).toRRect(
+        Offset.zero &
+            Size(
+              value.clamp(0.0, 1.0) * size.width,
+              size.height,
+            ),
+      ),
+      Paint()
+        ..color = trackColor
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProgressBarPainter old) => old.value != value;
+}
+
 class _AdaptiveDropDownState<T> extends State<AdaptiveDropDown<T>> {
   late var _value = widget.value;
 
@@ -305,81 +415,5 @@ class _AdaptiveDropDownState<T> extends State<AdaptiveDropDown<T>> {
           });
           widget.onChange(i);
         });
-  }
-}
-
-class _AdaptiveListTileState extends State<AdaptiveListTile> {
-  @override
-  Widget build(BuildContext context) {
-    // if (kIsDesktop) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: MouseRegion(
-        child: Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (widget.leading != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: widget.leading!,
-                    ),
-                  Expanded(
-                      child: DefaultTextStyle(
-                          style: kItemTitleTextStyle,
-                          softWrap: true,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                          child: widget.title)),
-                  if (widget.trailing != null) ...[
-                    const SizedBox(width: 16),
-                    ...widget.trailing!
-                  ]
-                ],
-              ),
-              if (widget.subtitle != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: DefaultTextStyle(
-                    style: kIsDesktop
-                        ? MacosTheme.of(context)
-                            .typography
-                            .subheadline
-                            .copyWith(
-                                color: MacosColors.systemGrayColor,
-                                fontWeight: FontWeight.w500)
-                        : CupertinoTheme.of(context)
-                            .textTheme
-                            .textStyle
-                            .copyWith(
-                                fontSize: 12,
-                                color: CupertinoColors.systemGrey,
-                                fontWeight: FontWeight.w500),
-                    maxLines: 1,
-                    child: widget.subtitle!,
-                  ),
-                )
-            ],
-          ),
-        ),
-      ),
-    );
-    // }
-    // return CupertinoListTile(
-    //   title: widget.title,
-    //   subtitle: widget.subtitle,
-    //   leading: widget.leading,
-    //   onTap: widget.onTap,
-    //   trailing: widget.trailing == null
-    //       ? null
-    //       : widget.trailing!.length == 1
-    //           ? widget.trailing!.first
-    //           : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
-    // );
   }
 }

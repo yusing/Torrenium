@@ -92,6 +92,8 @@ extension NumExt on num {
     }
   }
 
+  String get videoDuration => Duration(seconds: floor()).toStringNoMs();
+
   String percentageUnit([int precision = 2]) {
     return '${(this * 100).toStringAsFixed(precision)}%';
   }

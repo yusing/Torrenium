@@ -201,6 +201,8 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
     if (json == null) {
       return [];
     }
-    return json.map<Torrent>((e) => Torrent.fromJson(e)).toList();
+    return json
+        .map<Torrent>((e) => Torrent.fromJson(e))
+        .toList(growable: false);
   }
 }

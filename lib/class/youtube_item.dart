@@ -6,7 +6,7 @@ import 'item.dart';
 
 class YouTubeItem extends DownloadItem {
   final String videoID;
-  late final String videoUrl, audioUrl;
+  late final String videoUrl; //, audioUrl;
 
   // late final Map<String, String> subtitlePaths;
   late final String? error;
@@ -21,7 +21,7 @@ class YouTubeItem extends DownloadItem {
   String get displayName => name;
 
   @override
-  String get audioTrackPath => audioUrl;
+  // String get audioTrackPath => audioUrl;
 
   @override
   // Map<String, String> get externalSubtitlePaths => subtitlePaths;
@@ -32,9 +32,10 @@ class YouTubeItem extends DownloadItem {
   @override
   void delete() {}
 
-  Future<void> init() async {
+  Future<YouTubeItem> init() async {
     final manifest = await YouTube.client.videos.streams.getManifest(videoID);
-    videoUrl = manifest.videoOnly.withHighestBitrate().url.toString();
-    audioUrl = manifest.audioOnly.withHighestBitrate().url.toString();
+    videoUrl = manifest.muxed.withHighestBitrate().url.toString();
+    // audioUrl = manifest.audioOnly.withHighestBitrate().url.toString();
+    return this;
   }
 }

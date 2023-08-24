@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import '/services/watch_history.dart';
 import '/style.dart';
 import '/utils/open_file.dart';
+import '/utils/string.dart';
 import 'adaptive.dart';
 
 class WatchHistoryPage extends StatefulWidget {
@@ -32,19 +33,48 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                 final entry = WatchHistory.histories
                     .elementAt(WatchHistory.histories.length - index - 1);
                 return AdaptiveListTile(
-                  leading: entry.coverImageWidget(),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(6.0),
+                    child: Stack(
+                      children: [
+                        entry.coverImageWidget(),
+                        if (entry.duration != null)
+                          Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 4.0, horizontal: 6.0),
+                                decoration: BoxDecoration(
+                                    color:
+                                        CupertinoColors.black.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(4.0)),
+                                child: Text(
+                                  entry.duration!.videoDuration,
+                                  style: const TextStyle(
+                                      color: CupertinoColors.white,
+                                      fontSize: 12),
+                                ),
+                              )),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          child: SizedBox(
+                            width: kListTileThumbnailWidth,
+                            child: AdaptiveProgressBar(
+                              value: entry.progress,
+                              trackColor: CupertinoColors.systemRed,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
                   title: Text(
                     entry.title,
                     style: kItemTitleTextStyle,
                     maxLines: 2,
                     softWrap: true,
-                  ),
-                  subtitle: SizedBox(
-                    width: double.infinity,
-                    child: AdaptiveProgressBar(
-                      value: entry.progress,
-                      trackColor: CupertinoColors.systemPurple,
-                    ),
                   ),
                   onTap: () => openItem(context, entry),
                 );

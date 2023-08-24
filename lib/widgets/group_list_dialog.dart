@@ -5,7 +5,6 @@ import '/class/torrent.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/interface/resumeable.dart';
-import '/main.dart' show kIsDesktop;
 import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/utils/open_file.dart';
@@ -34,15 +33,16 @@ class GroupListDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return groups.isEmpty
-        ? const Center(child: Text('Nothing Here...'))
-        : ListView.separated(
-            separatorBuilder: (_, index) => const SizedBox(height: 24),
-            itemCount: groups.length,
-            itemBuilder: ((_, index) {
-              return ItemGroupWidget(groups[index]);
-            }),
-          );
+    if (groups.isEmpty) {
+      return const Center(child: Text('Nothing Here...'));
+    }
+    return ListView.separated(
+      separatorBuilder: (_, index) => const SizedBox(height: 24),
+      itemCount: groups.length,
+      itemBuilder: ((_, index) {
+        return ItemGroupWidget(groups[index]);
+      }),
+    );
   }
 }
 
@@ -51,27 +51,28 @@ class ItemGroupWidget extends StatelessWidget {
 
   const ItemGroupWidget(this.group, {super.key});
 
+  List<DownloadItem> get items => group.value;
+
   @override
   Widget build(BuildContext context) {
     // placeholder list may be empty
-    if (group.value.isEmpty) {
+    if (items.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    if (group.value.length == 1) {
-      return ItemListTile(group.value.first);
+    if (items.length == 1) {
+      return ItemListTile(items.first);
     }
 
-    final episodes = group.value
+    final episodes = items
       ..sort((a, b) => a.episode?.compareTo(b.episode ?? '') ?? 0);
 
     return AdaptiveListTile(
-        leading: group.value.first.coverImageWidget(),
-        title: Text('${group.key} (${group.value.length} items)',
-            style: kItemTitleTextStyle),
+        leading: items.first.coverImageWidget(),
+        title: Text(group.key, style: kItemTitleTextStyle),
+        subtitle: Text('${items.length} items'),
         onTap: () => showAdaptivePopup(
             context: context,
-            // title: Text(group.key, style: kItemTitleTextStyle),
             builder: (_) => ListView.separated(
                   shrinkWrap: true,
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
@@ -100,7 +101,6 @@ class _ItemListTileInner extends AdaptiveListTile {
           leading: item.coverImageWidget(),
           title: Text(
             item.episode ?? item.displayName,
-            // item.displayName, // TODO: remove this
             style: item.watchProgress == 0
                 ? kItemTitleTextStyle
                 : kItemTitleTextStyle.copyWith(
@@ -113,28 +113,21 @@ class _ItemListTileInner extends AdaptiveListTile {
               : [
                   if (item is Resumeable && !item.isComplete)
                     Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
+                      padding: const EdgeInsets.only(right: 4.0),
                       child: PlayPauseButton(
                         isPlaying: !(item as Resumeable).isPaused,
                         play: (item as Resumeable).resume,
                         pause: (item as Resumeable).pause,
                       ),
                     ),
-                  Builder(builder: (context) {
-                    return AdaptiveIconButton(
+                  if (item is Torrent)
+                    AdaptiveIconButton(
                         padding: const EdgeInsets.all(0),
                         icon: const Icon(
                           CupertinoIcons.delete,
                           color: CupertinoColors.systemRed,
                         ),
-                        onPressed: () {
-                          item.delete();
-                          if (kIsDesktop &&
-                              gTorrentManager.torrentList.isEmpty) {
-                            Navigator.of(context).pop();
-                          }
-                        });
-                  }),
+                        onPressed: item.delete),
                 ],
           subtitle: item is! Torrent || item.isComplete
               ? null
@@ -154,20 +147,16 @@ class _ItemListTileInner extends AdaptiveListTile {
                                 : null,
                           ));
                     }),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                          "${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit} - ${item.etaSecs.timeUnit} remaining",
-                          style: kItemTitleTextStyle),
-                    )
+                    Text(
+                        "${item.bytesDownloaded} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining")
                   ],
                 ),
-          onTap: item.isComplete && !item.isMultiFile
-              ? () => openItem(context, item)
-              : item.isMultiFile
-                  ? () => showAdaptivePopup(
-                      context: context,
-                      builder: (_) => GroupListDialog(item.files.group()))
+          onTap: item.isMultiFile
+              ? () => showAdaptivePopup(
+                  context: context,
+                  builder: (_) => GroupListDialog(item.files.group()))
+              : item.isComplete
+                  ? () => openItem(context, item)
                   : null,
         );
 }

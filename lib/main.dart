@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:media_kit/media_kit.dart';
 
-import 'services/error_reporter.dart';
 import 'services/http.dart';
 import 'services/storage.dart';
 import 'services/subscription.dart';
@@ -16,15 +15,11 @@ import 'view/mobile_view.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  HttpOverrides.global = TorreniumHttpOverrides();
 
-  gInitResult = init().onError((error, stackTrace) => reportError(
-      error: error, stackTrace: stackTrace, msg: 'Error initializing'));
+  HttpOverrides.global = TorreniumHttpOverrides();
 
   runApp(const TorreniumApp());
 }
-
-late Future<void> gInitResult;
 
 final kIsDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
@@ -63,7 +58,7 @@ class TorreniumApp extends StatelessWidget {
 
   Widget content() {
     return FutureBuilder(
-        future: gInitResult,
+        future: init(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             return view;

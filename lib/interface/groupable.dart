@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:logger/logger.dart';
 
 import '/services/storage.dart';
 import '/services/youtube.dart';
+import '/style.dart';
 import '/utils/string.dart';
 import '/widgets/cached_image.dart';
 
@@ -13,6 +15,13 @@ const tagFLAC = r'flac(\s+\d+kHz\/\d+bit)?';
 const tagHD = r'(1920\s?x\s?1080|1080p|mp4|aac|avc|x264|x265|hevc)';
 const tagMP3 = r'(MP3\s+)?\d{3}k';
 const tagSD = r'(1280\s?x\s?720|720p)';
+
+class UpdateNotifier extends ValueNotifier<void> {
+  Groupable owner;
+  UpdateNotifier(this.owner) : super(null) {
+    Logger().d('UpdateNotifier created for ${owner.nameCleanedNoNum}');
+  }
+}
 
 @JsonSerializable()
 class Groupable {
@@ -36,14 +45,11 @@ class Groupable {
   @JsonKey(includeFromJson: false, includeToJson: false)
   bool? _isMusic;
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  List<int>? episodeIndexes;
-
   @JsonKey(includeToJson: false, includeFromJson: false)
   String? _coverUrl;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
-  CachedImage? _coverImageWidget;
+  Widget? _coverImageWidget;
 
   Groupable? parent;
 
@@ -90,18 +96,21 @@ class Groupable {
 
   String get title => name;
 
-  ValueNotifier<void> get updateNotifier => parent != null
-      ? parent!.updateNotifier
-      : _updateNotifier ??= ValueNotifier(null);
+  ValueNotifier<void> get updateNotifier =>
+      parent?.updateNotifier ?? (_updateNotifier ??= UpdateNotifier(this));
 
-  CachedImage coverImageWidget() => parent != null
-      ? parent!.coverImageWidget()
-      : _coverImageWidget ??= CachedImage(
+  Widget coverImageWidget() =>
+      parent?.coverImageWidget() ??
+      (_coverImageWidget ??= ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: CachedImage(
+          key: ValueKey(coverUrl),
           url: coverUrl,
           fallbackGetter: defaultCoverUrlFallback,
-          height: 50,
+          width: kListTileThumbnailWidth,
           fit: BoxFit.contain,
-        );
+        ),
+      ));
 
   Future<String?> defaultCoverUrlFallback() async {
     final coverUrl = await YouTube.search(title).then(
@@ -177,7 +186,7 @@ extension GroupHelpers<T extends Groupable> on List<T> {
       if (!RegExp(r'\d+').hasMatch(this[rootIndex].name)) {
         continue;
       }
-
+      Iterable<int>? episodeIndexes;
       while (i < splitted.length &&
           root.length == splitted[i].length &&
           (root.length > 1 && root[1] == splitted[i][1]) &&
@@ -185,21 +194,12 @@ extension GroupHelpers<T extends Groupable> on List<T> {
         final current = splitted[i];
 
         grouped[this[rootIndex].nameCleanedNoNum]!.add(this[i]);
-        this[rootIndex].episodeIndexes = <int>[];
-        for (int j = 0; j < root.length; ++j) {
-          if (root[j] != current[j]) {
-            this[rootIndex].episodeIndexes!.add(j);
-          }
-        }
-        this[rootIndex].episodeNumbers ??= this[rootIndex]
-            .episodeIndexes!
-            .map((index) => root[index])
-            .toList(growable: false);
-        // this[i].episodeIndexes = this[rootIndex].episodeIndexes;
-        this[i].episodeNumbers = this[rootIndex]
-            .episodeIndexes!
-            .map((index) => current[index])
-            .toList(growable: false);
+        episodeIndexes ??= List.generate(root.length, (index) => index)
+            .where((index) => root[index] != current[index]);
+        this[rootIndex].episodeNumbers ??=
+            List.unmodifiable(episodeIndexes.map((index) => root[index]));
+        this[i].episodeNumbers =
+            List.unmodifiable(episodeIndexes.map((index) => current[index]));
         this[i].parent = this[rootIndex];
         ++i;
       }

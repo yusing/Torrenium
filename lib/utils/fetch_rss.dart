@@ -28,30 +28,30 @@ Future<List<RssResultGroup>> getRSSResultsDefault(
 
 List<Item> parseRSSForItems(RSSProvider provider, String body) {
   final doc = XmlDocument.parse(body);
-  return doc
-      .findAllElements(provider.tags.item)
-      .map((e) => Item(
-            name: e.findElements(provider.tags.title).first.innerText,
-            pubDate: provider.pubDateParser(
-                e.findElements(provider.tags.pubDate).first.innerText),
-            description: provider.detailGetter.getDescription.call(e) ?? '',
-            torrentUrl: provider.detailGetter.getMagnetUrl?.call(e),
-            coverUrl: provider.detailGetter.getCoverUrl?.call(e),
-            viewCount:
-                int.tryParse(provider.detailGetter.getViews?.call(e) ?? ''),
-            likeCount:
-                int.tryParse(provider.detailGetter.getLikes?.call(e) ?? ''),
-            author: provider.tags.authorName == null
-                ? null
-                : e.findElements(provider.tags.authorName!).first.innerText,
-            category: provider.tags.category == null
-                ? null
-                : e.findElements(provider.tags.category!).first.innerText,
-            size: provider.tags.fileSize == null
-                ? null
-                : e.findElements(provider.tags.fileSize!).first.innerText,
-          ))
-      .toList(growable: false);
+  return doc.findAllElements(provider.tags.item).map((e) {
+    final authorElement = provider.tags.authorName == null
+        ? null
+        : e.findElements(provider.tags.authorName!).first;
+    return Item(
+      name: e.findElements(provider.tags.title).first.innerText,
+      pubDate: provider
+          .pubDateParser(e.findElements(provider.tags.pubDate).first.innerText),
+      description: provider.detailGetter.getDescription.call(e) ?? '',
+      torrentUrl: provider.detailGetter.getMagnetUrl?.call(e),
+      coverUrl: provider.detailGetter.getCoverUrl?.call(e),
+      viewCount: int.tryParse(provider.detailGetter.getViews?.call(e) ?? ''),
+      likeCount: int.tryParse(provider.detailGetter.getLikes?.call(e) ?? ''),
+      author: provider.isYouTube
+          ? authorElement?.findElements('name').first.innerText
+          : authorElement?.innerText,
+      category: provider.tags.category == null
+          ? null
+          : e.findElements(provider.tags.category!).first.innerText,
+      size: provider.tags.fileSize == null
+          ? null
+          : e.findElements(provider.tags.fileSize!).first.innerText,
+    );
+  }).toList(growable: false);
 }
 
 Future<List<Item>> _getRSSItems(RSSProvider provider, String url) async {
