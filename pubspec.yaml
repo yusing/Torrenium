@@ -13,7 +13,6 @@ dependencies:
     sdk: flutter
 
   macos_ui: ^2.0.0
-  ffi: ^2.0.1
   cached_network_image: ^3.2.2
   http: ^1.1.0
   xml: ^6.1.0
@@ -22,7 +21,6 @@ dependencies:
   path: ^1.8.2
   logger: ^1.1.0
   flutter_cache_manager: ^3.3.0
-  # url_launcher: ^6.1.12
   font_awesome_flutter: ^10.5.0
   shared_preferences: ^2.2.0
   file_picker: ^5.2.10
@@ -48,34 +46,17 @@ dependencies:
   media_kit_libs_linux: ^1.1.1                   # GNU/Linux dependency package.
   youtube_explode_dart: ^2.0.2
   bot_toast: ^4.0.4
+  ffi: ^2.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^2.0.0
-  ffigen: ^7.2.0
   flutter_launcher_icons: ^0.13.1
   build_runner: ^2.4.6
 flutter:
   uses-material-design: true
-
-
-ffigen:
-  name: 'TorrentGoBinding'
-  description: 'Torrent Go Binding'
-  output: 'lib/utils/torrent_binding.dart'
-  headers:
-    entry-points:
-      - 'go_torrent/build/windows/x64/libtorrent_go.h'
-  llvm-path:
-    - 'C:\Users\yusing\scoop\apps\llvm\current'
-  exclude-all-by-default: true
-  functions:
-    include:
-      - '[A-Z][a-zA-Z0-9]*' # include only functions starting with capital letter (Go Functions)
-  # add ignore non_constant_identifier_names
-  preamble: '// ignore_for_file: camel_case_types, non_constant_identifier_names'
 
 flutter_launcher_icons:
   android: "launcher_icon"

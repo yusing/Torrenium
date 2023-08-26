@@ -31,9 +31,6 @@ class Groupable {
   String? _nameCleaned;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
-  List<int>? _numbersInName;
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
   String? _nameCleanedNoNum;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,9 +38,6 @@ class Groupable {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   ValueNotifier<void>? _updateNotifier;
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  bool? _isMusic;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   String? _coverUrl;
@@ -74,25 +68,18 @@ class Groupable {
     Storage.setStringIfNotExists('cover-$nameHash', url);
   }
 
-  String? get episode => episodeNumbers?.join(" - ");
+  String? get episode => episodeNumbers?.join(' - ');
 
   String get group => nameCleanedNoNum;
 
-  bool get isMusic => _isMusic ??=
-      RegExp(r'(flac|mp3|320k)', caseSensitive: false).hasMatch(name);
   String get nameCleaned => _nameCleaned ??= Title(name).value;
+
   String get nameCleanedNoNum => _nameCleanedNoNum ??= nameCleaned
-      .replaceAll(RegExp(r'\d+'), '')
+      .replaceAll(RegExp(r'\d+'), '*')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
-  String get nameHash => name.sha256Hash;
-
-  List<int> get numbersInName => _numbersInName ??= RegExp(r'\d+')
-      .allMatches(nameCleaned)
-      .map((m) => int.parse(m.group(0)!))
-      .toList()
-    ..sort();
+  String get nameHash => name.sha1Hash;
 
   String get title => name;
 
@@ -113,8 +100,8 @@ class Groupable {
       ));
 
   Future<String?> defaultCoverUrlFallback() async {
-    final coverUrl = await YouTube.search(title).then(
-        (value) => value.isEmpty ? null : value.first.items.first.coverUrl);
+    final coverUrl = await YouTube.search(nameCleanedNoNum).then(
+        (value) => value.isEmpty ? null : value.first.value.first.coverUrl);
     this.coverUrl ??= coverUrl;
     return coverUrl;
   }
@@ -137,30 +124,19 @@ class Title {
     tagMP3: 'MP3 Music',
   };
 
-  final hasTag = {
-    tagHD: false,
-    tagSD: false,
-    tag10Bit: false,
-    tagFLAC: false,
-    tagMP3: false,
-  };
-
   late String value;
 
   Title(String title) {
     StringBuffer suffixes = StringBuffer();
-    for (final tag in hasTag.keys) {
-      hasTag[tag] = RegExp(tag, caseSensitive: false).hasMatch(title);
-      if (hasTag[tag]!) {
-        suffixes.write(' ${kTagRepr[tag]}');
+    for (final e in kTagRepr.entries) {
+      if (RegExp(e.key, caseSensitive: false).hasMatch(title)) {
+        suffixes.write(' ${e.value}');
       }
-    }
-    for (final tag in hasTag.keys) {
-      title = title.replaceAll(RegExp(tag, caseSensitive: false), '');
+      title = title.replaceAll(RegExp(e.key, caseSensitive: false), '');
     }
     value = (title
                 .replaceFirst(RegExp('內[嵌封]'), '')
-                .replaceAll(RegExp(r'[\(\)\[\]\{\}（）【】★_\-－——\s+]'), ' ')
+                // .replaceAll(RegExp(r'[\(\)\[\]\{\}（）【】★_\-－——\s+]'), ' ')
                 .replaceAll(RegExp(r'\s[a-zA-Z]+\D^!'), ' ') +
             suffixes.toString())
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -204,8 +180,8 @@ extension GroupHelpers<T extends Groupable> on List<T> {
         ++i;
       }
       if (grouped[this[rootIndex].nameCleanedNoNum]!.length == 1) {
-        final old = grouped.remove(this[rootIndex].nameCleanedNoNum);
-        grouped[this[rootIndex].nameCleaned] = old!;
+        grouped[this[rootIndex].nameCleaned] =
+            grouped.remove(this[rootIndex].nameCleanedNoNum)!;
       }
     }
 

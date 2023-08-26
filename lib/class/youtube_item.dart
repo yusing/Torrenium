@@ -30,7 +30,7 @@ class YouTubeItem extends DownloadItem {
   String get videoPath => videoUrl;
 
   @override
-  void delete() {}
+  Future<void> delete() async => throw UnimplementedError();
 
   Future<YouTubeItem> init() async {
     final manifest = await YouTube.client.videos.streams.getManifest(videoID);

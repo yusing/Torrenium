@@ -7,12 +7,11 @@ import '/interface/download_item.dart';
 import '/services/torrent_mgr.dart';
 
 class TorrentFile extends DownloadItem {
-  final int size;
   final String relativePath;
 
   TorrentFile({
     required super.name,
-    required this.size,
+    required super.size,
     required this.relativePath,
     required super.bytesDownloaded,
     required super.progress,
@@ -42,7 +41,7 @@ class TorrentFile extends DownloadItem {
   bool get exists => File(videoPath).existsSync();
 
   @override
-  String get videoPath => pathlib.join(gTorrentManager.savePath, relativePath);
+  String get videoPath => pathlib.join(gTorrentManager.saveDir, relativePath);
 
   @override
   bool get isComplete => true;

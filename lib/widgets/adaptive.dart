@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/main.dart' show kIsDesktop;
@@ -13,9 +12,9 @@ Future<T?> showAdaptiveAlertDialog<T>({
   required Widget title,
   required Widget content,
   VoidCallback? onConfirm,
-  String confirmLabel = "Dismiss",
+  String confirmLabel = 'Dismiss',
   VoidCallback? onCancel,
-  String cancelLabel = "Cancel",
+  String cancelLabel = 'Cancel',
   TextStyle? onConfirmStyle,
 }) async {
   onConfirm ?? () => Navigator.of(context).pop();
@@ -56,30 +55,25 @@ Future<T?> showAdaptiveAlertDialog<T>({
       context: context,
       barrierDismissible: true,
       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-      builder: (_) => AlertDialog(
-              alignment: Alignment.center,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.0)),
-              title: title,
-              content: content,
-              actions: [
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    onConfirm?.call();
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(confirmLabel),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    onCancel?.call();
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(cancelLabel),
-                ),
-              ]));
+      builder: (_) =>
+          CupertinoActionSheet(title: title, message: content, actions: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                onConfirm?.call();
+                Navigator.of(context).pop();
+              },
+              child: Text(confirmLabel),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                onCancel?.call();
+                Navigator.of(context).pop();
+              },
+              child: Text(cancelLabel),
+            ),
+          ]));
 }
 
 Future<T?> showAdaptivePopup<T>({
@@ -91,6 +85,8 @@ Future<T?> showAdaptivePopup<T>({
   if (kIsDesktop) {
     return await showMacosSheet<T>(
         context: context,
+        barrierDismissible: barrierDismissible,
+        useRootNavigator: useRootNavigator,
         builder: (context) {
           return BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
@@ -99,15 +95,15 @@ Future<T?> showAdaptivePopup<T>({
                 padding: const EdgeInsets.all(16.0),
                 child: builder(context),
               )));
-        },
-        barrierDismissible: barrierDismissible,
-        useRootNavigator: useRootNavigator);
+        });
   }
   return await showCupertinoModalPopup(
-      context: context,
-      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-      builder: (context) {
-        return Container(
+    context: context,
+    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+    barrierDismissible: barrierDismissible,
+    useRootNavigator: useRootNavigator,
+    builder: (context) {
+      return Container(
           height: MediaQuery.of(context).size.height * .8,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -119,11 +115,9 @@ Future<T?> showAdaptivePopup<T>({
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: builder(context),
-          ),
-        );
-      },
-      barrierDismissible: barrierDismissible,
-      useRootNavigator: useRootNavigator);
+          ));
+    },
+  );
 }
 
 class AdaptiveDropDown<T> extends StatefulWidget {

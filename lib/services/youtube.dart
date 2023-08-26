@@ -15,21 +15,18 @@ class YouTube {
     }
     var searchResult =
         await client.search.search(query, filter: const SearchFilter(''));
-    return searchResult
-        .map((e) => RssResultGroup(MapEntry(e.title, [
-              Item(
-                name: e.title,
-                description: e.description,
-                torrentUrl: e.url,
-                pubDate:
-                    e.publishDate ?? DateTime.tryParse(e.uploadDateRaw ?? ''),
-                author: e.author,
-                category: 'YouTube',
-                coverUrl: e.thumbnails.mediumResUrl,
-                viewCount: e.engagement.viewCount,
-                likeCount: e.engagement.likeCount,
-              )
-            ])))
-        .toList(growable: false);
+    return List.unmodifiable(searchResult.map((e) => MapEntry(e.title, [
+          Item(
+            name: e.title,
+            description: e.description,
+            torrentUrl: e.url,
+            pubDate: e.publishDate ?? DateTime.tryParse(e.uploadDateRaw ?? ''),
+            author: e.author,
+            category: 'YouTube',
+            coverUrl: e.thumbnails.mediumResUrl,
+            viewCount: e.engagement.viewCount,
+            likeCount: e.engagement.likeCount,
+          )
+        ])));
   }
 }

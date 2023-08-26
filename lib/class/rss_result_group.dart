@@ -1,40 +1,14 @@
 import 'package:flutter/cupertino.dart';
-import 'package:macos_ui/macos_ui.dart';
 
-import '/main.dart' show kIsDesktop;
+import '/widgets/adaptive.dart';
 import '/widgets/rss_result_dialog.dart';
 import 'item.dart';
 
-class RssResultGroup {
-  final MapEntry<String, List<Item>> result;
+typedef RssResultGroup = MapEntry<String, List<Item>>;
 
-  RssResultGroup(this.result);
-
-  List<Item> get items => result.value;
-  String get title => result.key;
-
+extension DialogExt on RssResultGroup {
   Future<void> showDialog(BuildContext context) async {
-    if (kIsDesktop) {
-      showMacosSheet(
-          context: context,
-          barrierDismissible: true,
-          builder: (context) => RssResultDialog(context, this));
-    } else {
-      Navigator.push(
-          context,
-          CupertinoPageRoute(
-              builder: (context) => CupertinoPageScaffold(
-                  navigationBar: CupertinoNavigationBar(
-                    middle: Text(
-                      title,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                    ),
-                  ),
-                  child: SafeArea(
-                      child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: RssResultDialog.content(context, this))))));
-    }
+    await showAdaptivePopup(
+        context: context, builder: (_) => RssResultDialog(value));
   }
 }

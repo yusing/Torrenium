@@ -210,7 +210,7 @@ class _RSSTabState extends State<RSSTab> {
                     ? Center(child: Text(snapshot.error.toString()))
                     : (snapshot.hasData
                         ? snapshot.data!.isEmpty
-                            ? const Text("No result found")
+                            ? const Text('No result found')
                             : (gRssProvider.detailGetter.getCoverUrl == null
                                 ? RssResultListView(snapshot.data!)
                                 : RssResultGridView(snapshot.data!))
@@ -296,7 +296,7 @@ class _RSSTabState extends State<RSSTab> {
           controller: searchController,
           placeholder: 'Search for something...',
           maxResultsToShow: kIsDesktop ? 10 : 4,
-          results: results?.map((e) => SearchResultItem(e.title)).toList(),
+          results: results?.map((e) => SearchResultItem(e.key)).toList(),
           onChanged: (_) => updateUrl(),
           onResultSelected: (e) =>
               (e.child as RssResultGroup).showDialog(context)),

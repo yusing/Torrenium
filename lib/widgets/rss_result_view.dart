@@ -48,12 +48,12 @@ class RssResultListView extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 18),
       itemCount: results.length,
       itemBuilder: ((context, index) {
-        assert(results[index].items.length == 1,
-            "RSSResultListView expect and support only one item per result\n${results[index].items}");
+        assert(results[index].value.length == 1,
+            'RSSResultListView expect and support only one item per result\n${results[index].value}');
 
-        final item = results[index].items.first;
+        final item = results[index].value.first;
         return AdaptiveListTile(
-          title: Text(results[index].title),
+          title: Text(results[index].key),
           trailing: [
             AdaptiveIconButton(
               padding: const EdgeInsets.all(0),

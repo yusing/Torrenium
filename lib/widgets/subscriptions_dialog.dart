@@ -16,7 +16,7 @@ class SubscriptionsDialog extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: gSubscriptionManager.subscriptions.isEmpty
                 ? const Center(
-                    child: Text("No subscription"),
+                    child: Text('No subscription'),
                   )
                 : ListView.separated(
                     itemBuilder: (context, index) {

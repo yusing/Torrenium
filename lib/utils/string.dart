@@ -35,17 +35,17 @@ extension DurationExt on Duration? {
     var minutes = microseconds ~/ Duration.microsecondsPerMinute;
     microseconds = microseconds.remainder(Duration.microsecondsPerMinute);
 
-    var minutesPadding = minutes < 10 ? "0" : "";
+    var minutesPadding = minutes < 10 ? '0' : '';
 
     var seconds = microseconds ~/ Duration.microsecondsPerSecond;
     microseconds = microseconds.remainder(Duration.microsecondsPerSecond);
 
-    var secondsPadding = seconds < 10 ? "0" : "";
+    var secondsPadding = seconds < 10 ? '0' : '';
 
-    var str = "$minutesPadding$minutes:"
-        "$secondsPadding$seconds";
+    var str = '$minutesPadding$minutes:'
+        '$secondsPadding$seconds';
     if (hours > 0) {
-      return "$hours:$str";
+      return '$hours:$str';
     }
     return str;
   }
@@ -68,11 +68,11 @@ extension NumExt on num {
     if (this < 1024) {
       return '$this B';
     } else if (this < 1024 * 1024) {
-      return '${(this / 1024).toStringAsFixed(2)} KB';
+      return '${(this / 1024).toStringAsFixed(2)}KB';
     } else if (this < 1024 * 1024 * 1024) {
-      return '${(this / 1024 / 1024).toStringAsFixed(2)} MB';
+      return '${(this / 1024 / 1024).toStringAsFixed(2)}MB';
     } else {
-      return '${(this / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
+      return '${(this / 1024 / 1024 / 1024).toStringAsFixed(2)}GB';
     }
   }
 
@@ -101,7 +101,7 @@ extension NumExt on num {
 
 extension StringExt on String {
   String get sha1Hash => sha1.convert(utf8.encode(this)).toString();
-  String get sha256Hash => sha256.convert(utf8.encode(this)).toString();
+  // String get sha256Hash => sha256.convert(utf8.encode(this)).toString();
 
   String removeDelimiters(String delimiters) {
     String s = this;

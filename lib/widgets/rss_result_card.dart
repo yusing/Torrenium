@@ -19,8 +19,8 @@ class RSSResultCard extends StatelessWidget {
           children: [
             SizedBox.expand(
               child: CachedImage(
-                url: result.items.first.coverUrl,
-                fallbackGetter: result.items.first.coverPhotoFallbackUrl,
+                url: result.value.first.coverUrl,
+                fallbackGetter: result.value.first.defaultCoverUrlFallback,
                 fit: BoxFit.cover,
               ),
             ),
@@ -30,18 +30,18 @@ class RSSResultCard extends StatelessWidget {
                 color: const Color.fromARGB(200, 0, 0, 0),
                 child: AdaptiveListTile(
                   title: Text(
-                    result.title,
+                    result.key,
                   ),
                   subtitle: Text([
-                    if (result.items.length > 1) '${result.items.length} Items',
-                    if (result.items.first.author != null)
-                      result.items.first.author,
-                    if (result.items.last.pubDate != null)
-                      result.items.last.pubDate!.relative,
-                    if (result.items.last.viewCount != null)
-                      '${result.items.last.viewCount!.countUnit} Views',
-                    if (result.items.last.likeCount != null)
-                      '${result.items.last.likeCount!.countUnit} Likes',
+                    if (result.value.length > 1) '${result.value.length} Items',
+                    if (result.value.first.author != null)
+                      result.value.first.author,
+                    if (result.value.last.pubDate != null)
+                      result.value.last.pubDate!.relative,
+                    if (result.value.last.viewCount != null)
+                      '${result.value.last.viewCount!.countUnit} Views',
+                    if (result.value.last.likeCount != null)
+                      '${result.value.last.likeCount!.countUnit} Likes',
                   ].join(' | ')),
                 ),
               ),

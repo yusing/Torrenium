@@ -10,17 +10,21 @@ part 'download_item.g.dart';
 @JsonSerializable()
 class DownloadItem extends Groupable {
   @JsonKey(includeToJson: false, includeFromJson: false)
-  int bytesDownloaded;
+  int bytesDownloaded, size;
   @JsonKey(includeToJson: false, includeFromJson: false)
   num progress;
   @JsonKey(includeToJson: false, includeFromJson: false)
   bool deleted = false;
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  final DateTime _startTime;
 
   DownloadItem(
       {required super.name,
       super.parent,
+      this.progress = 0.0,
       this.bytesDownloaded = 0,
-      this.progress = 0});
+      this.size = 0})
+      : _startTime = DateTime.now();
 
   factory DownloadItem.fromJson(Map<String, dynamic> json) =>
       _$DownloadItemFromJson(json);
@@ -28,6 +32,13 @@ class DownloadItem extends Groupable {
   String? get audioTrackPath => null;
 
   String get displayName => nameCleaned;
+
+  double get etaSecs => progress == 0
+      ? double.infinity
+      : (DateTime.now().difference(_startTime).inSeconds *
+              (1 - progress) /
+              progress)
+          .toDouble();
 
   Map<String, String> get externalSubtitlePaths => {}; // TODO: test
   String? get externalSubtitltFontPath => null; // TODO: test
@@ -42,15 +53,16 @@ class DownloadItem extends Groupable {
   String get videoPath => throw UnimplementedError();
   double get watchProgress => WatchHistory.getProgress(nameHash);
 
-  void delete() {
+  Future<void> delete() async {
     deleted = true;
-    updateNotifier.notifyListeners();
 
     if (isMultiFile) {
-      Directory(videoPath).deleteSync(recursive: true);
+      await Directory(videoPath).delete(recursive: true);
     } else {
-      File(videoPath).deleteSync();
+      await File(videoPath).delete();
     }
+
+    updateNotifier.notifyListeners();
   }
 
   @override

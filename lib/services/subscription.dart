@@ -4,10 +4,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:logger/logger.dart';
 
-import '/class/item.dart' show Item;
 import '/utils/connectivity.dart';
 import '/utils/fetch_rss.dart' show parseRSSForItems;
-import '/utils/string.dart';
 import 'http.dart';
 import 'rss_providers.dart' show RSSProvider, kProvidersDict;
 import 'storage.dart';
@@ -158,8 +156,9 @@ class SubscriptionManager {
       // pause on cellular network or no network
       return;
     }
-    final subsTasksDone =
-        force ? [] : Storage.instance.getStringList('subsTasksDone_$sub') ?? [];
+    final subsTasksDone = force
+        ? <String>[]
+        : Storage.instance.getStringList('subsTasksDone_$sub') ?? [];
     subsTasksDone.addAll(getExclusions());
 
     final provider = sub.provider;
@@ -168,10 +167,7 @@ class SubscriptionManager {
     final resp = await http.get(url);
     if (resp.statusCode == 200) {
       final items = parseRSSForItems(provider, await resp.body());
-      final tasks = items.fold(<String, Item>{}, (prev, item) {
-        prev[item.name.sha256Hash.toString()] = item;
-        return prev;
-      });
+      final tasks = Map.fromEntries(items.map((e) => MapEntry(e.nameHash, e)));
       // start new tasks
       final newTasks =
           tasks.keys.where((task) => !subsTasksDone.contains(task));

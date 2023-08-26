@@ -31,7 +31,7 @@ class TorreniumHttpFileService extends FileService {
   @override
   Future<TorreniumHttpResponse> get(String url,
       {Map<String, String>? headers = const {}}) async {
-    if (url == "") {
+    if (url.isEmpty) {
       return TorreniumHttpResponse(
           http_pkg.StreamedResponse(Stream.value([]), 404, contentLength: 0));
     }

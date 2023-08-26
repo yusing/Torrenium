@@ -162,7 +162,7 @@ class WatchHistoryEntry extends DownloadItem {
 
   @override
   String get videoPath =>
-      path ?? gTorrentManager.findTorrent(nameHash)?.videoPath ?? '';
+      path ?? gTorrentManager.findItem(nameHash)?.videoPath ?? '';
 
   @override
   Map<String, dynamic> toJson() => _$WatchHistoryEntryToJson(this);

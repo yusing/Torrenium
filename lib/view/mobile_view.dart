@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '/widgets/file_browser.dart';
 import '/widgets/group_list_dialog.dart';
 import '/widgets/rss_tab.dart';
 import '/widgets/subscriptions_dialog.dart';
@@ -21,7 +22,8 @@ class MobileView extends StatefulWidget {
     MobileTab('Home', CupertinoIcons.home, RSSTab()),
     MobileTab('Subscriptions', CupertinoIcons.star, SubscriptionsDialog()),
     MobileTab('Downloads', CupertinoIcons.down_arrow, DownloadListDialog()),
-    MobileTab('History', CupertinoIcons.time, WatchHistoryPage())
+    MobileTab('Files', CupertinoIcons.doc, FileBrowser()),
+    MobileTab('History', CupertinoIcons.time, WatchHistoryPage()),
   ];
   const MobileView({super.key});
 

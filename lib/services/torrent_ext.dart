@@ -1,12 +1,8 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 
 import '/class/item.dart';
 import '/widgets/adaptive.dart';
-import 'storage.dart';
 import 'torrent_mgr.dart';
 
 extension TorrentManagerExtension on TorrentManager {
@@ -25,23 +21,23 @@ extension TorrentManagerExtension on TorrentManager {
     });
   }
 
-  Future<bool> selectSavePath() async {
-    String? selectedPath = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Select a save path',
-      initialDirectory: docDir.path,
-      lockParentWindow: true,
-    );
-    if (selectedPath == null) {
-      return false;
-    }
-    gTorrentManager.savePath = selectedPath;
-    Storage.setString('savePath', selectedPath);
-    try {
-      await Directory(selectedPath).create(recursive: true);
-    } catch (e) {
-      Logger().e(e);
-      return false;
-    }
-    return true;
-  }
+  // Future<bool> selectSavePath() async {
+  //   String? selectedPath = await FilePicker.platform.getDirectoryPath(
+  //     dialogTitle: 'Select a save path',
+  //     initialDirectory: docDir.path,
+  //     lockParentWindow: true,
+  //   );
+  //   if (selectedPath == null) {
+  //     return false;
+  //   }
+  //   gTorrentManager.saveDir = selectedPath;
+  //   Storage.setString('savePath', selectedPath);
+  //   try {
+  //     await Directory(selectedPath).create(recursive: true);
+  //   } catch (e) {
+  //     Logger().e(e);
+  //     return false;
+  //   }
+  //   return true;
+  // }
 }

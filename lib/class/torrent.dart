@@ -19,9 +19,8 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
 
   String infoHash;
   Pointer<Void> torrentPtr;
-  int size, bytesDownloadedInitial;
+  int bytesDownloadedInitial;
   Timer? _updateTimer;
-  late DateTime _startTime;
   DateTime? _downloadedTime;
 
   @override
@@ -30,9 +29,9 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   Torrent(
       {required super.name,
       required super.progress,
+      required super.size,
       required super.bytesDownloaded,
       required this.infoHash,
-      required this.size,
       required this.torrentPtr,
       required this.bytesDownloadedInitial});
   factory Torrent.fromJson(dynamic json) {
@@ -80,15 +79,8 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   String get displayName =>
       isMultiFile ? '$nameCleaned (${files.length} files)' : name;
 
-  DateTime get downloadedTime => _downloadedTime ??=
-      FileStat.statSync(pathlib.join(gTorrentManager.savePath, name)).modified;
-
-  double get etaSecs => progress == 0
-      ? double.infinity
-      : (DateTime.now().difference(_startTime).inSeconds *
-              (1 - progress) /
-              progress)
-          .toDouble();
+  DateTime get downloadedTime =>
+      _downloadedTime ??= FileStat.statSync(videoPath).modified;
 
   @override
   List<TorrentFile> get files => _files;
@@ -103,7 +95,7 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   bool get isPlaceholder => infoHash.startsWith('placeholder:');
 
   @override
-  String get videoPath => pathlib.join(gTorrentManager.savePath, name);
+  String get videoPath => pathlib.join(gTorrentManager.saveDir, name);
 
   @override
   bool operator ==(Object other) {
@@ -130,9 +122,9 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   }
 
   @override
-  void delete() {
+  Future<void> delete() async {
     gTorrentManager.deleteTorrent(this);
-    Storage.removeKey('cover-$infoHash');
+    await Storage.removeKey('cover-$infoHash');
   }
 
   @override
@@ -146,7 +138,6 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   }
 
   void startSelfUpdate() {
-    _startTime = DateTime.now();
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (progress == 1.0 && bytesDownloaded != 0) {
         stopSelfUpdate();

@@ -11,33 +11,38 @@ import 'package:path_provider/path_provider.dart';
 
 import '/class/item.dart';
 import '/class/torrent.dart';
+import '/interface/download_item.dart';
 import '/main.dart' show kIsDesktop;
-import '/utils/ffi.dart';
-import '/utils/torrent_binding.dart' as torrent_binding;
+import 'go_torrent.dart';
 import 'storage.dart';
 import 'subscription.dart';
+
+final go = GoTorrentBindings(_dylib);
+
+final DynamicLibrary _dylib = () {
+  if (Platform.isMacOS || Platform.isIOS) {
+    return DynamicLibrary.open('go_torrent.dylib');
+  }
+  if (Platform.isAndroid || Platform.isLinux) {
+    return DynamicLibrary.open('libgo_torrent.so');
+  }
+  if (Platform.isWindows) {
+    return DynamicLibrary.open('go_torrent.dll');
+  }
+  throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
+}();
 
 TorrentManager get gTorrentManager => TorrentManager.instance;
 
 class TorrentManager {
   static late final TorrentManager instance;
   static final recvPort = ReceivePort()..listen(_addTorrent);
-  /* !Must be static otherwise invalid argument inside isolate */
-  static final DynamicLibrary _dylib = Platform.isWindows
-      ? DynamicLibrary.open('libtorrent_go.dll')
-      : Platform.isLinux || Platform.isAndroid
-          ? DynamicLibrary.open('libtorrent_go.so')
-          : DynamicLibrary.open('libtorrent_go.dylib');
-  static final torrent_binding.TorrentGoBinding go =
-      torrent_binding.TorrentGoBinding(_dylib);
   final updateNotifier = ValueNotifier(null);
 
   late var _torrentList = <Torrent>[];
   final placeholders = <Torrent>[];
 
-  late final Directory docDir;
-
-  late String savePath;
+  late String saveDir;
 
   List<Torrent> get torrentList => placeholders + _torrentList;
 
@@ -63,21 +68,21 @@ class TorrentManager {
     await Isolate.spawn((message) {
       // spawn in isolate to avoid blocking main thread
       (message.first as SendPort).send({
-        "torrent": jsonDecode.cStringCall(url.startsWith('magnet:')
+        'torrent': jsonDecode.cStringCall(url.startsWith('magnet:')
             ? go.AddMagnet.dartStringCall(url)
             : go.AddTorrent.dartStringCall(url)),
-        "infoHash": message[1],
-        "coverUrl": message[2],
+        'infoHash': message[1],
+        'coverUrl': message[2],
       });
     }, [recvPort.sendPort, placeholder.infoHash, placeholder.coverUrl]);
   }
 
-  Torrent? findTorrent(String nameHash) {
+  DownloadItem? findItem(String nameHash) {
     for (final torrent in _torrentList) {
       if (torrent.isMultiFile) {
         for (final file in torrent.files) {
           if (file.nameHash == nameHash) {
-            return torrent;
+            return file;
           }
         }
       }
@@ -108,29 +113,32 @@ class TorrentManager {
 
   static Future<void> init() async {
     instance = TorrentManager();
+    late final Directory docDir;
     if (Platform.isAndroid) {
-      instance.docDir = await getApplicationSupportDirectory();
+      docDir = await getApplicationSupportDirectory();
     } else if (Platform.isIOS) {
-      instance.docDir = await getLibraryDirectory();
+      docDir = await getLibraryDirectory();
     } else {
-      instance.docDir = await getDownloadsDirectory() ??
+      docDir = await getDownloadsDirectory() ??
           await getApplicationDocumentsDirectory();
     }
-    Logger().d('docDir: ${instance.docDir.path}');
+    Logger().d('docDir: ${docDir.path}');
 
     if (!Storage.hasKey('savePath')) {
-      Storage.setString(
-          'savePath', pathlib.join(instance.docDir.path, 'Torrenium'));
+      Storage.setString('savePath', pathlib.join(docDir.path, 'Torrenium'));
     }
-    instance.savePath = Storage.getString('savePath')!;
+    instance.saveDir = Storage.getString('savePath')!;
 
     if (kIsDesktop) {
-      final dataPath = pathlib.join(instance.savePath, 'data');
-      Logger().d('savePath: ${instance.savePath}');
+      final dataPath = pathlib.join(instance.saveDir, 'data');
+      Logger().d('savePath: ${instance.saveDir}');
       // create save path if it doesn't exist
       await Directory(dataPath).create(recursive: true).catchError((e) {
-        Logger().e(e);
-        throw Exception('Failed to create data path');
+        throw Exception(e);
+      });
+    } else {
+      await Directory(instance.saveDir).create().catchError((e) {
+        throw Exception(e);
       });
     }
 
@@ -139,7 +147,7 @@ class TorrentManager {
       go.InitTorrentClient.dartStringCall(message.last as String);
       (message.first as SendPort)
           .send(go.GetTorrentList().cast<Utf8>().toDartString());
-    }, [initClientIsolate.sendPort, instance.savePath]);
+    }, [initClientIsolate.sendPort, instance.saveDir]);
 
     Logger().d('TorrentClient initialized');
 
@@ -160,5 +168,24 @@ class TorrentManager {
       ..startSelfUpdate()
       ..coverUrl = message['coverUrl'];
     instance.updateNotifier.notifyListeners();
+  }
+}
+
+extension DartStringTCallback<T> on T Function(String) {
+  T cStringCall(Pointer<Char> cStr) {
+    assert(cStr != nullptr);
+    T result = this(cStr.cast<Utf8>().toDartString());
+    go.FreeCString(cStr);
+    return result;
+  }
+}
+
+extension NativeStringTCallback<T> on T Function(Pointer<Char>) {
+  T dartStringCall(String s) {
+    Pointer<Char> cStr = s.toNativeUtf8().cast<Char>();
+    assert(cStr != nullptr);
+    T result = this(cStr);
+    calloc.free(cStr);
+    return result;
   }
 }

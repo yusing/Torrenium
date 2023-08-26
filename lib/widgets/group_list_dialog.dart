@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart' show MacosColors;
 
-import '/class/torrent.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/interface/resumeable.dart';
@@ -20,7 +19,10 @@ class DownloadListDialog extends StatelessWidget {
     return ValueListenableBuilder(
         valueListenable: gTorrentManager.updateNotifier,
         builder: (context, _, __) {
-          return GroupListDialog(gTorrentManager.torrentList.group());
+          return GroupListDialog(gTorrentManager.torrentList
+              .where((t) => !t.isComplete)
+              .toList()
+              .group());
         });
   }
 }
@@ -120,7 +122,7 @@ class _ItemListTileInner extends AdaptiveListTile {
                         pause: (item as Resumeable).pause,
                       ),
                     ),
-                  if (item is Torrent)
+                  if (!item.isPlaceholder)
                     AdaptiveIconButton(
                         padding: const EdgeInsets.all(0),
                         icon: const Icon(
@@ -129,7 +131,7 @@ class _ItemListTileInner extends AdaptiveListTile {
                         ),
                         onPressed: item.delete),
                 ],
-          subtitle: item is! Torrent || item.isComplete
+          subtitle: item.isComplete
               ? null
               : Column(
                   mainAxisSize: MainAxisSize.max,
@@ -148,7 +150,7 @@ class _ItemListTileInner extends AdaptiveListTile {
                           ));
                     }),
                     Text(
-                        "${item.bytesDownloaded} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining")
+                        '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
                   ],
                 ),
           onTap: item.isMultiFile

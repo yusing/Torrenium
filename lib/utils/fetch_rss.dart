@@ -1,4 +1,3 @@
-import 'package:torrenium/services/youtube.dart';
 import 'package:xml/xml.dart';
 
 import '/class/item.dart';
@@ -6,6 +5,7 @@ import '/class/rss_result_group.dart';
 import '/interface/groupable.dart';
 import '/services/http.dart';
 import '/services/rss_providers.dart';
+import '/services/youtube.dart';
 
 Future<List<RssResultGroup>> getRSSResults(RSSProvider provider,
     {String? query, String? author, String? category}) async {
@@ -21,9 +21,9 @@ Future<List<RssResultGroup>> getRSSResultsDefault(
     RSSProvider provider, String url) async {
   final items = await _getRSSItems(provider, url);
   if (provider.supportTitleGroup) {
-    return items.group().entries.map((e) => RssResultGroup(e)).toList();
+    return items.group().entries.toList(growable: false);
   }
-  return items.map((e) => RssResultGroup(MapEntry(e.name, [e]))).toList();
+  return items.map((e) => RssResultGroup(e.name, [e])).toList(growable: false);
 }
 
 List<Item> parseRSSForItems(RSSProvider provider, String body) {
