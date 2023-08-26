@@ -69,6 +69,9 @@ class _FileBrowserState extends State<FileBrowser> {
                   if (snapshot.connectionState != ConnectionState.done) {
                     return const Center(child: CupertinoActivityIndicator());
                   }
+                  if (snapshot.data!.isEmpty) {
+                    return const Center(child: Text('Empty folder'));
+                  }
                   return ListView.separated(
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemCount: snapshot.data!.length,

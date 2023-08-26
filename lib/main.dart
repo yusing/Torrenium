@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -60,6 +61,9 @@ class TorreniumApp extends StatelessWidget {
     return FutureBuilder(
         future: init(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            Logger().e('init error', snapshot.error);
+          }
           if (snapshot.connectionState == ConnectionState.done) {
             return view;
           }

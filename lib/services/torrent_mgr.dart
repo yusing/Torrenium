@@ -124,23 +124,23 @@ class TorrentManager {
     }
     Logger().d('docDir: ${docDir.path}');
 
-    if (!Storage.hasKey('savePath')) {
-      Storage.setString('savePath', pathlib.join(docDir.path, 'Torrenium'));
-    }
-    instance.saveDir = Storage.getString('savePath')!;
-
     if (kIsDesktop) {
+      instance.saveDir = Storage.getString('savePath') ??
+          pathlib.join(docDir.path, 'Torrenium');
       final dataPath = pathlib.join(instance.saveDir, 'data');
-      Logger().d('savePath: ${instance.saveDir}');
       // create save path if it doesn't exist
-      await Directory(dataPath).create(recursive: true).catchError((e) {
-        throw Exception(e);
-      });
+      await Directory(dataPath).create(recursive: true);
     } else {
-      await Directory(instance.saveDir).create().catchError((e) {
-        throw Exception(e);
-      });
+      instance.saveDir = pathlib.join(docDir.path, 'Torrenium');
+      await Directory(instance.saveDir).create(recursive: true);
     }
+
+    if (!await Directory(instance.saveDir).exists()) {
+      await Storage.removeKey('savePath');
+      return await init();
+    }
+
+    Logger().d('savePath: ${instance.saveDir}');
 
     final initClientIsolate = ReceivePort();
     await Isolate.spawn((message) {
