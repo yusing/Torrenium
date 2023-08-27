@@ -13,6 +13,8 @@ import 'services/torrent_mgr.dart';
 import 'view/desktop_view.dart';
 import 'view/mobile_view.dart';
 
+bool _isInitialized = false;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
@@ -25,9 +27,13 @@ Future<void> main() async {
 final kIsDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
 Future<void> init() async {
+  if (_isInitialized) {
+    return;
+  }
   await Storage.init();
   await TorrentManager.init();
   SubscriptionManager.init();
+  _isInitialized = true;
 }
 
 class TorreniumApp extends StatelessWidget {
@@ -62,7 +68,7 @@ class TorreniumApp extends StatelessWidget {
         future: init(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            Logger().e('init error', snapshot.error);
+            Logger().e('init error', snapshot.error, snapshot.stackTrace);
           }
           if (snapshot.connectionState == ConnectionState.done) {
             return view;

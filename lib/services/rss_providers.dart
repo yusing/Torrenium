@@ -10,8 +10,8 @@ const List<RSSProvider> kRssProviders = [
       searchParams: '?keyword=%q&sort_id=%c&team_id=%a&order=date-desc',
       supportTitleGroup: true,
       categoryRssMap: {
-        '所有類別': '0',
         '動畫': '2',
+        '所有類別': '0',
         '漫畫': '3',
         '音樂': '4',
         '遊戲': '9',
@@ -111,12 +111,12 @@ const List<RSSProvider> kRssProviders = [
       detailGetter: RSSDetailGetter.alternative,
       supportAdvancedSearch: false,
       categoryRssMap: {
+        '動畫': '/tags/549ef207fe682f7549f1ea90',
         '所有類別': null,
         '繁體': '/tags/548ee1204ab7379536f56357',
         '簡體': '/tags/548ee0ea4ab7379536f56354',
         '1080p': '/tags/548ee2ce4ab7379536f56358',
         '2160p (4K)': '/tags/5bd093cade4560f455f6967e',
-        '動畫': '/tags/549ef207fe682f7549f1ea90',
         '電影': '/tags/549cc9369310bc7d04cddf9f',
         '漫畫': '/tags/549eefebfe682f7549f1ea8c',
         '遊戲': '/tags/549ef015fe682f7549f1ea8d',
@@ -151,8 +151,8 @@ const List<RSSProvider> kRssProviders = [
       tags: RSSItemTags.alternative,
       supportTitleGroup: true,
       categoryRssMap: {
-        '所有類別': null,
         '動畫': '1',
+        '所有類別': null,
         '日劇': '2',
         '綜藝': '3',
         '音樂': '4',

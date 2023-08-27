@@ -15,13 +15,7 @@ const tagFLAC = r'flac(\s+\d+kHz\/\d+bit)?';
 const tagHD = r'(1920\s?x\s?1080|1080p|mp4|aac|avc|x264|x265|hevc)';
 const tagMP3 = r'(MP3\s+)?\d{3}k';
 const tagSD = r'(1280\s?x\s?720|720p)';
-
-class UpdateNotifier extends ValueNotifier<void> {
-  Groupable owner;
-  UpdateNotifier(this.owner) : super(null) {
-    Logger().d('UpdateNotifier created for ${owner.nameCleanedNoNum}');
-  }
-}
+const tagDate = r'\d{4}([-\./])\d{1,2}\1\d{1,2}';
 
 @JsonSerializable()
 class Groupable {
@@ -36,9 +30,6 @@ class Groupable {
   @JsonKey(includeFromJson: false, includeToJson: false)
   Iterable<String>? episodeNumbers;
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  ValueNotifier<void>? _updateNotifier;
-
   @JsonKey(includeToJson: false, includeFromJson: false)
   String? _coverUrl;
 
@@ -47,14 +38,16 @@ class Groupable {
 
   Groupable? parent;
 
+  String? group;
+
   Groupable({required this.name, this.parent});
 
   factory Groupable.fromJson(Map<String, dynamic> json) =>
       _$GroupableFromJson(json);
 
-  String? get coverUrl => parent != null
-      ? parent!.coverUrl
-      : _coverUrl ??= Storage.getString('cover-$nameHash');
+  String? get coverUrl =>
+      parent?.coverUrl ??
+      (_coverUrl ??= Storage.getString('cover-${(group ?? name).sha1Hash}'));
 
   set coverUrl(String? url) {
     if (url == null) {
@@ -65,26 +58,21 @@ class Groupable {
       return;
     }
     _coverUrl = url;
-    Storage.setStringIfNotExists('cover-$nameHash', url);
+    Storage.setStringIfNotExists('cover-${(group ?? name).sha1Hash}', url);
   }
 
   String? get episode => episodeNumbers?.join(' - ');
 
-  String get group => nameCleanedNoNum;
-
   String get nameCleaned => _nameCleaned ??= Title(name).value;
 
   String get nameCleanedNoNum => _nameCleanedNoNum ??= nameCleaned
-      .replaceAll(RegExp(r'\d+'), '*')
+      .replaceAll(RegExp(r'\d+'), '')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
   String get nameHash => name.sha1Hash;
 
   String get title => name;
-
-  ValueNotifier<void> get updateNotifier =>
-      parent?.updateNotifier ?? (_updateNotifier ??= UpdateNotifier(this));
 
   Widget coverImageWidget() =>
       parent?.coverImageWidget() ??
@@ -100,6 +88,7 @@ class Groupable {
       ));
 
   Future<String?> defaultCoverUrlFallback() async {
+    Logger().d('defaultCoverUrlFallback called for $nameCleanedNoNum');
     final coverUrl = await YouTube.search(nameCleanedNoNum).then(
         (value) => value.isEmpty ? null : value.first.value.first.coverUrl);
     this.coverUrl ??= coverUrl;
@@ -122,6 +111,7 @@ class Title {
     tag10Bit: '10-bit',
     tagFLAC: 'FLAC Music',
     tagMP3: 'MP3 Music',
+    tagDate: ''
   };
 
   late String value;
@@ -136,7 +126,7 @@ class Title {
     }
     value = (title
                 .replaceFirst(RegExp('內[嵌封]'), '')
-                // .replaceAll(RegExp(r'[\(\)\[\]\{\}（）【】★_\-－——\s+]'), ' ')
+                .replaceAll(RegExp(r'[\(\)\[\]\{\}（）【】★_\-－——\s+]'), ' ')
                 .replaceAll(RegExp(r'\s[a-zA-Z]+\D^!'), ' ') +
             suffixes.toString())
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -144,42 +134,59 @@ class Title {
   }
 }
 
+class UpdateNotifier extends ValueNotifier<void> {
+  Groupable owner;
+  UpdateNotifier(this.owner) : super(null) {
+    Logger().d('UpdateNotifier created for ${owner.nameCleanedNoNum}');
+  }
+}
+
 extension GroupHelpers<T extends Groupable> on List<T> {
   Map<String, List<T>> group() {
-    sort((a, b) => a.name.compareTo(b.name));
     final grouped = <String, List<T>>{};
-    final splitted =
-        map((e) => e.nameCleaned.split(' ')).toList(growable: false);
-
     int i = 0;
+
+    sort((a, b) => a.name.compareTo(b.name));
+
+    final splitted = List.unmodifiable(map((e) => e.nameCleaned.split(' ')));
+
     List<String> root;
     int rootIndex;
     while (i < splitted.length) {
       root = splitted[i];
       rootIndex = i++;
-      grouped[this[rootIndex].nameCleanedNoNum] = [this[rootIndex]];
+      this[rootIndex].group ??= this[rootIndex].nameCleanedNoNum;
+      grouped[this[rootIndex].group!] = [this[rootIndex]];
 
       if (!RegExp(r'\d+').hasMatch(this[rootIndex].name)) {
         continue;
       }
       Iterable<int>? episodeIndexes;
-      while (i < splitted.length &&
-          root.length == splitted[i].length &&
-          (root.length > 1 && root[1] == splitted[i][1]) &&
-          root.last == splitted[i].last) {
-        final current = splitted[i];
+      while (i < splitted.length) {
+        if (this[i].group != null) {
+          grouped[this[i].group!] ??= [];
+          grouped[this[i].group!]!.add(this[i]);
+          ++i;
+        } else if (root.length == splitted[i].length &&
+            (root.length > 1 && root[1] == splitted[i][1]) &&
+            root.last == splitted[i].last) {
+          final current = splitted[i];
+          this[i].group = this[rootIndex].group;
+          this[i].parent = this[rootIndex];
 
-        grouped[this[rootIndex].nameCleanedNoNum]!.add(this[i]);
-        episodeIndexes ??= List.generate(root.length, (index) => index)
-            .where((index) => root[index] != current[index]);
-        this[rootIndex].episodeNumbers ??=
-            List.unmodifiable(episodeIndexes.map((index) => root[index]));
-        this[i].episodeNumbers =
-            List.unmodifiable(episodeIndexes.map((index) => current[index]));
-        this[i].parent = this[rootIndex];
-        ++i;
+          grouped[this[rootIndex].group]!.add(this[i]);
+          episodeIndexes ??= List.generate(root.length, (index) => index)
+              .where((index) => root[index] != current[index]);
+          this[rootIndex].episodeNumbers ??=
+              List.unmodifiable(episodeIndexes.map((index) => root[index]));
+          this[i].episodeNumbers =
+              List.unmodifiable(episodeIndexes.map((index) => current[index]));
+          ++i;
+        } else {
+          break;
+        }
       }
-      if (grouped[this[rootIndex].nameCleanedNoNum]!.length == 1) {
+      if (grouped[this[rootIndex].group]!.length == 1) {
         grouped[this[rootIndex].nameCleaned] =
             grouped.remove(this[rootIndex].nameCleanedNoNum)!;
       }

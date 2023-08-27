@@ -4,15 +4,16 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
 
-import '/class/item.dart';
+import '/class/rss_item.dart';
 import '/class/torrent.dart';
 import '/interface/download_item.dart';
+import '/interface/groupable.dart';
 import '/main.dart' show kIsDesktop;
+import '/utils/fs.dart';
 import 'go_torrent.dart';
 import 'storage.dart';
 import 'subscription.dart';
@@ -36,34 +37,42 @@ TorrentManager get gTorrentManager => TorrentManager.instance;
 
 class TorrentManager {
   static late final TorrentManager instance;
-  static final recvPort = ReceivePort()..listen(_addTorrent);
-  final updateNotifier = ValueNotifier(null);
+  static final recvPort = ReceivePort()..listen(onMetadataLoaded);
 
-  late var _torrentList = <Torrent>[];
   final placeholders = <Torrent>[];
+  var ungrouped = <Torrent>[];
+
+  late var torrentMap = <String, List<Torrent>>{
+    'Downloading metadata...': placeholders,
+    'Ungrouped': ungrouped,
+  };
 
   late String saveDir;
-
-  List<Torrent> get torrentList => placeholders + _torrentList;
 
   void deleteTorrent(Torrent t) {
     assert(!t.isPlaceholder, 'Cannot delete placeholder torrent');
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
-    _torrentList.remove(t);
+    removeFromMap(t);
     // WatchHistory.remove(t.nameHash);
     gSubscriptionManager.addExclusion(t.nameHash);
-    updateNotifier.notifyListeners();
   }
 
-  Future<void> downloadItem(Item item) async {
+  void removeFromMap(Torrent t) {
+    if (t.group == null || torrentMap[t.group]?.remove(t) != true) {
+      if (!ungrouped.remove(t)) {
+        Logger().e('Torrent ${t.name} not found in torrentMap or ungrouped');
+      }
+    }
+  }
+
+  Future<void> downloadItem(RSSItem item) async {
     if (item.torrentUrl == null) {
       throw Exception('Item has no torrent url');
     }
     final url = item.torrentUrl!;
-    final placeholder = Torrent.placeholder(item);
+    final placeholder = Torrent.placeholder(item)..coverUrl = item.coverUrl;
     placeholders.add(placeholder);
-    updateNotifier.notifyListeners();
 
     await Isolate.spawn((message) {
       // spawn in isolate to avoid blocking main thread
@@ -74,33 +83,43 @@ class TorrentManager {
         'infoHash': message[1],
         'coverUrl': message[2],
       });
-    }, [recvPort.sendPort, placeholder.infoHash, placeholder.coverUrl]);
+    }, [recvPort.sendPort, placeholder.infoHash, item.coverUrl]);
   }
 
   DownloadItem? findItem(String nameHash) {
-    for (final torrent in _torrentList) {
-      if (torrent.isMultiFile) {
-        for (final file in torrent.files) {
-          if (file.nameHash == nameHash) {
-            return file;
+    for (final group in torrentMap.values) {
+      for (final torrent in group) {
+        if (torrent.isMultiFile) {
+          for (final file in torrent.files) {
+            if (file.nameHash == nameHash) {
+              return file;
+            }
           }
         }
-      }
-      if (torrent.nameHash == nameHash) {
-        return torrent;
+        if (torrent.nameHash == nameHash) {
+          return torrent;
+        }
       }
     }
 
     return null;
   }
 
-  Torrent getTorrentInfo(Torrent t) =>
-      Torrent.fromJson(jsonDecode.cStringCall(go.GetTorrentInfo(t.torrentPtr)));
-
   void pauseTorrent(Torrent t) {
     t.stopSelfUpdate();
     t.isPaused = true;
+    // t.updateNotifier.notifyListeners();
     go.PauseTorrent(t.torrentPtr);
+  }
+
+  void regroup() {
+    torrentMap.remove('Downloading metadata...');
+    final flattened = torrentMap.values.expand((e) => e).toList();
+    torrentMap = {
+      'Downloading metadata...': placeholders,
+      'Ungrouped': ungrouped..clear(),
+      ...flattened.group(),
+    };
   }
 
   void resumeTorrent(Torrent t) {
@@ -127,12 +146,10 @@ class TorrentManager {
     if (kIsDesktop) {
       instance.saveDir = Storage.getString('savePath') ??
           pathlib.join(docDir.path, 'Torrenium');
-      final dataPath = pathlib.join(instance.saveDir, 'data');
-      // create save path if it doesn't exist
-      await Directory(dataPath).create(recursive: true);
+      await pathlib.join(instance.saveDir, 'data').createDir();
     } else {
       instance.saveDir = pathlib.join(docDir.path, 'Torrenium');
-      await Directory(instance.saveDir).create(recursive: true);
+      await instance.saveDir.createDir();
     }
 
     if (!await Directory(instance.saveDir).exists()) {
@@ -145,29 +162,27 @@ class TorrentManager {
     final initClientIsolate = ReceivePort();
     await Isolate.spawn((message) {
       go.InitTorrentClient.dartStringCall(message.last as String);
-      (message.first as SendPort)
-          .send(go.GetTorrentList().cast<Utf8>().toDartString());
+      (message.first as SendPort).send.cStringCall(go.GetTorrentList());
     }, [initClientIsolate.sendPort, instance.saveDir]);
 
     Logger().d('TorrentClient initialized');
 
     // load last session
-    instance._torrentList = Torrent.listFromJson(
-        await initClientIsolate.firstWhere((element) => element is String))
-      ..sort()
-      ..forEach((t) => t.startSelfUpdate());
+    instance.torrentMap.addAll(Torrent.listFromJson(
+            await initClientIsolate.firstWhere((e) => e is String))
+        .group());
 
-    Logger().d(
-        'TorrentManager initialized ${instance._torrentList.length} torrents');
+    Logger().d('TorrentManager initialized');
   }
 
-  static _addTorrent(dynamic message) {
-    instance.placeholders.firstWhere((t) => t.infoHash == message['infoHash'],
-        orElse: () => throw Exception('Placeholder not found'))
-      ..updateDetail(Torrent.fromJson(message['torrent']))
+  static onMetadataLoaded(dynamic message) {
+    instance.placeholders.removeWhere((t) => t.infoHash == message['infoHash']);
+    instance.ungrouped.add(Torrent.fromJson(message['torrent'])
       ..startSelfUpdate()
-      ..coverUrl = message['coverUrl'];
-    instance.updateNotifier.notifyListeners();
+      ..coverUrl = message['coverUrl']);
+    if (instance.placeholders.isEmpty) {
+      instance.regroup();
+    }
   }
 }
 

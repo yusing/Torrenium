@@ -29,7 +29,7 @@ class RssResultGridView extends StatelessWidget {
                   : max(300, MediaQuery.of(context).size.width / 4),
               crossAxisSpacing: 16.0,
               mainAxisSpacing: 16.0,
-              childAspectRatio: gRssProvider.isYouTube ? 16 / 9 : 3 / 4),
+              childAspectRatio: gRssProvider.isYouTube ? 16 / 9 : 9 / 16),
           itemCount: results.length,
           itemBuilder: (_, index) => RSSResultCard(result: results[index]),
         ));

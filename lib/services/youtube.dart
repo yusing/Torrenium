@@ -1,6 +1,6 @@
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
-import '/class/item.dart';
+import '/class/rss_item.dart';
 import '/class/rss_result_group.dart';
 import '/utils/fetch_rss.dart';
 import '/widgets/rss_tab.dart';
@@ -16,7 +16,7 @@ class YouTube {
     var searchResult =
         await client.search.search(query, filter: const SearchFilter(''));
     return List.unmodifiable(searchResult.map((e) => MapEntry(e.title, [
-          Item(
+          RSSItem(
             name: e.title,
             description: e.description,
             torrentUrl: e.url,

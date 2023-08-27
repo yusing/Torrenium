@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 
 import '/interface/download_item.dart';
@@ -11,22 +12,22 @@ import '/interface/resumeable.dart';
 import '/services/storage.dart';
 import '/services/torrent_mgr.dart';
 import '/utils/connectivity.dart';
-import 'item.dart';
+import 'rss_item.dart';
 import 'torrent_file.dart';
 
-class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
-  List<TorrentFile> _files = [];
+class Torrent extends DownloadItem implements Resumeable {
+  static final updateTimerMap = <String, Timer>{};
 
+  final List<TorrentFile> _files = [];
   String infoHash;
   Pointer<Void> torrentPtr;
   int bytesDownloadedInitial;
-  Timer? _updateTimer;
   DateTime? _downloadedTime;
 
   @override
   bool isPaused = false;
 
-  Torrent(
+  Torrent._(
       {required super.name,
       required super.progress,
       required super.size,
@@ -34,21 +35,15 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
       required this.infoHash,
       required this.torrentPtr,
       required this.bytesDownloadedInitial});
+
   factory Torrent.fromJson(dynamic json) {
     if (json is String) {
       json = jsonDecode(json);
     }
     if (json == null || json.isEmpty) {
-      return Torrent(
-          name: '',
-          infoHash: '',
-          size: 0,
-          torrentPtr: nullptr,
-          progress: 0,
-          bytesDownloaded: 0,
-          bytesDownloadedInitial: 0);
+      throw ArgumentError.value(json, 'json', 'json cannot be null or empty');
     }
-    final torrent = Torrent(
+    final torrent = Torrent._(
       name: json['name'],
       infoHash: json['info_hash'],
       size: json['size'],
@@ -64,8 +59,9 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
     }
     return torrent;
   }
-  factory Torrent.placeholder(Item item) {
-    return Torrent(
+
+  factory Torrent.placeholder(RSSItem item) {
+    return Torrent._(
         name: 'Downloading metadata...: ${item.nameCleaned}',
         infoHash: 'placeholder:${item.nameCleaned.hashCode}',
         size: 0,
@@ -106,22 +102,6 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
   }
 
   @override
-  int compareTo(Torrent other) {
-    // list folders first then sort by downloaded time
-    if (files.length > 1 && other.files.length == 1) {
-      return -1;
-    } else if (files.length == 1 && other.files.length > 1) {
-      return 1;
-    } else if (watchProgress < other.watchProgress) {
-      return 1;
-    } else if (watchProgress > other.watchProgress) {
-      return -1;
-    } else {
-      return other.downloadedTime.compareTo(downloadedTime); // descending
-    }
-  }
-
-  @override
   Future<void> delete() async {
     gTorrentManager.deleteTorrent(this);
     await Storage.removeKey('cover-$infoHash');
@@ -137,9 +117,28 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
     gTorrentManager.resumeTorrent(this);
   }
 
+  void selfUpdate() {
+    final Map tMap = jsonDecode.cStringCall(go.GetTorrentInfo(torrentPtr));
+    progress = tMap['progress'];
+    bytesDownloaded = tMap['bytes_downloaded'];
+    _downloadedTime = DateTime.now();
+  }
+
   void startSelfUpdate() {
-    _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      if (progress == 1.0 && bytesDownloaded != 0) {
+    if (isPlaceholder) {
+      return;
+    }
+    if (updateTimerMap.containsKey(infoHash)) {
+      Logger()
+          .e('Timer already exists for $infoHash but startSelfUpdate() called');
+      return;
+    }
+    updateTimerMap[infoHash] =
+        Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (isComplete && bytesDownloaded > 0) {
+        Logger().d('Torrent $name complete, stopping self update');
+        gTorrentManager.removeFromMap(this);
+        go.DeleteMetadata(torrentPtr);
         stopSelfUpdate();
         return;
       }
@@ -159,41 +158,38 @@ class Torrent extends DownloadItem implements Resumeable, Comparable<Torrent> {
           });
         }
 
-        Torrent tNewer = gTorrentManager.getTorrentInfo(this);
-        if (progress != tNewer.progress) {
-          progress = tNewer.progress;
-          bytesDownloaded = tNewer.bytesDownloaded;
-          _downloadedTime = DateTime.now();
-          _files = tNewer._files;
-          updateNotifier.notifyListeners();
-        }
+        selfUpdate();
       }
     });
   }
 
   void stopSelfUpdate() {
-    _updateTimer?.cancel();
-    _updateTimer = null;
+    final timer = updateTimerMap.remove(infoHash);
+    if (timer == null) {
+      Logger().e('Timer not found for $infoHash but stopSelfUpdate() called');
+      return;
+    }
+    timer.cancel();
   }
 
-  void updateDetail(Torrent other) {
-    name = other.name;
-    infoHash = other.infoHash;
-    size = other.size;
-    _files = other.files;
-    torrentPtr = other.torrentPtr;
-    bytesDownloadedInitial = other.bytesDownloadedInitial;
-    progress = other.progress;
-    bytesDownloaded = other.bytesDownloaded;
-  }
+  // TODO: remove below
+  // void updateDetail(Torrent other) {
+  //   name = other.name;
+  //   infoHash = other.infoHash;
+  //   size = other.size;
+  //   _files = other.files;
+  //   torrentPtr = other.torrentPtr;
+  //   bytesDownloadedInitial = other.bytesDownloadedInitial;
+  //   progress = other.progress;
+  //   bytesDownloaded = other.bytesDownloaded;
+  // }
 
   static List<Torrent> listFromJson(String jsonStr) {
-    final json = jsonDecode(jsonStr);
+    final List? json = jsonDecode(jsonStr);
     if (json == null) {
       return [];
     }
-    return json
-        .map<Torrent>((e) => Torrent.fromJson(e))
-        .toList(growable: false);
+    return json.map<Torrent>((e) => Torrent.fromJson(e)).toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
   }
 }

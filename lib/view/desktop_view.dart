@@ -35,8 +35,11 @@ class TitleBar extends ToolBar {
   static final _progressUpdateNotifier = ValueNotifier(100.0);
   // ignore: unused_field
   final _progressUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-    final inProgress =
-        gTorrentManager.torrentList.map((e) => e.progress).where((p) => p < 1);
+    final inProgress = gTorrentManager.torrentMap.values
+        .reduce((a, b) => [...a, ...b])
+        .where((e) => e.progress < 1)
+        .map((e) => e.progress);
+
     _progressUpdateNotifier.value = inProgress.isEmpty
         ? 100
         : inProgress.reduce((a, b) => (a + b) / 2) * 100.0;
@@ -69,7 +72,7 @@ class TitleBar extends ToolBar {
                                       CupertinoIcons.cloud_download);
                             }),
                         onPressed: () async {
-                          if (gTorrentManager.torrentList.isEmpty) {
+                          if (gTorrentManager.torrentMap.isEmpty) {
                             return await showAdaptiveAlertDialog(
                                 context: context,
                                 title: const Text('Oops'),

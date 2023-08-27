@@ -55,6 +55,6 @@ class TorrentFile extends DownloadItem {
   @override
   String toString() {
     // for debugging
-    return group;
+    return group ?? nameCleanedNoNum;
   }
 }

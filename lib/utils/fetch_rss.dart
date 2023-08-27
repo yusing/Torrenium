@@ -1,6 +1,6 @@
 import 'package:xml/xml.dart';
 
-import '/class/item.dart';
+import '/class/rss_item.dart';
 import '/class/rss_result_group.dart';
 import '/interface/groupable.dart';
 import '/services/http.dart';
@@ -26,13 +26,13 @@ Future<List<RssResultGroup>> getRSSResultsDefault(
   return items.map((e) => RssResultGroup(e.name, [e])).toList(growable: false);
 }
 
-List<Item> parseRSSForItems(RSSProvider provider, String body) {
+List<RSSItem> parseRSSForItems(RSSProvider provider, String body) {
   final doc = XmlDocument.parse(body);
   return doc.findAllElements(provider.tags.item).map((e) {
     final authorElement = provider.tags.authorName == null
         ? null
         : e.findElements(provider.tags.authorName!).first;
-    return Item(
+    return RSSItem(
       name: e.findElements(provider.tags.title).first.innerText,
       pubDate: provider
           .pubDateParser(e.findElements(provider.tags.pubDate).first.innerText),
@@ -54,7 +54,7 @@ List<Item> parseRSSForItems(RSSProvider provider, String body) {
   }).toList(growable: false);
 }
 
-Future<List<Item>> _getRSSItems(RSSProvider provider, String url) async {
+Future<List<RSSItem>> _getRSSItems(RSSProvider provider, String url) async {
   String body = await gCacheManager.getSingleFile(url, headers: {
     'Content-Type': 'application/xml',
     'Accept': 'application/xml',

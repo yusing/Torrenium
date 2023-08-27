@@ -1,16 +1,14 @@
 import '/interface/groupable.dart';
 import '/services/torrent_mgr.dart';
-import '../services/storage.dart';
 
-class Item extends Groupable {
+class RSSItem extends Groupable {
   final String description;
   final String? torrentUrl;
   final DateTime? pubDate;
-  final String? category, author;
-  final String? size;
+  final String? category, author, size;
   final int? viewCount, likeCount;
 
-  Item(
+  RSSItem(
       {String? coverUrl,
       required super.name,
       required this.description,
@@ -22,7 +20,7 @@ class Item extends Groupable {
       this.viewCount,
       this.likeCount}) {
     if (coverUrl != null) {
-      Storage.setStringIfNotExists('cover-$nameHash', coverUrl);
+      this.coverUrl = coverUrl;
     }
   }
 

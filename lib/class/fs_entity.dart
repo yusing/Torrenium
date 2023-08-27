@@ -25,7 +25,7 @@ class GroupableFileSystemEntity extends DownloadItem {
       : throw UnsupportedError('Not a directory');
 
   @override
-  bool get isComplete => linked?.isComplete ?? false;
+  bool get isComplete => linked?.isComplete ?? true;
 
   @override
   bool get isMultiFile => entity is Directory;

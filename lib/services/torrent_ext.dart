@@ -1,13 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 
-import '/class/item.dart';
+import '/class/rss_item.dart';
 import '/widgets/adaptive.dart';
 import 'torrent_mgr.dart';
 
 extension TorrentManagerExtension on TorrentManager {
   // TODO: change this
-  void download(Item item, {required BuildContext context, bool pop = false}) {
+  void download(RSSItem item,
+      {required BuildContext context, bool pop = false}) {
     item.startDownload().onError((error, stackTrace) async {
       Logger().e(error);
 

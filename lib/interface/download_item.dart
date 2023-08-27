@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:json_annotation/json_annotation.dart';
 
 import '/services/watch_history.dart';
+import '/utils/fs.dart';
 import 'groupable.dart';
 
 part 'download_item.g.dart';
@@ -57,12 +56,10 @@ class DownloadItem extends Groupable {
     deleted = true;
 
     if (isMultiFile) {
-      await Directory(videoPath).delete(recursive: true);
+      await videoPath.deleteDir();
     } else {
-      await File(videoPath).delete();
+      await videoPath.deleteFile();
     }
-
-    updateNotifier.notifyListeners();
   }
 
   @override

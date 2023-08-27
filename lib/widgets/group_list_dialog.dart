@@ -16,14 +16,22 @@ class DownloadListDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-        valueListenable: gTorrentManager.updateNotifier,
-        builder: (context, _, __) {
-          return GroupListDialog(gTorrentManager.torrentList
-              .where((t) => !t.isComplete)
-              .toList()
-              .group());
-        });
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            AdaptiveTextButton(
+                icon: const Icon(CupertinoIcons.refresh),
+                label: const Text('Regroup'),
+                onPressed: gTorrentManager.regroup),
+          ],
+        ),
+        Expanded(
+          child: GroupListDialog(gTorrentManager.torrentMap),
+        ),
+      ],
+    );
   }
 }
 
@@ -38,13 +46,17 @@ class GroupListDialog extends StatelessWidget {
     if (groups.isEmpty) {
       return const Center(child: Text('Nothing Here...'));
     }
-    return ListView.separated(
-      separatorBuilder: (_, index) => const SizedBox(height: 24),
-      itemCount: groups.length,
-      itemBuilder: ((_, index) {
-        return ItemGroupWidget(groups[index]);
-      }),
-    );
+    return StreamBuilder(
+        stream: Stream.periodic(const Duration(seconds: 1)),
+        builder: (context, snapshot) {
+          return ListView.separated(
+            separatorBuilder: (_, index) => const SizedBox(height: 24),
+            itemCount: groups.length,
+            itemBuilder: ((_, index) {
+              return ItemGroupWidget(groups[index]);
+            }),
+          );
+        });
   }
 }
 
@@ -84,11 +96,10 @@ class ItemGroupWidget extends StatelessWidget {
   }
 }
 
-class ItemListTile extends ValueListenableBuilder<void> {
+class ItemListTile extends Builder {
   ItemListTile(DownloadItem item, {super.key})
       : super(
-          valueListenable: item.updateNotifier,
-          builder: ((context, __, ___) => Visibility(
+          builder: ((context) => Visibility(
               visible: !item.deleted,
               child: _ItemListTileInner(context, item))),
         );

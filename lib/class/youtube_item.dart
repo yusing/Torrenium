@@ -2,7 +2,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '/interface/download_item.dart';
 import '/services/youtube.dart';
-import 'item.dart';
+import 'rss_item.dart';
 
 class YouTubeItem extends DownloadItem {
   final String videoID;
@@ -11,7 +11,7 @@ class YouTubeItem extends DownloadItem {
   // late final Map<String, String> subtitlePaths;
   late final String? error;
 
-  YouTubeItem(Item item)
+  YouTubeItem(RSSItem item)
       : videoID = item.torrentUrl!.split('=').last,
         super(name: item.name, bytesDownloaded: 0, progress: 0) {
     coverUrl = item.coverUrl;

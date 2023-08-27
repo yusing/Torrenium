@@ -105,7 +105,7 @@ Future<T?> showAdaptivePopup<T>({
     builder: (context) {
       return Container(
           height: MediaQuery.of(context).size.height * .8,
-          alignment: Alignment.center,
+          alignment: Alignment.topLeft,
           decoration: BoxDecoration(
             color: CupertinoColors.systemBackground
                 .resolveFrom(context)

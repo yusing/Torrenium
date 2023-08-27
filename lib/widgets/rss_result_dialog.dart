@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
 
-import '/class/item.dart';
+import '/class/rss_item.dart';
 import '/class/youtube_item.dart';
 import '/main.dart' show kIsDesktop;
 import '/services/torrent_ext.dart';
@@ -12,7 +12,7 @@ import 'adaptive.dart';
 import 'rss_tab.dart';
 
 class PlayDownloadButtons extends StatelessWidget {
-  final List<Item> results;
+  final List<RSSItem> results;
 
   const PlayDownloadButtons(this.results, {super.key});
 
@@ -32,7 +32,7 @@ class PlayDownloadButtons extends StatelessWidget {
     );
   }
 
-  void openOrDownloadItem(BuildContext context, Item item) {
+  void openOrDownloadItem(BuildContext context, RSSItem item) {
     if (gRssProvider.isYouTube) {
       YouTubeItem(item)
           .init()
@@ -48,7 +48,7 @@ class PlayDownloadButtons extends StatelessWidget {
 }
 
 class RssResultDialog extends StatelessWidget {
-  final List<Item> items;
+  final List<RSSItem> items;
   const RssResultDialog(this.items, {super.key});
 
   @override
