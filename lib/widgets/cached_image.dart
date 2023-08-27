@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/services/http.dart';
+import '../style.dart';
 
 class CachedImage extends CachedNetworkImage {
   CachedImage(
@@ -17,11 +18,16 @@ class CachedImage extends CachedNetworkImage {
           alignment: Alignment.topCenter,
           imageUrl: url ?? '',
           fit: fit ?? BoxFit.cover,
-          progressIndicatorBuilder: (context, url, progress) => Center(
-            child: ProgressCircle(
-                value: progress.progress == null
-                    ? null
-                    : progress.progress! * 100),
+          progressIndicatorBuilder: (context, url, progress) => ConstrainedBox(
+            constraints: const BoxConstraints(
+                minWidth: kListTileThumbnailWidth,
+                minHeight: kListTileThumbnailMinHeight),
+            child: Center(
+              child: ProgressCircle(
+                  value: progress.progress == null
+                      ? null
+                      : progress.progress! * 100),
+            ),
           ),
           width: width,
           height: height,
@@ -37,13 +43,15 @@ class CachedImage extends CachedNetworkImage {
                           width: width,
                           height: height,
                           fit: fit);
-                    } else if (snapshot.hasError) {
-                      Logger().e('error', snapshot.error, snapshot.stackTrace);
-                      return const Icon(
-                          CupertinoIcons.exclamationmark_circle_fill);
-                    } else {
-                      return const Center(child: ProgressCircle());
                     }
+                    if (snapshot.hasError) {
+                      Logger().e('error', snapshot.error, snapshot.stackTrace);
+                    }
+                    return ConstrainedBox(
+                        constraints: const BoxConstraints(
+                            minWidth: kListTileThumbnailWidth,
+                            minHeight: kListTileThumbnailMinHeight),
+                        child: const Center(child: ProgressCircle()));
                   }),
           useOldImageOnUrlChange: false,
           cacheManager: gCacheManager,

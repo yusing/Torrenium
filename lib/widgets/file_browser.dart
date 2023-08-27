@@ -7,8 +7,8 @@ import '/class/fs_entity.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/services/torrent_mgr.dart';
-import '/style.dart';
 import '/utils/open_file.dart';
+import '../style.dart';
 import 'adaptive.dart';
 import 'group_list_dialog.dart';
 
@@ -37,21 +37,14 @@ class _FileBrowserState extends State<FileBrowser> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              if (_subpaths.isNotEmpty)
-                AdaptiveIconButton(
+          AdaptiveListTile(
+              leading: Visibility(
+                visible: _subpaths.isNotEmpty,
+                child: AdaptiveIconButton(
                     icon: const Icon(CupertinoIcons.back),
                     onPressed: () => setState(() => _subpaths.removeLast())),
-              Expanded(
-                child: Text(
-                  _subpaths.isEmpty ? '/' : pathlib.joinAll(_subpaths),
-                  style: kItemTitleTextStyle,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
-            ],
-          ),
+              title: Text(pathlib.joinAll(['/', ..._subpaths]))),
           Expanded(
             child: FutureBuilder(
                 future: Directory(pathlib
@@ -78,14 +71,23 @@ class _FileBrowserState extends State<FileBrowser> {
                     itemBuilder: (context, index) {
                       final group = snapshot.data![index];
                       return AdaptiveListTile(
-                          leading: group.value.first.coverImageWidget(),
-                          title: Text(group.key),
-                          subtitle: group.value.length == 1 &&
-                                  group.value.first.isMultiFile
-                              ? Text('${group.value.first.files.length} files')
-                              : group.value.length > 1
-                                  ? Text('${group.value.length} items}')
-                                  : null,
+                          leading: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 120),
+                              child: group.value.first
+                                  .coverImageWidget(BoxFit.cover)),
+                          title: Text(
+                            group.key,
+                            style: kItemTitleTextStyle,
+                          ),
+                          subtitle: Text(
+                            group.value.length == 1 &&
+                                    group.value.first.isMultiFile
+                                ? '${group.value.first.files.length} files'
+                                : group.value.length > 1
+                                    ? '${group.value.length} items'
+                                    : '',
+                            style: kItemSubtitleTextStyle,
+                          ),
                           onTap: () {
                             if (group.value.length == 1) {
                               if (group.value.first.isMultiFile) {

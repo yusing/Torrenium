@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/main.dart' show kIsDesktop;
@@ -182,7 +183,7 @@ class AdaptiveListTile extends StatelessWidget {
   final Widget title;
   final Widget? subtitle;
   final Widget? leading;
-  final List<Widget>? trailing;
+  final List<AdaptiveIconButton>? trailing;
 
   final VoidCallback? onTap;
   const AdaptiveListTile(
@@ -195,8 +196,7 @@ class AdaptiveListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // if (kIsDesktop) {
-    return GestureDetector(
+    final tile = GestureDetector(
       onTap: onTap,
       child: MouseRegion(
         child: Padding(
@@ -230,24 +230,34 @@ class AdaptiveListTile extends StatelessWidget {
                     )
                 ],
               )),
-              if (trailing != null) ...[const SizedBox(width: 8), ...trailing!]
+              if (kIsDesktop && trailing != null) ...[
+                const SizedBox(width: 8),
+                ...trailing!
+              ]
             ],
           ),
         ),
       ),
     );
-    // }
-    // return CupertinoListTile(
-    //   title: widget.title,
-    //   subtitle: widget.subtitle,
-    //   leading: widget.leading,
-    //   onTap: widget.onTap,
-    //   trailing: widget.trailing == null
-    //       ? null
-    //       : widget.trailing!.length == 1
-    //           ? widget.trailing!.first
-    //           : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing!),
-    // );
+    if (!kIsDesktop && trailing != null) {
+      return Slidable(
+        key: key,
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          children: trailing!
+              .map((e) => SlidableAction(
+                    onPressed: (_) => e.onPressed(),
+                    icon: ((e).icon as AdaptiveIcon).icon,
+                    backgroundColor: ((e).icon as AdaptiveIcon).color ??
+                        CupertinoTheme.of(context).primaryColor,
+                    foregroundColor: CupertinoColors.white,
+                  ))
+              .toList(),
+        ),
+        child: tile,
+      );
+    }
+    return tile;
   }
 }
 
@@ -298,7 +308,7 @@ class AdaptiveProgressBar extends StatelessWidget {
 class AdaptiveTextButton extends StatelessWidget {
   final Widget? icon;
   final Widget label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const AdaptiveTextButton(
       {super.key, this.icon, required this.label, required this.onPressed});

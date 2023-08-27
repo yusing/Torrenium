@@ -4,8 +4,8 @@ import 'cupertino_picker_dialog.dart';
 
 class CupertinoPickerButton<T> extends StatefulWidget {
   final ValueChanged<int>? onSelectedItemChanged;
-  final Iterable<T>? items;
-  final T Function() valueGetter;
+  final List<T>? items;
+  final ValueGetter<T> valueGetter;
   final Text Function(T item) itemBuilder;
   final void Function(T) onPop;
   final Widget onEmpty;
@@ -37,9 +37,7 @@ class _CupertinoPickerButtonState<T> extends State<CupertinoPickerButton<T>> {
       padding: EdgeInsets.zero,
       onPressed: () {
         _controller = FixedExtentScrollController(
-            initialItem: widget.items!
-                .toList(growable: false)
-                .indexOf(widget.valueGetter()));
+            initialItem: widget.items!.indexOf(widget.valueGetter()));
         showPickerDialog(
                 context,
                 widget.valueGetter,
@@ -48,9 +46,8 @@ class _CupertinoPickerButtonState<T> extends State<CupertinoPickerButton<T>> {
                     itemExtent: 32,
                     onSelectedItemChanged: (i) =>
                         widget.onSelectedItemChanged?.call(i),
-                    children: widget.items!
-                        .map((e) => widget.itemBuilder(e))
-                        .toList(growable: false)))
+                    children: List.unmodifiable(
+                        widget.items!.map(widget.itemBuilder))))
             .then((value) {
           _controller.dispose();
           if (value == null) return;

@@ -168,9 +168,13 @@ class TorrentManager {
     Logger().d('TorrentClient initialized');
 
     // load last session
-    instance.torrentMap.addAll(Torrent.listFromJson(
-            await initClientIsolate.firstWhere((e) => e is String))
-        .group());
+    final session = Torrent.listFromJson(
+        await initClientIsolate.firstWhere((e) => e is String));
+    session
+        .where((t) => t.isComplete)
+        .forEach((t) => go.DeleteMetadata(t.torrentPtr));
+    instance.torrentMap
+        .addAll(session.where((t) => !t.isComplete).toList().group());
 
     Logger().d('TorrentManager initialized');
   }

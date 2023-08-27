@@ -33,6 +33,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                 final entry = WatchHistory.histories
                     .elementAt(WatchHistory.histories.length - index - 1);
                 return AdaptiveListTile(
+                  key: ValueKey(entry.nameHash),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(6.0),
                     child: Stack(

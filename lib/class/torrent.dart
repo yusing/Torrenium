@@ -120,7 +120,9 @@ class Torrent extends DownloadItem implements Resumeable {
   void selfUpdate() {
     final Map tMap = jsonDecode.cStringCall(go.GetTorrentInfo(torrentPtr));
     progress = tMap['progress'];
-    bytesDownloaded = tMap['bytes_downloaded'];
+    size = tMap['size'];
+    bytesDownloaded =
+        tMap['bytes_downloaded'] ?? tMap['progress'] * tMap['size'];
     _downloadedTime = DateTime.now();
   }
 
@@ -136,6 +138,7 @@ class Torrent extends DownloadItem implements Resumeable {
     updateTimerMap[infoHash] =
         Timer.periodic(const Duration(seconds: 1), (_) async {
       if (isComplete && bytesDownloaded > 0) {
+        assert(bytesDownloaded == size, '$bytesDownloaded != $size');
         Logger().d('Torrent $name complete, stopping self update');
         gTorrentManager.removeFromMap(this);
         go.DeleteMetadata(torrentPtr);

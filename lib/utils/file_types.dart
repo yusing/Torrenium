@@ -36,12 +36,23 @@ final kExtMap = <FileType, List<String>>{
     '.zst'
   ],
   FileType.subtitle: ['.ass', '.srt'],
-  FileType.pdf: ['.pdf']
+  FileType.pdf: ['.pdf'],
+  FileType.folder: ['']
 };
 
 //TODO: svg (maybe unnecessary)
 
-enum FileType { video, audio, image, pdf, archive, link, subtitle, document }
+enum FileType {
+  video,
+  audio,
+  image,
+  pdf,
+  archive,
+  link,
+  subtitle,
+  document,
+  folder
+}
 
 extension FileTypeExt on FileType {
   static FileType from(String path) {

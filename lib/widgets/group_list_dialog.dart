@@ -8,6 +8,7 @@ import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/utils/open_file.dart';
 import '/utils/string.dart';
+import '../class/torrent_file.dart';
 import 'adaptive.dart';
 import 'play_pause_button.dart';
 
@@ -28,7 +29,11 @@ class DownloadListDialog extends StatelessWidget {
           ],
         ),
         Expanded(
-          child: GroupListDialog(gTorrentManager.torrentMap),
+          child: StreamBuilder(
+              stream: Stream.periodic(const Duration(seconds: 3)),
+              builder: (context, snapshot) {
+                return GroupListDialog(gTorrentManager.torrentMap);
+              }),
         ),
       ],
     );
@@ -46,17 +51,13 @@ class GroupListDialog extends StatelessWidget {
     if (groups.isEmpty) {
       return const Center(child: Text('Nothing Here...'));
     }
-    return StreamBuilder(
-        stream: Stream.periodic(const Duration(seconds: 1)),
-        builder: (context, snapshot) {
-          return ListView.separated(
-            separatorBuilder: (_, index) => const SizedBox(height: 24),
-            itemCount: groups.length,
-            itemBuilder: ((_, index) {
-              return ItemGroupWidget(groups[index]);
-            }),
-          );
-        });
+    return ListView.separated(
+      separatorBuilder: (_, index) => const SizedBox(height: 24),
+      itemCount: groups.length,
+      itemBuilder: ((_, index) {
+        return ItemGroupWidget(groups[index]);
+      }),
+    );
   }
 }
 
@@ -82,23 +83,36 @@ class ItemGroupWidget extends StatelessWidget {
       ..sort((a, b) => a.episode?.compareTo(b.episode ?? '') ?? 0);
 
     return AdaptiveListTile(
+        key: ValueKey(group.key),
         leading: items.first.coverImageWidget(),
         title: Text(group.key, style: kItemTitleTextStyle),
         subtitle: Text('${items.length} items'),
         onTap: () => showAdaptivePopup(
             context: context,
-            builder: (_) => ListView.separated(
-                  shrinkWrap: true,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
-                  itemCount: episodes.length,
-                  itemBuilder: (context, i) => ItemListTile(episodes[i]),
-                )));
+            builder: (_) {
+              if (episodes.every((e) => e is TorrentFile)) {
+                return Wrap(
+                  children: List.unmodifiable(episodes.map((e) => Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: AdaptiveTextButton(
+                            label: Text(e.episode ?? e.nameCleaned),
+                            onPressed: context.onTapCallback(e)),
+                      ))),
+                );
+              }
+              return ListView.separated(
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemCount: episodes.length,
+                itemBuilder: (context, i) => ItemListTile(episodes[i]),
+              );
+            }));
   }
 }
 
 class ItemListTile extends Builder {
-  ItemListTile(DownloadItem item, {super.key})
+  ItemListTile(DownloadItem item)
       : super(
+          key: ValueKey(item),
           builder: ((context) => Visibility(
               visible: !item.deleted,
               child: _ItemListTileInner(context, item))),
@@ -111,32 +125,28 @@ class _ItemListTileInner extends AdaptiveListTile {
 
   _ItemListTileInner(this.context, this.item)
       : super(
-          leading: item.coverImageWidget(),
+          leading: item is! TorrentFile ? item.coverImageWidget() : null,
           title: Text(
             item.episode ?? item.displayName,
             style: item.watchProgress == 0
                 ? kItemTitleTextStyle
                 : kItemTitleTextStyle.copyWith(
                     color: MacosColors.systemPurpleColor),
-            softWrap: true,
-            maxLines: 2,
+            maxLines: 3,
           ),
           trailing: item.isPlaceholder
               ? null
               : [
                   if (item is Resumeable && !item.isComplete)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4.0),
-                      child: PlayPauseButton(
-                        isPlaying: !(item as Resumeable).isPaused,
-                        play: (item as Resumeable).resume,
-                        pause: (item as Resumeable).pause,
-                      ),
+                    PlayPauseButton(
+                      isPlaying: !(item as Resumeable).isPaused,
+                      play: (item as Resumeable).resume,
+                      pause: (item as Resumeable).pause,
                     ),
                   if (!item.isPlaceholder)
                     AdaptiveIconButton(
                         padding: const EdgeInsets.all(0),
-                        icon: const Icon(
+                        icon: const AdaptiveIcon(
                           CupertinoIcons.delete,
                           color: CupertinoColors.systemRed,
                         ),
@@ -149,6 +159,9 @@ class _ItemListTileInner extends AdaptiveListTile {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(
+                      height: 4,
+                    ),
                     Builder(builder: (context) {
                       return ConstrainedBox(
                           constraints: BoxConstraints(
@@ -160,16 +173,27 @@ class _ItemListTileInner extends AdaptiveListTile {
                                 : null,
                           ));
                     }),
-                    Text(
-                        '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
+                    const SizedBox(
+                      height: 4,
+                    ),
+                    if (item is Resumeable && (item as Resumeable).isPaused)
+                      const Text('Paused')
+                    else
+                      Text(
+                          '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
                   ],
                 ),
-          onTap: item.isMultiFile
-              ? () => showAdaptivePopup(
-                  context: context,
-                  builder: (_) => GroupListDialog(item.files.group()))
-              : item.isComplete
-                  ? () => openItem(context, item)
-                  : null,
+          onTap: context.onTapCallback(item),
         );
+}
+
+extension _DownloadItemExt on BuildContext {
+  VoidCallback? onTapCallback(DownloadItem item) {
+    return item.isMultiFile
+        ? () => showAdaptivePopup(
+            context: this, builder: (_) => GroupListDialog(item.files.group()))
+        : item.isComplete
+            ? () => openItem(this, item)
+            : null;
+  }
 }

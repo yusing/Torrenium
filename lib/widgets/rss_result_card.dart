@@ -15,35 +15,32 @@ class RSSResultCard extends StatelessWidget {
       onTap: () => result.showDialog(context),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Stack(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox.expand(
-              child: CachedImage(
-                url: result.value.first.coverUrl,
-                fallbackGetter: result.value.first.defaultCoverUrlFallback,
-                fit: BoxFit.cover,
-              ),
+            CachedImage(
+              url: result.value.first.coverUrl,
+              fallbackGetter: result.value.first.defaultCoverUrlFallback,
+              fit: BoxFit.cover,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: ColoredBox(
-                color: const Color.fromARGB(200, 0, 0, 0),
-                child: AdaptiveListTile(
-                  title: Text(
-                    result.key,
-                  ),
-                  subtitle: Text([
-                    if (result.value.length > 1) '${result.value.length} Items',
-                    if (result.value.first.author != null)
-                      result.value.first.author,
-                    if (result.value.last.pubDate != null)
-                      result.value.last.pubDate!.relative,
-                    if (result.value.last.viewCount != null)
-                      '${result.value.last.viewCount!.countUnit} Views',
-                    if (result.value.last.likeCount != null)
-                      '${result.value.last.likeCount!.countUnit} Likes',
-                  ].join(' | ')),
+            ColoredBox(
+              color: const Color.fromARGB(200, 0, 0, 0),
+              child: AdaptiveListTile(
+                key: ValueKey(result.key),
+                title: Text(
+                  result.key,
                 ),
+                subtitle: Text([
+                  if (result.value.length > 1) '${result.value.length} Items',
+                  if (result.value.first.author != null)
+                    result.value.first.author,
+                  if (result.value.last.pubDate != null)
+                    result.value.last.pubDate!.relative,
+                  if (result.value.last.viewCount != null)
+                    '${result.value.last.viewCount!.countUnit} Views',
+                  if (result.value.last.likeCount != null)
+                    '${result.value.last.likeCount!.countUnit} Likes',
+                ].join(' | ')),
               ),
             ),
           ],

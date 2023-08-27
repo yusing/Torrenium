@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/class/rss_result_group.dart';
@@ -21,15 +22,15 @@ class RssResultGridView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: GridView.builder(
+        child: MasonryGridView.builder(
           controller: controller,
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: gRssProvider.isYouTube
-                  ? min(480, MediaQuery.of(context).size.width)
-                  : max(300, MediaQuery.of(context).size.width / 4),
-              crossAxisSpacing: 16.0,
-              mainAxisSpacing: 16.0,
-              childAspectRatio: gRssProvider.isYouTube ? 16 / 9 : 9 / 16),
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+          gridDelegate: SliverSimpleGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: gRssProvider.isYouTube
+                ? min(480, MediaQuery.of(context).size.width)
+                : max(400, MediaQuery.of(context).size.width / 4),
+          ),
           itemCount: results.length,
           itemBuilder: (_, index) => RSSResultCard(result: results[index]),
         ));
@@ -53,6 +54,7 @@ class RssResultListView extends StatelessWidget {
 
         final item = results[index].value.first;
         return AdaptiveListTile(
+          key: ValueKey(results[index].key),
           title: Text(results[index].key),
           trailing: [
             AdaptiveIconButton(
@@ -60,7 +62,6 @@ class RssResultListView extends StatelessWidget {
               icon: const MacosIcon(CupertinoIcons.cloud_download, size: 18),
               onPressed: () => gTorrentManager.download(item, context: context),
             ),
-            const SizedBox(width: 16),
             AdaptiveIconButton(
               padding: const EdgeInsets.all(0),
               icon: const MacosIcon(

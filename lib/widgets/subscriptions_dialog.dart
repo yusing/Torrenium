@@ -22,6 +22,7 @@ class SubscriptionsDialog extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final sub = gSubscriptionManager.subscriptions[index];
                       return AdaptiveListTile(
+                          key: ObjectKey(sub),
                           title: Text(
                             sub.keyword,
                             style: kItemTitleTextStyle,
@@ -34,7 +35,6 @@ class SubscriptionsDialog extends StatelessWidget {
                                 onPressed: () async =>
                                     await gSubscriptionManager.updateSub(
                                         sub, true)),
-                            const SizedBox(width: 16),
                             AdaptiveIconButton(
                               icon: const Icon(CupertinoIcons.delete),
                               onPressed: () =>

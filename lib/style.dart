@@ -8,6 +8,7 @@ const double kSidebarMinWidth = 180.0;
 const double kDesktopTitleBarHeight = 40.0;
 const double kDownloadListTileIconSize = 21.0;
 const double kListTileThumbnailWidth = 180.0;
+const double kListTileThumbnailMinHeight = 100.0;
 const kItemTitleTextStyle = TextStyle(fontSize: kItemTextSize);
 const kItemSubtitleTextStyle =
     TextStyle(fontSize: kSubtitleTextSize, color: CupertinoColors.systemGrey);

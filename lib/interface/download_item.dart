@@ -49,7 +49,6 @@ class DownloadItem extends Groupable {
   bool get isPlaceholder => false;
   Duration get lastPosition => WatchHistory.getPosition(nameHash);
 
-  String get videoPath => throw UnimplementedError();
   double get watchProgress => WatchHistory.getProgress(nameHash);
 
   Future<void> delete() async {

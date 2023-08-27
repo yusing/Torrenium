@@ -1,21 +1,26 @@
-import 'package:flutter/widgets.dart';
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:logger/logger.dart';
 
 import '/services/storage.dart';
-import '/services/youtube.dart';
 import '/style.dart';
+import '/utils/file_types.dart';
 import '/utils/string.dart';
+import '/widgets/adaptive.dart';
 import '/widgets/cached_image.dart';
 
 part 'groupable.g.dart';
 
 const tag10Bit = r'10\-?bit';
-const tagFLAC = r'flac(\s+\d+kHz\/\d+bit)?';
-const tagHD = r'(1920\s?x\s?1080|1080p|mp4|aac|avc|x264|x265|hevc)';
-const tagMP3 = r'(MP3\s+)?\d{3}k';
-const tagSD = r'(1280\s?x\s?720|720p)';
 const tagDate = r'\d{4}([-\./])\d{1,2}\1\d{1,2}';
+const tagFLAC = r'flac(\s+\d+kHz\/\d+bit)?';
+const tagHD = r'(1920\s?x\s?1080|1080p)';
+const tagMP3 = r'(MP3\s+)?\d{3}k';
+const tagRemove =
+    r'(web\-?(dl|rip)|bd\-?rip|僅限.+地區|mp4|aac|avc|x26[45]|hevc|h\.26[45])';
+const tagSD = r'(1280\s?x\s?720|720p)';
 
 @JsonSerializable()
 class Groupable {
@@ -47,7 +52,8 @@ class Groupable {
 
   String? get coverUrl =>
       parent?.coverUrl ??
-      (_coverUrl ??= Storage.getString('cover-${(group ?? name).sha1Hash}'));
+      (_coverUrl ??=
+          Storage.getString('cover-${(group ?? nameCleaned).sha1Hash}'));
 
   set coverUrl(String? url) {
     if (url == null) {
@@ -58,7 +64,7 @@ class Groupable {
       return;
     }
     _coverUrl = url;
-    Storage.setStringIfNotExists('cover-${(group ?? name).sha1Hash}', url);
+    Storage.setString('cover-${(group ?? nameCleaned).sha1Hash}', url);
   }
 
   String? get episode => episodeNumbers?.join(' - ');
@@ -74,25 +80,65 @@ class Groupable {
 
   String get title => name;
 
-  Widget coverImageWidget() =>
-      parent?.coverImageWidget() ??
-      (_coverImageWidget ??= ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: CachedImage(
-          key: ValueKey(coverUrl),
-          url: coverUrl,
-          fallbackGetter: defaultCoverUrlFallback,
+  String get videoPath => throw UnimplementedError();
+
+  Widget coverImageWidget([BoxFit fit = BoxFit.contain]) {
+    switch (FileTypeExt.from(name)) {
+      case FileType.image:
+        return Image.file(
+          File(videoPath),
+          key: ValueKey(nameHash),
           width: kListTileThumbnailWidth,
-          fit: BoxFit.contain,
-        ),
-      ));
+          fit: fit,
+        );
+      case FileType.folder:
+      case FileType.video:
+        return parent?.coverImageWidget() ??
+            (_coverImageWidget ??= ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: CachedImage(
+                key: ValueKey(coverUrl),
+                url: coverUrl,
+                fallbackGetter: defaultCoverUrlFallback,
+                width: kListTileThumbnailWidth,
+                fit: fit,
+              ),
+            ));
+      case FileType.audio:
+        return const AdaptiveIcon(
+          CupertinoIcons.music_note,
+        );
+      // case FileType.folder:
+      //   return const AdaptiveIcon(
+      //     CupertinoIcons.folder,
+      //     size: kListTileThumbnailWidth,
+      //   );
+      case FileType.subtitle:
+        return const AdaptiveIcon(
+          CupertinoIcons.textformat,
+        );
+      case FileType.archive:
+        return const AdaptiveIcon(
+          CupertinoIcons.archivebox,
+        );
+      case FileType.link:
+        return const AdaptiveIcon(
+          CupertinoIcons.link,
+        );
+      default:
+        return const AdaptiveIcon(
+          CupertinoIcons.doc,
+        );
+    }
+  }
 
   Future<String?> defaultCoverUrlFallback() async {
-    Logger().d('defaultCoverUrlFallback called for $nameCleanedNoNum');
-    final coverUrl = await YouTube.search(nameCleanedNoNum).then(
-        (value) => value.isEmpty ? null : value.first.value.first.coverUrl);
-    this.coverUrl ??= coverUrl;
-    return coverUrl;
+    // Logger().d('defaultCoverUrlFallback called for $name');
+    // final coverUrl = await YouTube.search(nameCleanedNoNum).then(
+    //     (value) => value.isEmpty ? null : value.first.value.first.coverUrl);
+    // this.coverUrl ??= coverUrl;
+    // return coverUrl;
+    return null;
   }
 
   Map<String, dynamic> toJson() => _$GroupableToJson(this);
@@ -106,12 +152,13 @@ class Groupable {
 
 class Title {
   static const kTagRepr = {
-    tagHD: '1080P',
-    tagSD: '720P',
-    tag10Bit: '10-bit',
-    tagFLAC: 'FLAC Music',
-    tagMP3: 'MP3 Music',
-    tagDate: ''
+    tagHD: '[HD]',
+    tagSD: '[SD]',
+    tag10Bit: '[10-bit]',
+    tagFLAC: '[M-FLAC]',
+    tagMP3: '[M-MP3]',
+    tagDate: '',
+    tagRemove: ''
   };
 
   late String value;
@@ -125,12 +172,15 @@ class Title {
       title = title.replaceAll(RegExp(e.key, caseSensitive: false), '');
     }
     value = (title
-                .replaceFirst(RegExp('內[嵌封]'), '')
-                .replaceAll(RegExp(r'[\(\)\[\]\{\}（）【】★_\-－——\s+]'), ' ')
-                .replaceAll(RegExp(r'\s[a-zA-Z]+\D^!'), ' ') +
-            suffixes.toString())
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+            .replaceFirst(RegExp('內[嵌封]'), '')
+            .replaceAll(RegExp(r'[\(\)\[\]（）【】★_\-－—\s+]'), ' ')
+            // .replaceAll(RegExp(r'\s[a-zA-Z]+[\D\S]'), ' ')
+
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .replaceAll(RegExp(r'(\[\]|\(\)|【】|（）)'), '')
+            .trim()
+            .replaceAll(RegExp(r'\.$'), '') +
+        suffixes.toString());
   }
 }
 
@@ -148,7 +198,8 @@ extension GroupHelpers<T extends Groupable> on List<T> {
 
     sort((a, b) => a.name.compareTo(b.name));
 
-    final splitted = List.unmodifiable(map((e) => e.nameCleaned.split(' ')));
+    final splitted =
+        List.unmodifiable(map((e) => e.nameCleaned.split(RegExp(r'(\.|\s)'))));
 
     List<String> root;
     int rootIndex;
@@ -188,7 +239,8 @@ extension GroupHelpers<T extends Groupable> on List<T> {
       }
       if (grouped[this[rootIndex].group]!.length == 1) {
         grouped[this[rootIndex].nameCleaned] =
-            grouped.remove(this[rootIndex].nameCleanedNoNum)!;
+            grouped.remove(this[rootIndex].group)!;
+        this[rootIndex].group = this[rootIndex].nameCleaned;
       }
     }
 

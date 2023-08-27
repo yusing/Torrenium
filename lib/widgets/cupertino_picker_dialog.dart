@@ -10,13 +10,16 @@ Future<T?> showPickerDialog<T>(
       height: 230,
       width: 450,
       alignment: Alignment.bottomRight,
-      // The Bottom margin is provided to align the popup above the system navigation bar.
       margin: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      // Provide a background color for the popup.
-      color: CupertinoColors.black,
-      // Use a SafeArea widget to avoid system overlaps.
+      decoration: const BoxDecoration(
+        color: CupertinoColors.black,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(10),
+          topRight: Radius.circular(10),
+        ),
+      ),
       child: SafeArea(
         top: false,
         left: false,

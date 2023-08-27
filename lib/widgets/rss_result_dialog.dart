@@ -28,13 +28,17 @@ class PlayDownloadButtons extends StatelessWidget {
               : const AdaptiveIcon(CupertinoIcons.cloud_download),
           label:
               Text(e.episode ?? (gRssProvider.isYouTube ? 'Play' : 'Download')),
-          onPressed: () => openOrDownloadItem(context, e)))),
+          onPressed: () => openOrDownloadItem(context, e).then((_) {
+                if (results.length == 1) {
+                  Navigator.of(context).pop();
+                }
+              })))),
     );
   }
 
-  void openOrDownloadItem(BuildContext context, RSSItem item) {
+  Future<void> openOrDownloadItem(BuildContext context, RSSItem item) async {
     if (gRssProvider.isYouTube) {
-      YouTubeItem(item)
+      await YouTubeItem(item)
           .init()
           .then((ytItem) => showVideoPlayer(context, ytItem))
           .onError((error, st) => showAdaptiveAlertDialog(

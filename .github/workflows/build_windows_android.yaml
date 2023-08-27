@@ -15,7 +15,7 @@ jobs:
         cache: true
     - uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.10.6'
+        flutter-version: '3.13.1'
         cache: true
     - run: flutter --version
     - run: flutter pub get
