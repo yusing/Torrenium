@@ -95,6 +95,8 @@ Torrenium is an app that fetch resources from different rss providers.
 [![Flutter][Flutter]][Flutter-url]
 [![Go][GoLang]][Go-url]
 
+[![Codemagic build status](https://api.codemagic.io/apps/64be57c5aa99ccce5e5b5d8d/64be57c5aa99ccce5e5b5d8c/status_badge.svg)](https://codemagic.io/apps/64be57c5aa99ccce5e5b5d8d/64be57c5aa99ccce5e5b5d8c/latest_build)
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Features
