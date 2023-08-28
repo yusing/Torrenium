@@ -35,7 +35,7 @@ class Subscription {
       author: split[3] == 'null' ? null : split[3],
     );
     sub.initNotifiers(
-      lastUpdate: Storage.hasKey('sublastUpdate_$sub')
+      lastUpdate: kStorage.containsKey('sublastUpdate_$sub')
           ? DateTime.fromMillisecondsSinceEpoch(
               Storage.instance.getInt('sublastUpdate_$sub')!)
           : null,
@@ -89,7 +89,7 @@ class SubscriptionManager {
   final updateNotifier = ValueNotifier(null);
 
   SubscriptionManager()
-      : subscriptions = Storage.instance
+      : subscriptions = kStorage
                 .getStringList('subscriptions')
                 ?.map<Subscription>((e) => Subscription.fromStr(e))
                 .toList() ??
@@ -138,8 +138,8 @@ class SubscriptionManager {
       return false;
     }
     _subs.remove(sub);
-    await Storage.removeKey('sublastUpdate_$sub');
-    await Storage.removeKey('subsTasksDone_$sub');
+    await kStorage.remove('sublastUpdate_$sub');
+    await kStorage.remove('subsTasksDone_$sub');
     await _saveSubscriptions();
     updateNotifier.notifyListeners();
     return true;

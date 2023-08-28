@@ -19,7 +19,7 @@ class GroupableFileSystemEntity extends DownloadItem {
 
   @override
   List<DownloadItem> get files => isMultiFile
-      ? List.unmodifiable(Directory(entity.path)
+      ? List.of(Directory(entity.path)
           .listSync()
           .map((e) => GroupableFileSystemEntity(e)))
       : throw UnsupportedError('Not a directory');

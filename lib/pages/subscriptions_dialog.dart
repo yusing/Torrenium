@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '/services/subscription.dart';
 import '/style.dart';
-import 'adaptive.dart';
+import '/widgets/adaptive.dart';
 
 class SubscriptionsDialog extends StatelessWidget {
   const SubscriptionsDialog({super.key});
@@ -31,12 +31,13 @@ class SubscriptionsDialog extends StatelessWidget {
                           ),
                           trailing: [
                             AdaptiveIconButton(
-                                icon: const Icon(CupertinoIcons.refresh),
+                                icon:
+                                    const AdaptiveIcon(CupertinoIcons.refresh),
                                 onPressed: () async =>
                                     await gSubscriptionManager.updateSub(
                                         sub, true)),
                             AdaptiveIconButton(
-                              icon: const Icon(CupertinoIcons.delete),
+                              icon: const AdaptiveIcon(CupertinoIcons.delete),
                               onPressed: () =>
                                   gSubscriptionManager.removeSubscription(sub),
                             ),

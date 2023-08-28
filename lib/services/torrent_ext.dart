@@ -6,7 +6,7 @@ import '/widgets/adaptive.dart';
 import 'torrent_mgr.dart';
 
 extension TorrentManagerExtension on TorrentManager {
-  // TODO: change this
+  // TODO: youtube download
   void download(RSSItem item,
       {required BuildContext context, bool pop = false}) {
     item.startDownload().onError((error, stackTrace) async {

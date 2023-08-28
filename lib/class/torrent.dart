@@ -104,7 +104,7 @@ class Torrent extends DownloadItem implements Resumeable {
   @override
   Future<void> delete() async {
     gTorrentManager.deleteTorrent(this);
-    await Storage.removeKey('cover-$infoHash');
+    await kStorage.remove('cover-$infoHash');
   }
 
   @override

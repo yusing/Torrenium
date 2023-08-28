@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 
+import '/services/settings.dart';
 import '/services/watch_history.dart';
 import '/style.dart';
 import '/utils/open_file.dart';
 import '/utils/string.dart';
-import 'adaptive.dart';
+import '/widgets/adaptive.dart';
 
 class WatchHistoryPage extends StatefulWidget {
   const WatchHistoryPage({super.key});
@@ -38,7 +39,13 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                     borderRadius: BorderRadius.circular(6.0),
                     child: Stack(
                       children: [
-                        entry.coverImageWidget(),
+                        if (Settings.textOnlyMode.value)
+                          SizedBox(
+                              width: 120,
+                              height: 80,
+                              child: entry.coverImageWidget())
+                        else
+                          entry.coverImageWidget(),
                         if (entry.duration != null)
                           Positioned(
                               bottom: 8,

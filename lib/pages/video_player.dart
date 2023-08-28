@@ -10,7 +10,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '/interface/download_item.dart';
 import '/services/watch_history.dart';
 import '/utils/string.dart';
-import 'adaptive.dart';
+import '/widgets/adaptive.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final DownloadItem item;

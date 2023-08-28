@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 
 import '/interface/download_item.dart';
 import '/main.dart' show kIsDesktop;
+import '/pages/video_player.dart';
 import '/widgets/adaptive.dart';
-import '/widgets/video_player.dart';
 
 Future<void> showVideoPlayer(BuildContext context, DownloadItem item) async {
   if (kIsDesktop) {

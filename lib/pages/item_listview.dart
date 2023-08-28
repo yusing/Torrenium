@@ -1,62 +1,48 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart' show MacosColors;
 
+import '/class/torrent.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/interface/resumeable.dart';
+import '/services/settings.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/utils/open_file.dart';
 import '/utils/string.dart';
-import '../class/torrent_file.dart';
-import 'adaptive.dart';
-import 'play_pause_button.dart';
+import '/widgets/adaptive.dart';
+import '/widgets/play_pause_button.dart';
 
-class DownloadListDialog extends StatelessWidget {
-  const DownloadListDialog({super.key});
+class DownloadsListView extends StatelessWidget {
+  const DownloadsListView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            AdaptiveTextButton(
-                icon: const Icon(CupertinoIcons.refresh),
-                label: const Text('Regroup'),
-                onPressed: gTorrentManager.regroup),
-          ],
+        Visibility(
+          visible: Settings.enableGrouping.value,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AdaptiveTextButton(
+                  icon: const Icon(CupertinoIcons.refresh),
+                  label: const Text('Regroup'),
+                  onPressed: gTorrentManager.regroup),
+            ],
+          ),
         ),
         Expanded(
           child: StreamBuilder(
               stream: Stream.periodic(const Duration(seconds: 3)),
               builder: (context, snapshot) {
-                return GroupListDialog(gTorrentManager.torrentMap);
+                if (gTorrentManager.isEmpty) {
+                  return const Center(child: Text('Nothing Here...'));
+                }
+                return ItemListView(gTorrentManager.torrentMap);
               }),
         ),
       ],
-    );
-  }
-}
-
-class GroupListDialog extends StatelessWidget {
-  final List<MapEntry<String, List<DownloadItem>>> groups;
-
-  GroupListDialog(Map<String, List<DownloadItem>> map, {super.key})
-      : groups = map.sortedGroup();
-
-  @override
-  Widget build(BuildContext context) {
-    if (groups.isEmpty) {
-      return const Center(child: Text('Nothing Here...'));
-    }
-    return ListView.separated(
-      separatorBuilder: (_, index) => const SizedBox(height: 24),
-      itemCount: groups.length,
-      itemBuilder: ((_, index) {
-        return ItemGroupWidget(groups[index]);
-      }),
     );
   }
 }
@@ -70,7 +56,6 @@ class ItemGroupWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // placeholder list may be empty
     if (items.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -90,15 +75,21 @@ class ItemGroupWidget extends StatelessWidget {
         onTap: () => showAdaptivePopup(
             context: context,
             builder: (_) {
-              if (episodes.every((e) => e is TorrentFile)) {
+              if (episodes.first is! Torrent) {
                 return Wrap(
-                  children: List.unmodifiable(episodes.map((e) => Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: AdaptiveTextButton(
-                            label: Text(e.episode ?? e.nameCleaned),
-                            onPressed: context.onTapCallback(e)),
-                      ))),
-                );
+                    children: List.of(episodes.map((e) => Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: AdaptiveTextButton(
+                            icon: const AdaptiveIcon(CupertinoIcons.play_arrow),
+                            label: Text(
+                              e.episode ?? e.nameCleaned,
+                            ),
+                            color: e.watchProgress > 0
+                                ? CupertinoColors.systemPurple
+                                : null,
+                            onPressed: context.onTapCallback(e),
+                          ),
+                        ))));
               }
               return ListView.separated(
                 separatorBuilder: (_, __) => const SizedBox(height: 16),
@@ -114,25 +105,23 @@ class ItemListTile extends Builder {
       : super(
           key: ValueKey(item),
           builder: ((context) => Visibility(
-              visible: !item.deleted,
-              child: _ItemListTileInner(context, item))),
+              visible: !item.deleted, child: ItemListTileInner(context, item))),
         );
 }
 
-class _ItemListTileInner extends AdaptiveListTile {
+class ItemListTileInner extends AdaptiveListTile {
   final BuildContext context;
   final DownloadItem item;
 
-  _ItemListTileInner(this.context, this.item)
+  ItemListTileInner(this.context, this.item, {super.key})
       : super(
-          leading: item is! TorrentFile ? item.coverImageWidget() : null,
+          leading: item.coverImageWidget(),
           title: Text(
             item.episode ?? item.displayName,
             style: item.watchProgress == 0
                 ? kItemTitleTextStyle
                 : kItemTitleTextStyle.copyWith(
                     color: MacosColors.systemPurpleColor),
-            maxLines: 3,
           ),
           trailing: item.isPlaceholder
               ? null
@@ -187,11 +176,36 @@ class _ItemListTileInner extends AdaptiveListTile {
         );
 }
 
+class ItemListView extends StatelessWidget {
+  final List<MapEntry<String, List<DownloadItem>>> groups;
+
+  ItemListView(Map<String, List<DownloadItem>> map, {super.key})
+      : groups = map.sortedGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    if (groups.isEmpty) {
+      return const Center(child: Text('Nothing Here...'));
+    }
+    if (groups.length == 1) {
+      return ListView.separated(
+          separatorBuilder: (_, index) => const SizedBox(height: 24),
+          itemCount: groups.first.value.length,
+          itemBuilder: ((_, index) => ItemListTile(groups.first.value[index])));
+    }
+    return ListView.separated(
+      separatorBuilder: (_, index) => const SizedBox(height: 24),
+      itemCount: groups.length,
+      itemBuilder: ((_, index) => ItemGroupWidget(groups[index])),
+    );
+  }
+}
+
 extension _DownloadItemExt on BuildContext {
   VoidCallback? onTapCallback(DownloadItem item) {
     return item.isMultiFile
         ? () => showAdaptivePopup(
-            context: this, builder: (_) => GroupListDialog(item.files.group()))
+            context: this, builder: (_) => ItemListView(item.files.group()))
         : item.isComplete
             ? () => openItem(this, item)
             : null;

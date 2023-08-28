@@ -49,6 +49,8 @@ class TorrentManager {
 
   late String saveDir;
 
+  bool get isEmpty => torrentMap.entries.every((e) => e.value.isEmpty);
+
   void deleteTorrent(Torrent t) {
     assert(!t.isPlaceholder, 'Cannot delete placeholder torrent');
     t.stopSelfUpdate();
@@ -56,14 +58,6 @@ class TorrentManager {
     removeFromMap(t);
     // WatchHistory.remove(t.nameHash);
     gSubscriptionManager.addExclusion(t.nameHash);
-  }
-
-  void removeFromMap(Torrent t) {
-    if (t.group == null || torrentMap[t.group]?.remove(t) != true) {
-      if (!ungrouped.remove(t)) {
-        Logger().e('Torrent ${t.name} not found in torrentMap or ungrouped');
-      }
-    }
   }
 
   Future<void> downloadItem(RSSItem item) async {
@@ -114,12 +108,20 @@ class TorrentManager {
 
   void regroup() {
     torrentMap.remove('Downloading metadata...');
-    final flattened = torrentMap.values.expand((e) => e).toList();
+    final flattened = torrentMap.flatten();
     torrentMap = {
       'Downloading metadata...': placeholders,
       'Ungrouped': ungrouped..clear(),
       ...flattened.group(),
     };
+  }
+
+  void removeFromMap(Torrent t) {
+    if (t.group == null || torrentMap[t.group]?.remove(t) != true) {
+      if (!ungrouped.remove(t)) {
+        Logger().e('Torrent ${t.name} not found in torrentMap or ungrouped');
+      }
+    }
   }
 
   void resumeTorrent(Torrent t) {
@@ -144,7 +146,7 @@ class TorrentManager {
     Logger().d('docDir: ${docDir.path}');
 
     if (kIsDesktop) {
-      instance.saveDir = Storage.getString('savePath') ??
+      instance.saveDir = kStorage.getString('savePath') ??
           pathlib.join(docDir.path, 'Torrenium');
       await pathlib.join(instance.saveDir, 'data').createDir();
     } else {
@@ -153,7 +155,7 @@ class TorrentManager {
     }
 
     if (!await Directory(instance.saveDir).exists()) {
-      await Storage.removeKey('savePath');
+      await kStorage.remove('savePath');
       return await init();
     }
 
@@ -171,7 +173,7 @@ class TorrentManager {
     final session = Torrent.listFromJson(
         await initClientIsolate.firstWhere((e) => e is String));
     session
-        .where((t) => t.isComplete)
+        .where((t) => !t.isComplete)
         .forEach((t) => go.DeleteMetadata(t.torrentPtr));
     instance.torrentMap
         .addAll(session.where((t) => !t.isComplete).toList().group());

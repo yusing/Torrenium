@@ -156,11 +156,16 @@ class AdaptiveIcon extends StatelessWidget {
 }
 
 class AdaptiveIconButton extends StatelessWidget {
-  final Widget icon;
+  final AdaptiveIcon icon;
   final VoidCallback onPressed;
   final EdgeInsetsGeometry? padding;
+  final String? slidableLabel;
   const AdaptiveIconButton(
-      {super.key, required this.icon, required this.onPressed, this.padding});
+      {super.key,
+      required this.icon,
+      required this.onPressed,
+      this.padding,
+      this.slidableLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +224,7 @@ class AdaptiveListTile extends StatelessWidget {
                       style: kItemTitleTextStyle,
                       softWrap: true,
                       overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
+                      maxLines: 3,
                       child: title),
                   if (subtitle != null)
                     DefaultTextStyle(
@@ -247,10 +252,11 @@ class AdaptiveListTile extends StatelessWidget {
           children: trailing!
               .map((e) => SlidableAction(
                     onPressed: (_) => e.onPressed(),
-                    icon: ((e).icon as AdaptiveIcon).icon,
-                    backgroundColor: ((e).icon as AdaptiveIcon).color ??
-                        CupertinoTheme.of(context).primaryColor,
+                    icon: e.icon.icon,
+                    backgroundColor:
+                        e.icon.color ?? CupertinoTheme.of(context).primaryColor,
                     foregroundColor: CupertinoColors.white,
+                    label: e.slidableLabel,
                   ))
               .toList(),
         ),
@@ -309,9 +315,14 @@ class AdaptiveTextButton extends StatelessWidget {
   final Widget? icon;
   final Widget label;
   final VoidCallback? onPressed;
+  final Color? color;
 
   const AdaptiveTextButton(
-      {super.key, this.icon, required this.label, required this.onPressed});
+      {super.key,
+      this.icon,
+      this.color,
+      required this.label,
+      required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +331,15 @@ class AdaptiveTextButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [icon!, const SizedBox(width: 6), label],
+            children: [
+              color != null
+                  ? IconTheme(data: IconThemeData(color: color), child: icon!)
+                  : icon!,
+              const SizedBox(width: 6),
+              DefaultTextStyle(
+                  style: kItemTitleTextStyle.copyWith(color: color),
+                  child: label)
+            ],
           );
     if (kIsDesktop) {
       return PushButton(
@@ -341,6 +360,41 @@ class AdaptiveTextButton extends StatelessWidget {
       onPressed: onPressed,
       child: child,
     );
+  }
+}
+
+class _AdaptiveDropDownState<T> extends State<AdaptiveDropDown<T>> {
+  late var _value = widget.value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsDesktop) {
+      return CupertinoPickerButton(
+          items: List.generate(widget.items.length, (i) => i, growable: false),
+          itemBuilder: (i) =>
+              Text(widget.textGetter(widget.items.elementAt(i))),
+          valueGetter: () => _value,
+          onSelectedItemChanged: (i) => setState(() => _value = i),
+          onPop: widget.onChange);
+    }
+
+    return MacosPopupButton(
+        value: _value,
+        items: List.generate(widget.items.length, (index) {
+          final item = widget.items.elementAt(index);
+          return MacosPopupMenuItem(
+              value: index,
+              enabled:
+                  widget.enabledFilter?.call(widget.textGetter(item)) ?? true,
+              child: Text(widget.textGetter(item)));
+        }),
+        onChanged: (i) {
+          if (i == null) return;
+          setState(() {
+            _value = i;
+          });
+          widget.onChange(i);
+        });
   }
 }
 
@@ -385,39 +439,4 @@ class _ProgressBarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ProgressBarPainter old) => old.value != value;
-}
-
-class _AdaptiveDropDownState<T> extends State<AdaptiveDropDown<T>> {
-  late var _value = widget.value;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!kIsDesktop) {
-      return CupertinoPickerButton(
-          items: List.generate(widget.items.length, (i) => i, growable: false),
-          itemBuilder: (i) =>
-              Text(widget.textGetter(widget.items.elementAt(i))),
-          valueGetter: () => _value,
-          onSelectedItemChanged: (i) => setState(() => _value = i),
-          onPop: widget.onChange);
-    }
-
-    return MacosPopupButton(
-        value: _value,
-        items: List.generate(widget.items.length, (index) {
-          final item = widget.items.elementAt(index);
-          return MacosPopupMenuItem(
-              value: index,
-              enabled:
-                  widget.enabledFilter?.call(widget.textGetter(item)) ?? true,
-              child: Text(widget.textGetter(item)));
-        }),
-        onChanged: (i) {
-          if (i == null) return;
-          setState(() {
-            _value = i;
-          });
-          widget.onChange(i);
-        });
-  }
 }

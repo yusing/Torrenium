@@ -10,10 +10,9 @@ import 'services/http.dart';
 import 'services/storage.dart';
 import 'services/subscription.dart';
 import 'services/torrent_mgr.dart';
+import 'style.dart';
 import 'view/desktop_view.dart';
 import 'view/mobile_view.dart';
-
-bool _isInitialized = false;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +25,8 @@ Future<void> main() async {
 
 final kIsDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
+bool _isInitialized = false;
+
 Future<void> init() async {
   if (_isInitialized) {
     return;
@@ -36,16 +37,35 @@ Future<void> init() async {
   _isInitialized = true;
 }
 
-class TorreniumApp extends StatelessWidget {
+class TorreniumApp extends StatefulWidget {
   static Widget get view =>
       kIsDesktop ? const DesktopView() : const MobileView();
 
   const TorreniumApp({super.key});
 
   @override
+  State<TorreniumApp> createState() => _TorreniumAppState();
+
+  static void reload() {
+    _TorreniumAppState.state.reload();
+  }
+}
+
+class _TorreniumAppState extends State<TorreniumApp> {
+  var key = UniqueKey();
+  static late _TorreniumAppState state;
+
+  @override
+  void initState() {
+    super.initState();
+    state = this;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return kIsDesktop
         ? MacosApp(
+            key: key,
             title: 'Torrenium',
             theme: MacosThemeData.dark(),
             debugShowCheckedModeBanner: false,
@@ -53,10 +73,9 @@ class TorreniumApp extends StatelessWidget {
             builder: BotToastInit(),
             home: content())
         : CupertinoApp(
+            key: key,
             title: 'Torrenium',
-            theme: const CupertinoThemeData(
-                brightness: Brightness.dark,
-                primaryColor: CupertinoColors.activeOrange),
+            theme: kCupertinoThemeData,
             debugShowCheckedModeBanner: false,
             navigatorObservers: [BotToastNavigatorObserver()],
             builder: BotToastInit(),
@@ -71,7 +90,7 @@ class TorreniumApp extends StatelessWidget {
             Logger().e('init error', snapshot.error, snapshot.stackTrace);
           }
           if (snapshot.connectionState == ConnectionState.done) {
-            return view;
+            return TorreniumApp.view;
           }
           return Center(
               child: Column(
@@ -85,5 +104,11 @@ class TorreniumApp extends StatelessWidget {
             ],
           ));
         });
+  }
+
+  void reload() {
+    setState(() {
+      key = UniqueKey();
+    });
   }
 }

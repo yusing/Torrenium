@@ -4,7 +4,7 @@ import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/services/http.dart';
-import '../style.dart';
+import '/style.dart';
 
 class CachedImage extends CachedNetworkImage {
   CachedImage(

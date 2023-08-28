@@ -8,7 +8,7 @@ import '/services/torrent_ext.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/utils/show_video_player.dart';
-import 'adaptive.dart';
+import '/widgets/adaptive.dart';
 import 'rss_tab.dart';
 
 class PlayDownloadButtons extends StatelessWidget {
@@ -63,6 +63,10 @@ class RssResultDialog extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(
+              items.first.title,
+              style: kItemTitleTextStyle,
+            ),
             PlayDownloadButtons(items),
             Expanded(
               child: SingleChildScrollView(

@@ -53,7 +53,7 @@ class WatchHistory {
   }
 
   static WatchHistories get() {
-    final json = Storage.getString(_key);
+    final json = kStorage.getString(_key);
     if (json == null) return WatchHistories.empty();
     try {
       return WatchHistories.fromJson(jsonDecode(json));
@@ -94,7 +94,7 @@ class WatchHistory {
   }
 
   static Future<void> update() async {
-    await Storage.setString(_key, jsonEncode(histories));
+    await kStorage.setString(_key, jsonEncode(histories));
     notifier.notifyListeners();
   }
 

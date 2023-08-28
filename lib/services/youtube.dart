@@ -2,8 +2,8 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '/class/rss_item.dart';
 import '/class/rss_result_group.dart';
+import '/pages/rss_tab.dart';
 import '/utils/fetch_rss.dart';
-import '/widgets/rss_tab.dart';
 
 class YouTube {
   static final client = YoutubeExplode();

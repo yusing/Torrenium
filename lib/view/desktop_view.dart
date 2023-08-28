@@ -4,13 +4,13 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '/pages/item_listview.dart';
+import '/pages/rss_tab.dart';
+import '/pages/subscriptions_dialog.dart';
+import '/pages/watch_history.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/widgets/adaptive.dart';
-import '/widgets/group_list_dialog.dart';
-import '/widgets/rss_tab.dart';
-import '/widgets/subscriptions_dialog.dart';
-import '/widgets/watch_history.dart';
 
 class DesktopView extends StatelessWidget {
   const DesktopView({super.key});
@@ -81,7 +81,7 @@ class TitleBar extends ToolBar {
                           await showAdaptivePopup(
                               barrierDismissible: true,
                               context: context,
-                              builder: (_) => const DownloadListDialog());
+                              builder: (_) => const DownloadsListView());
                         },
                       )),
               CustomToolbarItem(

@@ -30,7 +30,8 @@ class DownloadItem extends Groupable {
 
   String? get audioTrackPath => null;
 
-  String get displayName => nameCleaned;
+  String get displayName =>
+      isMultiFile ? '$nameCleaned (${files.length} items)' : nameCleaned;
 
   double get etaSecs => progress == 0
       ? double.infinity

@@ -11,9 +11,9 @@ import '/services/rss_providers.dart';
 import '/services/subscription.dart';
 import '/style.dart';
 import '/utils/fetch_rss.dart';
-import 'adaptive.dart';
-import 'cupertino_picker_button.dart';
-import 'rss_result_view.dart';
+import '/view/rss_result_view.dart';
+import '/widgets/adaptive.dart';
+import '/widgets/cupertino_picker_button.dart';
 
 var gAuthorIndex = 0;
 var gCategoryIndex = 0;

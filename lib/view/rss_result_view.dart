@@ -3,15 +3,15 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:macos_ui/macos_ui.dart';
 
 import '/class/rss_result_group.dart';
+import '/pages/rss_tab.dart';
+import '/services/settings.dart';
 import '/services/torrent_ext.dart';
 import '/services/torrent_mgr.dart';
 import '/utils/string.dart';
-import 'adaptive.dart';
-import 'rss_result_card.dart';
-import 'rss_tab.dart';
+import '/widgets/adaptive.dart';
+import '/widgets/rss_result_card.dart';
 
 class RssResultGridView extends StatelessWidget {
   final ScrollController? controller;
@@ -20,6 +20,9 @@ class RssResultGridView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (Settings.textOnlyMode.value) {
+      return RssResultListView(results, controller: controller);
+    }
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: MasonryGridView.builder(
@@ -49,9 +52,6 @@ class RssResultListView extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 18),
       itemCount: results.length,
       itemBuilder: ((context, index) {
-        assert(results[index].value.length == 1,
-            'RSSResultListView expect and support only one item per result\n${results[index].value}');
-
         final item = results[index].value.first;
         return AdaptiveListTile(
           key: ValueKey(results[index].key),
@@ -59,23 +59,24 @@ class RssResultListView extends StatelessWidget {
           trailing: [
             AdaptiveIconButton(
               padding: const EdgeInsets.all(0),
-              icon: const MacosIcon(CupertinoIcons.cloud_download, size: 18),
-              onPressed: () => gTorrentManager.download(item, context: context),
+              icon: const AdaptiveIcon(CupertinoIcons.cloud_download, size: 18),
+              slidableLabel:
+                  results[index].value.length > 1 ? 'Download All' : null,
+              onPressed: () {
+                for (var e in results[index].value) {
+                  gTorrentManager.download(e, context: context);
+                }
+              },
             ),
-            AdaptiveIconButton(
-              padding: const EdgeInsets.all(0),
-              icon: const MacosIcon(
-                CupertinoIcons.info,
-                size: 16,
-              ),
-              onPressed: () => results[index].showDialog(context),
-            )
           ],
+          onTap: () => results[index].showDialog(context),
           subtitle: Text(
               [
                 item.category ?? 'Unknown Category',
                 if (item.pubDate != null) 'Published ${item.pubDate!.relative}',
-                if (item.size != null) item.size
+                if (item.size != null) item.size,
+                if (results[index].value.length > 1)
+                  '${results[index].value.length} results'
               ].join(' | '),
               style: const TextStyle(fontSize: 12)),
         );

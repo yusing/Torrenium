@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 
-import '/widgets/file_browser.dart';
-import '/widgets/group_list_dialog.dart';
-import '/widgets/rss_tab.dart';
-import '/widgets/subscriptions_dialog.dart';
-import '/widgets/watch_history.dart';
+import '/pages/file_browser.dart';
+import '/pages/item_listview.dart';
+import '/pages/rss_tab.dart';
+import '/pages/settings.dart';
+import '/pages/subscriptions_dialog.dart';
+import '/pages/watch_history.dart';
 
 class MobileTab {
   final String title;
@@ -14,34 +15,35 @@ class MobileTab {
   const MobileTab(this.title, this.icon, this.child);
 }
 
-class MobileView extends StatefulWidget {
-  // TODO: fix download, subs tab not updating
+class MobileView extends StatelessWidget {
+  // TODO: fix download, subs, files tab not updating
 
   static final _tabController = CupertinoTabController();
   static const kPages = [
-    MobileTab('Home', CupertinoIcons.home, RSSTab()),
-    MobileTab('Subscriptions', CupertinoIcons.star, SubscriptionsDialog()),
-    MobileTab('Downloads', CupertinoIcons.down_arrow, DownloadListDialog()),
-    MobileTab('Files', CupertinoIcons.doc, FileBrowser()),
-    MobileTab('History', CupertinoIcons.time, WatchHistoryPage()),
+    MobileTab('Home', CupertinoIcons.home, RSSTab(key: ValueKey('home'))),
+    MobileTab('Subscriptions', CupertinoIcons.star,
+        SubscriptionsDialog(key: ValueKey('subs'))),
+    MobileTab('Downloads', CupertinoIcons.down_arrow,
+        DownloadsListView(key: ValueKey('downloads'))),
+    MobileTab(
+        'Files', CupertinoIcons.folder, FileBrowser(key: ValueKey('files'))),
+    MobileTab('History', CupertinoIcons.time,
+        WatchHistoryPage(key: ValueKey('history'))),
+    MobileTab('Settings', CupertinoIcons.settings,
+        SettingsPage(key: ValueKey('settings'))),
   ];
   const MobileView({super.key});
 
   @override
-  State<MobileView> createState() => _MobileViewState();
-}
-
-class _MobileViewState extends State<MobileView> {
-  @override
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
-        controller: MobileView._tabController,
+        controller: _tabController,
         tabBar: CupertinoTabBar(
             items: List.generate(
-                MobileView.kPages.length,
+                kPages.length,
                 (i) => BottomNavigationBarItem(
-                      icon: Icon(MobileView.kPages[i].icon),
-                      label: MobileView.kPages[i].title,
+                      icon: Icon(kPages[i].icon),
+                      label: kPages[i].title,
                     ))),
         tabBuilder: (context, index) => CupertinoTabView(
               builder: (context) => CupertinoPageScaffold(
@@ -49,7 +51,7 @@ class _MobileViewState extends State<MobileView> {
                     child: Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 4.0),
-                  child: MobileView.kPages[index].child,
+                  child: kPages[index].child,
                 )),
               ),
             ));

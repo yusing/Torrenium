@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:logger/logger.dart';
 
+import '/services/settings.dart';
 import '/services/storage.dart';
 import '/style.dart';
 import '/utils/file_types.dart';
@@ -38,9 +39,6 @@ class Groupable {
   @JsonKey(includeToJson: false, includeFromJson: false)
   String? _coverUrl;
 
-  @JsonKey(includeToJson: false, includeFromJson: false)
-  Widget? _coverImageWidget;
-
   Groupable? parent;
 
   String? group;
@@ -50,10 +48,8 @@ class Groupable {
   factory Groupable.fromJson(Map<String, dynamic> json) =>
       _$GroupableFromJson(json);
 
-  String? get coverUrl =>
-      parent?.coverUrl ??
-      (_coverUrl ??=
-          Storage.getString('cover-${(group ?? nameCleaned).sha1Hash}'));
+  String? get coverUrl => _coverUrl ??=
+      (kStorage.getString('cover-${name.sha1Hash}') ?? parent?.coverUrl);
 
   set coverUrl(String? url) {
     if (url == null) {
@@ -64,10 +60,19 @@ class Groupable {
       return;
     }
     _coverUrl = url;
-    Storage.setString('cover-${(group ?? nameCleaned).sha1Hash}', url);
+    kStorage.setString('cover-${name.sha1Hash}', url);
   }
 
-  String? get episode => episodeNumbers?.join(' - ');
+  String? get episode {
+    final e = episodeNumbers?.join(' - ');
+    if (e == null) {
+      return null;
+    }
+    if (int.tryParse(e) != null) {
+      return 'Episode $e';
+    }
+    return e;
+  }
 
   String get nameCleaned => _nameCleaned ??= Title(name).value;
 
@@ -83,8 +88,14 @@ class Groupable {
   String get videoPath => throw UnimplementedError();
 
   Widget coverImageWidget([BoxFit fit = BoxFit.contain]) {
-    switch (FileTypeExt.from(name)) {
+    final fType = FileTypeExt.from(name);
+    switch (fType) {
       case FileType.image:
+        if (Settings.textOnlyMode.value) {
+          return const AdaptiveIcon(
+            CupertinoIcons.photo_fill,
+          );
+        }
         return Image.file(
           File(videoPath),
           key: ValueKey(nameHash),
@@ -93,8 +104,17 @@ class Groupable {
         );
       case FileType.folder:
       case FileType.video:
+        if (Settings.textOnlyMode.value) {
+          return fType == FileType.folder
+              ? const AdaptiveIcon(
+                  CupertinoIcons.folder_fill,
+                )
+              : const AdaptiveIcon(
+                  CupertinoIcons.videocam_fill,
+                );
+        }
         return parent?.coverImageWidget() ??
-            (_coverImageWidget ??= ClipRRect(
+            ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: CachedImage(
                 key: ValueKey(coverUrl),
@@ -103,23 +123,18 @@ class Groupable {
                 width: kListTileThumbnailWidth,
                 fit: fit,
               ),
-            ));
+            );
       case FileType.audio:
         return const AdaptiveIcon(
           CupertinoIcons.music_note,
         );
-      // case FileType.folder:
-      //   return const AdaptiveIcon(
-      //     CupertinoIcons.folder,
-      //     size: kListTileThumbnailWidth,
-      //   );
       case FileType.subtitle:
         return const AdaptiveIcon(
-          CupertinoIcons.textformat,
+          CupertinoIcons.doc_text_fill,
         );
       case FileType.archive:
         return const AdaptiveIcon(
-          CupertinoIcons.archivebox,
+          CupertinoIcons.archivebox_fill,
         );
       case FileType.link:
         return const AdaptiveIcon(
@@ -127,7 +142,7 @@ class Groupable {
         );
       default:
         return const AdaptiveIcon(
-          CupertinoIcons.doc,
+          CupertinoIcons.doc_fill,
         );
     }
   }
@@ -155,8 +170,8 @@ class Title {
     tagHD: '[HD]',
     tagSD: '[SD]',
     tag10Bit: '[10-bit]',
-    tagFLAC: '[M-FLAC]',
-    tagMP3: '[M-MP3]',
+    tagFLAC: '[FLAC]',
+    tagMP3: '[MP3]',
     tagDate: '',
     tagRemove: ''
   };
@@ -193,13 +208,16 @@ class UpdateNotifier extends ValueNotifier<void> {
 
 extension GroupHelpers<T extends Groupable> on List<T> {
   Map<String, List<T>> group() {
+    sort((a, b) => a.name.compareTo(b.name));
+
+    if (!Settings.enableGrouping.value) {
+      return {'Ungrouped': this};
+    }
     final grouped = <String, List<T>>{};
     int i = 0;
 
-    sort((a, b) => a.name.compareTo(b.name));
-
     final splitted =
-        List.unmodifiable(map((e) => e.nameCleaned.split(RegExp(r'(\.|\s)'))));
+        List.of(map((e) => e.nameCleaned.split(RegExp(r'(\.|\s)'))));
 
     List<String> root;
     int rootIndex;
@@ -212,26 +230,35 @@ extension GroupHelpers<T extends Groupable> on List<T> {
       if (!RegExp(r'\d+').hasMatch(this[rootIndex].name)) {
         continue;
       }
-      Iterable<int>? episodeIndexes;
+      Iterable<int>? diffIndexes;
       while (i < splitted.length) {
         if (this[i].group != null) {
           grouped[this[i].group!] ??= [];
           grouped[this[i].group!]!.add(this[i]);
           ++i;
-        } else if (root.length == splitted[i].length &&
-            (root.length > 1 && root[1] == splitted[i][1]) &&
+        } else if ((root.length > 1 &&
+                splitted[i].length > 1 &&
+                root[1] == splitted[i][1]) &&
             root.last == splitted[i].last) {
-          final current = splitted[i];
+          var current = splitted[i];
+
+          if (current.length < root.length) {
+            // pad
+            current = List.generate(
+                root.length,
+                (index) =>
+                    index < current.length ? current[index] : root[index]);
+          }
           this[i].group = this[rootIndex].group;
           this[i].parent = this[rootIndex];
 
           grouped[this[rootIndex].group]!.add(this[i]);
-          episodeIndexes ??= List.generate(root.length, (index) => index)
+          diffIndexes ??= List.generate(root.length, (index) => index)
               .where((index) => root[index] != current[index]);
           this[rootIndex].episodeNumbers ??=
-              List.unmodifiable(episodeIndexes.map((index) => root[index]));
+              List.unmodifiable(diffIndexes.map((index) => root[index]));
           this[i].episodeNumbers =
-              List.unmodifiable(episodeIndexes.map((index) => current[index]));
+              List.unmodifiable(diffIndexes.map((index) => current[index]));
           ++i;
         } else {
           break;
@@ -246,4 +273,8 @@ extension GroupHelpers<T extends Groupable> on List<T> {
 
     return grouped;
   }
+}
+
+extension GroupExt<T extends Groupable> on Map<String, List<T>> {
+  List<T> flatten() => values.expand((e) => e).toList();
 }
