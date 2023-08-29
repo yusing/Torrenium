@@ -56,8 +56,7 @@ class TorrentManager {
     t.stopSelfUpdate();
     go.DeleteTorrent(t.torrentPtr);
     removeFromMap(t);
-    // WatchHistory.remove(t.nameHash);
-    gSubscriptionManager.addExclusion(t.nameHash);
+    gSubscriptionManager.addExclusion(t.id);
   }
 
   Future<void> downloadItem(RSSItem item) async {
@@ -80,17 +79,17 @@ class TorrentManager {
     }, [recvPort.sendPort, placeholder.infoHash, item.coverUrl]);
   }
 
-  DownloadItem? findItem(String nameHash) {
+  DownloadItem? findItem(String id) {
     for (final group in torrentMap.values) {
       for (final torrent in group) {
         if (torrent.isMultiFile) {
           for (final file in torrent.files) {
-            if (file.nameHash == nameHash) {
+            if (file.id == id) {
               return file;
             }
           }
         }
-        if (torrent.nameHash == nameHash) {
+        if (torrent.id == id) {
           return torrent;
         }
       }

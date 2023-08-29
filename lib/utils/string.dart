@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
-
 extension DateTimeExt on DateTime {
   String get relative {
     final now = DateTime.now();
@@ -56,11 +54,11 @@ extension NumExt on num {
     if (this < 1000) {
       return '$this';
     } else if (this < 1000 * 1000) {
-      return '${(this / 1000).toStringAsFixed(0)}K';
+      return '${(this / 1000).toStringAsFixed(1)}K';
     } else if (this < 1000 * 1000 * 1000) {
-      return '${(this / 1000 / 1000).toStringAsFixed(0)}M';
+      return '${(this / 1000 / 1000).toStringAsFixed(1)}M';
     } else {
-      return '${(this / 1000 / 1000 / 1000).toStringAsFixed(0)}B';
+      return '${(this / 1000 / 1000 / 1000).toStringAsFixed(2)}B';
     }
   }
 
@@ -68,11 +66,11 @@ extension NumExt on num {
     if (this < 1024) {
       return '$this B';
     } else if (this < 1024 * 1024) {
-      return '${(this / 1024).toStringAsFixed(2)}KB';
+      return '${(this / 1024).toStringAsFixed(0)} KB';
     } else if (this < 1024 * 1024 * 1024) {
-      return '${(this / 1024 / 1024).toStringAsFixed(2)}MB';
+      return '${(this / 1024 / 1024).toStringAsFixed(1)} MB';
     } else {
-      return '${(this / 1024 / 1024 / 1024).toStringAsFixed(2)}GB';
+      return '${(this / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
     }
   }
 
@@ -100,8 +98,7 @@ extension NumExt on num {
 }
 
 extension StringExt on String {
-  String get sha1Hash => sha1.convert(utf8.encode(this)).toString();
-  // String get sha256Hash => sha256.convert(utf8.encode(this)).toString();
+  String get b64 => base64Encode(utf8.encode(this));
 
   String removeDelimiters(String delimiters) {
     String s = this;

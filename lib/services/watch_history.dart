@@ -47,8 +47,8 @@ class WatchHistory {
   static WatchHistories histories = get();
 
   static Future<void> add(WatchHistoryEntry entry) async {
-    histories.map.remove(entry.nameHash);
-    histories.map[entry.nameHash] = entry;
+    histories.map.remove(entry.id);
+    histories.map[entry.id] = entry;
     await update();
   }
 
@@ -63,33 +63,33 @@ class WatchHistory {
     }
   }
 
-  static Duration getDuration(String nameHash) {
-    return Duration(seconds: histories.map[nameHash]?.duration ?? 0);
+  static Duration getDuration(String id) {
+    return Duration(seconds: histories.map[id]?.duration ?? 0);
   }
 
-  static int getIndex(String nameHash) {
-    return histories.map[nameHash]?.position ?? 0;
+  static int getIndex(String id) {
+    return histories.map[id]?.position ?? 0;
   }
 
-  static Duration getPosition(String nameHash) {
-    return Duration(seconds: getIndex(nameHash));
+  static Duration getPosition(String id) {
+    return Duration(seconds: getIndex(id));
   }
 
-  static double getProgress(String nameHash) {
-    final duration = getDuration(nameHash);
+  static double getProgress(String id) {
+    final duration = getDuration(id);
     if (duration == Duration.zero) {
       return 0;
     }
-    final position = getPosition(nameHash);
+    final position = getPosition(id);
     return position.inSeconds / duration.inSeconds;
   }
 
-  static bool has(String nameHash) {
-    return histories.map.containsKey(nameHash);
+  static bool has(String id) {
+    return histories.map.containsKey(id);
   }
 
-  static Future<void> remove(String nameHash) async {
-    histories.map.remove(nameHash);
+  static Future<void> remove(String id) async {
+    histories.map.remove(id);
     await update();
   }
 
@@ -98,22 +98,22 @@ class WatchHistory {
     notifier.notifyListeners();
   }
 
-  static Future<void> updateDuration(String nameHash, Duration duration) async {
-    histories.map[nameHash]?.duration = duration.inSeconds;
+  static Future<void> updateDuration(String id, Duration duration) async {
+    histories.map[id]?.duration = duration.inSeconds;
     await update();
   }
 
   /* Image */
-  static Future<void> updateIndex(String nameHash, int index) async {
-    histories.map[nameHash]?.position = index;
+  static Future<void> updateIndex(String id, int index) async {
+    histories.map[id]?.position = index;
     await update();
   }
 
-  static Future<void> updatePosition(String nameHash, Duration position) async {
+  static Future<void> updatePosition(String id, Duration position) async {
     if (position == Duration.zero) {
       return;
     }
-    await updateIndex(nameHash, position.inSeconds);
+    await updateIndex(id, position.inSeconds);
   }
 }
 
@@ -123,8 +123,8 @@ class WatchHistoryEntry extends DownloadItem {
   String? path;
   @JsonKey(defaultValue: null)
   String? audioPath;
-  int? duration; // vnameHasheo/music duration in seconds, or index for image
-  int? position; // vnameHasheo/music position in seconds, or pages for images
+  int? duration; // video/music duration in seconds, or index for image
+  int? position; // video/music position in seconds, or pages for images
 
   WatchHistoryEntry({
     required super.name,
@@ -161,11 +161,10 @@ class WatchHistoryEntry extends DownloadItem {
   }
 
   @override
-  String get videoPath =>
-      path ?? gTorrentManager.findItem(nameHash)?.videoPath ?? '';
+  String get videoPath => path ?? gTorrentManager.findItem(id)?.videoPath ?? '';
 
   @override
   Map<String, dynamic> toJson() => _$WatchHistoryEntryToJson(this);
 }
 
-enum WatchHistoryEntryType { vnameHasheo, image, audio, all }
+enum WatchHistoryEntryType { video, image, audio, all }

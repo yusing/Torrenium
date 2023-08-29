@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show ValueNotifier;
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:logger/logger.dart';
 
 import '/utils/connectivity.dart';
@@ -94,18 +95,17 @@ class SubscriptionManager {
                 ?.map<Subscription>((e) => Subscription.fromStr(e))
                 .toList() ??
             [],
-        _updateTimer = Timer.periodic(
-            const Duration(seconds: 3), (timer) async => await update()) {
+        _updateTimer = Timer.periodic(3.seconds, (timer) => update()) {
     Logger().d('SubscriptionManager initialized');
   }
   List<Subscription> get _subs => subscriptions;
 
-  Future<void> addExclusion(String nameHash) {
+  Future<void> addExclusion(String id) {
     final exclusions = getExclusions();
-    if (exclusions.contains(nameHash)) {
+    if (exclusions.contains(id)) {
       return Future.value();
     }
-    exclusions.add(nameHash);
+    exclusions.add(id);
     return Storage.instance.setStringList('subsExclusions', exclusions);
   }
 
@@ -149,7 +149,7 @@ class SubscriptionManager {
     // update every hour
     if (!force &&
         DateTime.now().difference(sub.lastUpdateNotifier.value ?? DateTime(0)) <
-            const Duration(hours: 1)) {
+            1.hours) {
       return;
     }
     if (await isLimitedConnectivity()) {
@@ -167,7 +167,7 @@ class SubscriptionManager {
     final resp = await http.get(url);
     if (resp.statusCode == 200) {
       final items = parseRSSForItems(provider, await resp.body());
-      final tasks = Map.fromEntries(items.map((e) => MapEntry(e.nameHash, e)));
+      final tasks = Map.fromEntries(items.map((e) => MapEntry(e.id, e)));
       // start new tasks
       final newTasks =
           tasks.keys.where((task) => !subsTasksDone.contains(task));

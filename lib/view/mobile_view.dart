@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '/pages/file_browser.dart';
 import '/pages/item_listview.dart';
@@ -51,7 +52,7 @@ class MobileView extends StatelessWidget {
                     child: Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 4.0),
-                  child: kPages[index].child,
+                  child: kPages[index].child.animate().fadeIn(duration: 300.ms),
                 )),
               ),
             ));

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http_pkg;
 import 'package:logger/logger.dart';
@@ -20,7 +21,7 @@ class TorreniumCacheManager extends CacheManager {
 
   TorreniumCacheManager._()
       : super(Config(key,
-            stalePeriod: const Duration(days: 7),
+            stalePeriod: 7.days,
             maxNrOfCacheObjects: 100,
             fileService: TorreniumHttpFileService()));
 }

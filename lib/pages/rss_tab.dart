@@ -33,6 +33,9 @@ String? get gSelectedCategory =>
     gRssProvider.categoryRssMap?.values.elementAt(gCategoryIndex);
 
 void searchBarListener() {
+  if (gQuery == searchController.text) {
+    return;
+  }
   gQuery = searchController.text;
   // clear button workaround
   if (searchController.text.isEmpty) {

@@ -8,14 +8,12 @@ import '/utils/string.dart';
 
 class GroupableFileSystemEntity extends DownloadItem {
   final FileSystemEntity entity;
-  final DownloadItem? linked;
 
   GroupableFileSystemEntity(this.entity)
-      : linked =
-            gTorrentManager.findItem(pathlib.basename(entity.path).sha1Hash),
-        super(name: pathlib.basename(entity.path)) {
-    super.parent = linked;
-  }
+      : super(
+            name: pathlib.basename(entity.path),
+            parent:
+                gTorrentManager.findItem(pathlib.basename(entity.path).b64));
 
   @override
   List<DownloadItem> get files => isMultiFile
@@ -23,6 +21,8 @@ class GroupableFileSystemEntity extends DownloadItem {
           .listSync()
           .map((e) => GroupableFileSystemEntity(e)))
       : throw UnsupportedError('Not a directory');
+
+  DownloadItem? get linked => super.parent as DownloadItem?;
 
   @override
   bool get isComplete => linked?.isComplete ?? true;
@@ -32,6 +32,12 @@ class GroupableFileSystemEntity extends DownloadItem {
 
   @override
   num get progress => linked?.progress ?? 0;
+
+  @override
+  int get bytesDownloaded => linked?.bytesDownloaded ?? 0;
+
+  @override
+  int get size => linked?.size ?? 0;
 
   @override
   String get videoPath => entity.path;

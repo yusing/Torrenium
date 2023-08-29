@@ -49,7 +49,7 @@ class Groupable {
       _$GroupableFromJson(json);
 
   String? get coverUrl => _coverUrl ??=
-      (kStorage.getString('cover-${name.sha1Hash}') ?? parent?.coverUrl);
+      (kStorage.getString('cover-${name.b64}') ?? parent?.coverUrl);
 
   set coverUrl(String? url) {
     if (url == null) {
@@ -60,7 +60,7 @@ class Groupable {
       return;
     }
     _coverUrl = url;
-    kStorage.setString('cover-${name.sha1Hash}', url);
+    kStorage.setString('cover-${name.b64}', url);
   }
 
   String? get episode {
@@ -81,7 +81,7 @@ class Groupable {
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
-  String get nameHash => name.sha1Hash;
+  String get id => name.b64;
 
   String get title => name;
 
@@ -98,7 +98,7 @@ class Groupable {
         }
         return Image.file(
           File(videoPath),
-          key: ValueKey(nameHash),
+          key: ValueKey(id),
           width: kListTileThumbnailWidth,
           fit: fit,
         );

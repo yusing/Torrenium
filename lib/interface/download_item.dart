@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:json_annotation/json_annotation.dart';
 
 import '/services/watch_history.dart';
@@ -35,22 +37,26 @@ class DownloadItem extends Groupable {
 
   double get etaSecs => progress == 0
       ? double.infinity
-      : (DateTime.now().difference(_startTime).inSeconds *
+      : (DateTime.now()
+                  .difference(
+                      (parent as DownloadItem?)?._startTime ?? _startTime)
+                  .inSeconds *
               (1 - progress) /
               progress)
           .toDouble();
 
+  bool get exists => File(videoPath).existsSync();
   Map<String, String> get externalSubtitlePaths => {}; // TODO: test
-  String? get externalSubtitltFontPath => null; // TODO: test
 
+  String? get externalSubtitltFontPath => null; // TODO: test
   List<DownloadItem> get files => throw UnimplementedError();
   // IconData get icon => getPathIcon(videoPath);
   bool get isComplete => progress == 1.0;
   bool get isMultiFile => false;
   bool get isPlaceholder => false;
-  Duration get lastPosition => WatchHistory.getPosition(nameHash);
+  Duration get lastPosition => WatchHistory.getPosition(id);
 
-  double get watchProgress => WatchHistory.getProgress(nameHash);
+  double get watchProgress => WatchHistory.getProgress(id);
 
   Future<void> delete() async {
     deleted = true;
@@ -66,7 +72,7 @@ class DownloadItem extends Groupable {
   Map<String, dynamic> toJson() => _$DownloadItemToJson(this);
 
   Future<void> updateWatchPosition(Duration pos) async =>
-      await WatchHistory.updatePosition(nameHash, pos);
+      await WatchHistory.updatePosition(id, pos);
 }
 
 extension SortHelper<T extends DownloadItem> on Map<String, List<T>> {

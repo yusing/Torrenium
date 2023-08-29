@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:path/path.dart' as pathlib;
 
@@ -38,19 +37,14 @@ class TorrentFile extends DownloadItem {
   @override
   String get displayName => name;
 
-  bool get exists => File(videoPath).existsSync();
-
-  @override
-  String get videoPath => pathlib.join(gTorrentManager.saveDir, relativePath);
-
-  @override
-  bool get isComplete => true;
-
   @override
   bool get isMultiFile => false;
 
   @override
   bool get isPlaceholder => false;
+
+  @override
+  String get videoPath => pathlib.join(gTorrentManager.saveDir, relativePath);
 
   @override
   String toString() {

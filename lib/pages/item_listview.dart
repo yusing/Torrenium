@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:macos_ui/macos_ui.dart' show MacosColors;
 
-import '/class/torrent.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/interface/resumeable.dart';
@@ -34,7 +34,7 @@ class DownloadsListView extends StatelessWidget {
         ),
         Expanded(
           child: StreamBuilder(
-              stream: Stream.periodic(const Duration(seconds: 3)),
+              stream: Stream.periodic(1.seconds),
               builder: (context, snapshot) {
                 if (gTorrentManager.isEmpty) {
                   return const Center(child: Text('Nothing Here...'));
@@ -75,7 +75,7 @@ class ItemGroupWidget extends StatelessWidget {
         onTap: () => showAdaptivePopup(
             context: context,
             builder: (_) {
-              if (episodes.first is! Torrent) {
+              if (episodes.every((e) => e.isComplete)) {
                 return Wrap(
                     children: List.of(episodes.map((e) => Padding(
                           padding: const EdgeInsets.all(4.0),
@@ -205,7 +205,12 @@ extension _DownloadItemExt on BuildContext {
   VoidCallback? onTapCallback(DownloadItem item) {
     return item.isMultiFile
         ? () => showAdaptivePopup(
-            context: this, builder: (_) => ItemListView(item.files.group()))
+            context: this,
+            builder: (_) => StreamBuilder(
+                stream: Stream.periodic(1.seconds),
+                builder: (context, snapshot) {
+                  return ItemListView(item.files.group());
+                }))
         : item.isComplete
             ? () => openItem(this, item)
             : null;

@@ -21,6 +21,14 @@ class RssResultGridView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (Settings.textOnlyMode.value) {
+      if (!Settings.enableGrouping.value) {
+        return RssResultListView(
+          results.first.value
+              .map((e) => RssResultGroup(e.nameCleaned, [e]))
+              .toList(growable: false),
+          controller: controller,
+        );
+      }
       return RssResultListView(results, controller: controller);
     }
     return Padding(

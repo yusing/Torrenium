@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 
@@ -17,8 +18,9 @@ import 'torrent_file.dart';
 
 class Torrent extends DownloadItem implements Resumeable {
   static final updateTimerMap = <String, Timer>{};
+  static final _map = <String, Torrent>{};
 
-  final List<TorrentFile> _files = [];
+  List<TorrentFile> _files = [];
   String infoHash;
   Pointer<Void> torrentPtr;
   int bytesDownloadedInitial;
@@ -27,15 +29,6 @@ class Torrent extends DownloadItem implements Resumeable {
   @override
   bool isPaused = false;
 
-  Torrent._(
-      {required super.name,
-      required super.progress,
-      required super.size,
-      required super.bytesDownloaded,
-      required this.infoHash,
-      required this.torrentPtr,
-      required this.bytesDownloadedInitial});
-
   factory Torrent.fromJson(dynamic json) {
     if (json is String) {
       json = jsonDecode(json);
@@ -43,9 +36,13 @@ class Torrent extends DownloadItem implements Resumeable {
     if (json == null || json.isEmpty) {
       throw ArgumentError.value(json, 'json', 'json cannot be null or empty');
     }
-    final torrent = Torrent._(
+    final infoHash = json['info_hash'];
+    if (_map.containsKey(infoHash)) {
+      return _map[infoHash]!..selfUpdate(json);
+    }
+    final torrent = _map[infoHash] = Torrent._(
       name: json['name'],
-      infoHash: json['info_hash'],
+      infoHash: infoHash,
       size: json['size'],
       torrentPtr: Pointer<Void>.fromAddress(json['ptr']),
       progress: json['progress'],
@@ -70,6 +67,15 @@ class Torrent extends DownloadItem implements Resumeable {
         bytesDownloaded: 0,
         bytesDownloadedInitial: 0);
   }
+
+  Torrent._(
+      {required super.name,
+      required super.progress,
+      required super.size,
+      required super.bytesDownloaded,
+      required this.infoHash,
+      required this.torrentPtr,
+      required this.bytesDownloadedInitial});
 
   @override
   String get displayName =>
@@ -105,6 +111,7 @@ class Torrent extends DownloadItem implements Resumeable {
   Future<void> delete() async {
     gTorrentManager.deleteTorrent(this);
     await kStorage.remove('cover-$infoHash');
+    _map.remove(infoHash);
   }
 
   @override
@@ -117,13 +124,17 @@ class Torrent extends DownloadItem implements Resumeable {
     gTorrentManager.resumeTorrent(this);
   }
 
-  void selfUpdate() {
-    final Map tMap = jsonDecode.cStringCall(go.GetTorrentInfo(torrentPtr));
+  void selfUpdate(Map tMap) {
     progress = tMap['progress'];
     size = tMap['size'];
     bytesDownloaded =
         tMap['bytes_downloaded'] ?? tMap['progress'] * tMap['size'];
+    torrentPtr = Pointer<Void>.fromAddress(tMap['ptr']);
     _downloadedTime = DateTime.now();
+    _files = [
+      for (final file in tMap['files'])
+        TorrentFile.fromJson(file)..parent = this
+    ];
   }
 
   void startSelfUpdate() {
@@ -135,8 +146,7 @@ class Torrent extends DownloadItem implements Resumeable {
           .e('Timer already exists for $infoHash but startSelfUpdate() called');
       return;
     }
-    updateTimerMap[infoHash] =
-        Timer.periodic(const Duration(seconds: 1), (_) async {
+    updateTimerMap[infoHash] = Timer.periodic(1.seconds, (_) async {
       if (isComplete && bytesDownloaded > 0) {
         assert(bytesDownloaded == size, '$bytesDownloaded != $size');
         Logger().d('Torrent $name complete, stopping self update');
@@ -161,7 +171,7 @@ class Torrent extends DownloadItem implements Resumeable {
           });
         }
 
-        selfUpdate();
+        Torrent.fromJson(jsonDecode.cStringCall(go.GetTorrentInfo(torrentPtr)));
       }
     });
   }
@@ -174,18 +184,6 @@ class Torrent extends DownloadItem implements Resumeable {
     }
     timer.cancel();
   }
-
-  // TODO: remove below
-  // void updateDetail(Torrent other) {
-  //   name = other.name;
-  //   infoHash = other.infoHash;
-  //   size = other.size;
-  //   _files = other.files;
-  //   torrentPtr = other.torrentPtr;
-  //   bytesDownloadedInitial = other.bytesDownloadedInitial;
-  //   progress = other.progress;
-  //   bytesDownloaded = other.bytesDownloaded;
-  // }
 
   static List<Torrent> listFromJson(String jsonStr) {
     final List? json = jsonDecode(jsonStr);

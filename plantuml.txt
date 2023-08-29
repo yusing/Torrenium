@@ -53,7 +53,7 @@ class "torrenium::classes::torrent.dart::Torrent" {
   +bool isMultiFile
   +bool isPlaceholder
   +Duration lastPosition
-  +String nameHash
+  +String id
   +double watchProgress
   +int compareTo()
   +void delete()
@@ -197,7 +197,7 @@ class "torrenium::services::watch_history.dart::WatchHistory" {
 "torrenium::services::watch_history.dart::WatchHistory" o-- "torrenium::services::watch_history.dart::WatchHistories"
 
 class "torrenium::services::watch_history.dart::WatchHistoryEntry" {
-  +String nameHash
+  +String id
   +String title
   +int? duration
   +int? position
@@ -211,7 +211,7 @@ class "torrenium::services::watch_history.dart::WatchHistoryEntry" {
 class "torrenium::services::watch_history.dart::WatchHistoryEntryType" {
   +int index
   {static} +List<WatchHistoryEntryType> values
-  {static} +WatchHistoryEntryType vnameHasheo
+  {static} +WatchHistoryEntryType video
   {static} +WatchHistoryEntryType image
   {static} +WatchHistoryEntryType audio
   {static} +WatchHistoryEntryType all

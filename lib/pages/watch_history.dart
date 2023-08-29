@@ -34,7 +34,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                 final entry = WatchHistory.histories
                     .elementAt(WatchHistory.histories.length - index - 1);
                 return AdaptiveListTile(
-                  key: ValueKey(entry.nameHash),
+                  key: ValueKey(entry.id),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(6.0),
                     child: Stack(
@@ -84,6 +84,11 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                     maxLines: 2,
                     softWrap: true,
                   ),
+                  trailing: [
+                    AdaptiveIconButton(
+                        icon: const AdaptiveIcon(CupertinoIcons.delete),
+                        onPressed: () => WatchHistory.remove(entry.id)),
+                  ],
                   onTap: () => openItem(context, entry),
                 );
               },

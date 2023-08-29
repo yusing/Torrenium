@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:path/path.dart' as pathlib;
 
 import '/class/fs_entity.dart';
@@ -49,7 +50,11 @@ class _FileBrowserState extends State<FileBrowser> {
             if (snapshot.data!.isEmpty) {
               return const Center(child: Text('Empty folder'));
             }
-            return ItemListView(snapshot.data!);
+            return StreamBuilder(
+                stream: Stream.periodic(1.seconds),
+                builder: (context, _) {
+                  return ItemListView(snapshot.data!);
+                });
           }),
     );
   }

@@ -59,23 +59,16 @@ class RssResultDialog extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       decoration: gradientDecoration,
       padding: EdgeInsets.all(kIsDesktop ? 32.0 : 8.0),
-      child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              items.first.title,
-              style: kItemTitleTextStyle,
-            ),
-            PlayDownloadButtons(items),
-            Expanded(
-              child: SingleChildScrollView(
-                child: gRssProvider.isYouTube
-                    ? Text(items.first.description)
-                    : Html(
-                        data: items.first.description,
-                      ),
+      child: ListView(children: [
+        Text(
+          items.first.title,
+          style: kItemTitleTextStyle,
+        ),
+        PlayDownloadButtons(items),
+        gRssProvider.isYouTube
+            ? Text(items.first.description)
+            : Html(
+                data: items.first.description,
               ),
-            ),
-          ]));
+      ]));
 }

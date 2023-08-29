@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:logger/logger.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -77,7 +78,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     await player.stream.duration
         .firstWhere((d) => d.inSeconds > 0)
         .then((_) async {
-      if (WatchHistory.has(item.nameHash)) {
+      if (WatchHistory.has(item.id)) {
         await player.seek(item.lastPosition);
         BotToast.showText(
             text: 'Resuming from ${item.lastPosition.toStringNoMs()}');
@@ -91,7 +92,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           duration: player.state.duration.inSeconds,
           position: player.state.position.inSeconds));
     });
-    positionSub = Stream.periodic(const Duration(seconds: 2)).listen((_) {
+    positionSub = Stream.periodic(2.seconds).listen((_) {
       widget.item.updateWatchPosition(player.state.position);
     });
 
