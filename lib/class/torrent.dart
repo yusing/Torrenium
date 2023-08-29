@@ -20,7 +20,7 @@ class Torrent extends DownloadItem implements Resumeable {
   static final updateTimerMap = <String, Timer>{};
   static final _map = <String, Torrent>{};
 
-  List<TorrentFile> _files = [];
+  final List<TorrentFile> _files = [];
   String infoHash;
   Pointer<Void> torrentPtr;
   int bytesDownloadedInitial;
@@ -131,10 +131,9 @@ class Torrent extends DownloadItem implements Resumeable {
         tMap['bytes_downloaded'] ?? tMap['progress'] * tMap['size'];
     torrentPtr = Pointer<Void>.fromAddress(tMap['ptr']);
     _downloadedTime = DateTime.now();
-    _files = [
-      for (final file in tMap['files'])
-        TorrentFile.fromJson(file)..parent = this
-    ];
+    for (var i = 0; i < tMap['files'].length; i++) {
+      files[i].selfUpdate(tMap['files'][i]);
+    }
   }
 
   void startSelfUpdate() {

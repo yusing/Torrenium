@@ -80,8 +80,8 @@ class RssResultListView extends StatelessWidget {
           onTap: () => results[index].showDialog(context),
           subtitle: Text(
               [
-                item.category ?? 'Unknown Category',
-                if (item.pubDate != null) 'Published ${item.pubDate!.relative}',
+                if (item.category != null) item.category,
+                if (item.pubDate != null) item.pubDate!.relative,
                 if (item.size != null) item.size,
                 if (results[index].value.length > 1)
                   '${results[index].value.length} results'

@@ -7,24 +7,10 @@ import 'package:http/http.dart' as http_pkg;
 import 'package:logger/logger.dart';
 
 final http = TorreniumHttpFileService();
-final gCacheManager = TorreniumCacheManager();
-
-class TorreniumCacheManager extends CacheManager {
-  static const key = 'torreniumCacheManager';
-
-  static TorreniumCacheManager? _instance;
-
-  factory TorreniumCacheManager() {
-    _instance ??= TorreniumCacheManager._();
-    return _instance!;
-  }
-
-  TorreniumCacheManager._()
-      : super(Config(key,
-            stalePeriod: 7.days,
-            maxNrOfCacheObjects: 100,
-            fileService: TorreniumHttpFileService()));
-}
+final gCacheManager = CacheManager(Config('torreniumCacheManager',
+    stalePeriod: 7.days, maxNrOfCacheObjects: 100, fileService: http));
+final gCacheManagerShortTerm = CacheManager(Config('torreniumCacheManager',
+    stalePeriod: 1.minutes, maxNrOfCacheObjects: 10, fileService: http));
 
 class TorreniumHttpFileService extends FileService {
   TorreniumHttpFileService({HttpClient? httpClient});

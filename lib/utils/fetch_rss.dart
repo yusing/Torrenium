@@ -55,7 +55,7 @@ List<RSSItem> parseRSSForItems(RSSProvider provider, String body) {
 }
 
 Future<List<RSSItem>> _getRSSItems(RSSProvider provider, String url) async {
-  String body = await gCacheManager.getSingleFile(url, headers: {
+  String body = await gCacheManagerShortTerm.getSingleFile(url, headers: {
     'Content-Type': 'application/xml',
     'Accept': 'application/xml',
     'Encoding': 'UTF-8',

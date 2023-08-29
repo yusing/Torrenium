@@ -51,4 +51,16 @@ class TorrentFile extends DownloadItem {
     // for debugging
     return group ?? nameCleanedNoNum;
   }
+
+  void selfUpdate(Map tMap) {
+    if (size == 0) {
+      size = tMap['size'];
+    }
+    if (tMap['bytes_downloaded'] != null) {
+      bytesDownloaded = tMap['bytes_downloaded'];
+    }
+    if (tMap['progress'] != null) {
+      progress = tMap['progress'];
+    }
+  }
 }
