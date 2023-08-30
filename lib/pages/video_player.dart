@@ -9,6 +9,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '/interface/download_item.dart';
 import '/services/watch_history.dart';
+import '/utils/show_snackbar.dart';
 import '/utils/string.dart';
 import '/widgets/adaptive.dart';
 
@@ -79,7 +80,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         .then((_) async {
       if (WatchHistory.has(item.id)) {
         await player.seek(item.lastPosition);
-        Get.snackbar('Resuming from ${item.lastPosition.toStringNoMs()}', '');
+        showSnackBar('Resuming from ${item.lastPosition.toStringNoMs()}', '');
         Logger().d('Restoring position to ${item.lastPosition}');
       }
       // add even if already exists to push to top

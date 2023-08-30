@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_offline/flutter_offline.dart';
-import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -12,6 +11,7 @@ import '/services/rss_providers.dart';
 import '/services/subscription.dart';
 import '/style.dart';
 import '/utils/fetch_rss.dart';
+import '/utils/show_snackbar.dart';
 import '/view/rss_result_view.dart';
 import '/widgets/adaptive.dart';
 import '/widgets/cupertino_picker_button.dart';
@@ -313,7 +313,7 @@ class RSSTab extends StatelessWidget {
     return GestureDetector(
       onLongPress: () async {
         await Clipboard.setData(ClipboardData(text: url))
-            .then((value) => Get.snackbar('Copied to clipboard', url));
+            .then((value) => showSnackBar('Copied to clipboard', url));
       },
       child: urlBarInner(url),
     );

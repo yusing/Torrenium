@@ -6,14 +6,9 @@ import '/style.dart';
 import '/utils/string.dart';
 import '/widgets/adaptive.dart';
 
-class WatchHistoryPage extends StatefulWidget {
+class WatchHistoryPage extends StatelessWidget {
   const WatchHistoryPage({super.key});
 
-  @override
-  State<WatchHistoryPage> createState() => _WatchHistoryPageState();
-}
-
-class _WatchHistoryPageState extends State<WatchHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Padding(

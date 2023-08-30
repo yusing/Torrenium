@@ -9,6 +9,7 @@ import '/pages/video_player.dart';
 import '/services/watch_history.dart';
 import '/utils/file_types.dart';
 import '/utils/fs.dart';
+import '/utils/show_snackbar.dart';
 import '/widgets/adaptive.dart';
 import 'groupable.dart';
 
@@ -78,11 +79,11 @@ class DownloadItem extends Groupable {
     // TODO: handle for different file type
     if (!isUrl) {
       if (!(File(videoPath).existsSync())) {
-        Get.snackbar('File not found', videoPath);
+        showSnackBar('File not found', videoPath);
         return;
       }
       if (FileTypeExt.from(videoPath) != FileType.video) {
-        Get.snackbar(
+        showSnackBar(
             'File type not supported', FileTypeExt.from(videoPath).name);
         return;
       }

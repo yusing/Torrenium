@@ -9,6 +9,7 @@ import '/main.dart' show kIsDesktop;
 import '/services/torrent_ext.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
+import '/utils/show_snackbar.dart';
 import '/widgets/adaptive.dart';
 
 class PlayDownloadButtons extends StatelessWidget {
@@ -39,7 +40,7 @@ class PlayDownloadButtons extends StatelessWidget {
     if (item.source.isYouTube) {
       YouTubeItem(item).play().onError((error, st) async {
         Logger().e('Failed to load video', error, st);
-        Get.snackbar('Failed to load video', error.toString());
+        showSnackBar('Failed to load video', error.toString());
       });
     } else {
       gTorrentManager.download(item);
