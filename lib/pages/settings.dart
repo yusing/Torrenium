@@ -15,6 +15,7 @@ class SettingsPage extends StatelessWidget {
         child: SettingsList(
             applicationType: ApplicationType.cupertino,
             platform: DevicePlatform.iOS,
+            brightness: Brightness.dark,
             darkTheme: SettingsThemeData(
                 settingsListBackground: CupertinoColors.black,
                 settingsSectionBackground: CupertinoColors.black,

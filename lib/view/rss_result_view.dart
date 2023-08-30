@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '/class/rss_result_group.dart';
-import '/pages/rss_tab.dart';
+import '/services/rss_providers.dart';
 import '/services/settings.dart';
 import '/services/torrent_ext.dart';
 import '/services/torrent_mgr.dart';
@@ -15,8 +15,10 @@ import '/widgets/rss_result_card.dart';
 
 class RssResultGridView extends StatelessWidget {
   final ScrollController? controller;
+  final RSSProvider provider;
   final List<RssResultGroup> results;
-  const RssResultGridView(this.results, {this.controller, super.key});
+  const RssResultGridView(this.provider, this.results,
+      {this.controller, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,7 @@ class RssResultGridView extends StatelessWidget {
           mainAxisSpacing: 4,
           crossAxisSpacing: 4,
           gridDelegate: SliverSimpleGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: gRssProvider.isYouTube
+            maxCrossAxisExtent: provider.isYouTube
                 ? min(480, MediaQuery.of(context).size.width)
                 : max(400, MediaQuery.of(context).size.width / 4),
           ),
@@ -72,12 +74,12 @@ class RssResultListView extends StatelessWidget {
                   results[index].value.length > 1 ? 'Download All' : null,
               onPressed: () {
                 for (var e in results[index].value) {
-                  gTorrentManager.download(e, context: context);
+                  gTorrentManager.download(e);
                 }
               },
             ),
           ],
-          onTap: () => results[index].showDialog(context),
+          onTap: () => results[index].showDialog(),
           subtitle: Text(
               [
                 if (item.category != null) item.category,

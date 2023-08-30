@@ -16,7 +16,6 @@ import '/main.dart' show kIsDesktop;
 import '/utils/fs.dart';
 import 'go_torrent.dart';
 import 'storage.dart';
-import 'subscription.dart';
 
 final go = GoTorrentBindings(_dylib);
 
@@ -48,16 +47,8 @@ class TorrentManager {
   };
 
   late String saveDir;
-
-  bool get isEmpty => torrentMap.entries.every((e) => e.value.isEmpty);
-
-  void deleteTorrent(Torrent t) {
-    assert(!t.isPlaceholder, 'Cannot delete placeholder torrent');
-    t.stopSelfUpdate();
-    go.DeleteTorrent(t.torrentPtr);
-    removeFromMap(t);
-    gSubscriptionManager.addExclusion(t.id);
-  }
+  bool get isEmpty => torrentMap.entries
+      .every((e) => e.value.isEmpty || e.value.every((t) => t.isHidden));
 
   Future<void> downloadItem(RSSItem item) async {
     if (item.torrentUrl == null) {
@@ -98,11 +89,11 @@ class TorrentManager {
     return null;
   }
 
-  void pauseTorrent(Torrent t) {
-    t.stopSelfUpdate();
-    t.isPaused = true;
-    // t.updateNotifier.notifyListeners();
-    go.PauseTorrent(t.torrentPtr);
+  void hideDownload(bool hideDownloaded) {
+    for (var t in Torrent.map.values) {
+      t.isHidden = t.isComplete && hideDownloaded;
+      Logger().d('${t.name} hidden? ${t.isHidden}');
+    }
   }
 
   void regroup() {
@@ -123,14 +114,6 @@ class TorrentManager {
     }
   }
 
-  void resumeTorrent(Torrent t) {
-    t.isPaused = false;
-    t.torrentPtr =
-        Pointer<Void>.fromAddress(go.ResumeTorrent.dartStringCall(t.infoHash));
-    t.bytesDownloadedInitial = t.bytesDownloaded;
-    t.startSelfUpdate();
-  }
-
   static Future<void> init() async {
     instance = TorrentManager();
     late final Directory docDir;
@@ -145,7 +128,7 @@ class TorrentManager {
     Logger().d('docDir: ${docDir.path}');
 
     if (kIsDesktop) {
-      instance.saveDir = kStorage.getString('savePath') ??
+      instance.saveDir = gStorage.getString('savePath') ??
           pathlib.join(docDir.path, 'Torrenium');
       await pathlib.join(instance.saveDir, 'data').createDir();
     } else {
@@ -154,7 +137,7 @@ class TorrentManager {
     }
 
     if (!await Directory(instance.saveDir).exists()) {
-      await kStorage.remove('savePath');
+      await gStorage.remove('savePath');
       return await init();
     }
 
@@ -171,9 +154,9 @@ class TorrentManager {
     // load last session
     final session = Torrent.listFromJson(
         await initClientIsolate.firstWhere((e) => e is String));
-    session
-        .where((t) => !t.isComplete)
-        .forEach((t) => go.DeleteMetadata(t.torrentPtr));
+    for (var t in session) {
+      go.DeleteMetadata(t.torrentPtr);
+    }
     instance.torrentMap
         .addAll(session.where((t) => !t.isComplete).toList().group());
 

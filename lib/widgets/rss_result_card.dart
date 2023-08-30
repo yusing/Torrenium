@@ -12,7 +12,7 @@ class RSSResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => result.showDialog(context),
+      onTap: () => result.showDialog(),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Column(

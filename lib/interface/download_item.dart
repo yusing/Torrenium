@@ -1,9 +1,16 @@
 import 'dart:io';
 
+import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '/main.dart' show kIsDesktop;
+import '/pages/video_player.dart';
 import '/services/watch_history.dart';
+import '/utils/file_types.dart';
 import '/utils/fs.dart';
+import '/widgets/adaptive.dart';
 import 'groupable.dart';
 
 part 'download_item.g.dart';
@@ -15,9 +22,9 @@ class DownloadItem extends Groupable {
   @JsonKey(includeToJson: false, includeFromJson: false)
   num progress;
   @JsonKey(includeToJson: false, includeFromJson: false)
-  bool deleted = false;
+  bool isHidden = false;
   @JsonKey(includeToJson: false, includeFromJson: false)
-  final DateTime _startTime;
+  DateTime startTime;
 
   DownloadItem(
       {required super.name,
@@ -25,7 +32,7 @@ class DownloadItem extends Groupable {
       this.progress = 0.0,
       this.bytesDownloaded = 0,
       this.size = 0})
-      : _startTime = DateTime.now();
+      : startTime = DateTime.now();
 
   factory DownloadItem.fromJson(Map<String, dynamic> json) =>
       _$DownloadItemFromJson(json);
@@ -38,8 +45,7 @@ class DownloadItem extends Groupable {
   double get etaSecs => progress == 0
       ? double.infinity
       : (DateTime.now()
-                  .difference(
-                      (parent as DownloadItem?)?._startTime ?? _startTime)
+                  .difference((parent as DownloadItem?)?.startTime ?? startTime)
                   .inSeconds *
               (1 - progress) /
               progress)
@@ -54,17 +60,51 @@ class DownloadItem extends Groupable {
   bool get isComplete => progress == 1.0;
   bool get isMultiFile => false;
   bool get isPlaceholder => false;
+  bool get isUrl => videoPath.startsWith('https://');
   Duration get lastPosition => WatchHistory.getPosition(id);
 
   double get watchProgress => WatchHistory.getProgress(id);
 
   Future<void> delete() async {
-    deleted = true;
+    isHidden = true;
 
     if (isMultiFile) {
       await videoPath.deleteDir();
     } else {
       await videoPath.deleteFile();
+    }
+  }
+
+  Future<void> open() async {
+    // TODO: handle for different file type
+    if (!isUrl) {
+      if (!(File(videoPath).existsSync())) {
+        BotToast.showText(text: 'File not found');
+        return;
+      }
+      if (FileTypeExt.from(videoPath) != FileType.video) {
+        BotToast.showText(text: 'File type not supported');
+        return;
+      }
+    }
+
+    await showVideoPlayer();
+  }
+
+  Future<void> showVideoPlayer() async {
+    if (kIsDesktop) {
+      await showAdaptivePopup(builder: (context) => VideoPlayerPage(this));
+    } else {
+      Get.to(() => CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            middle: Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+              maxLines: 2,
+            ),
+          ),
+          child: SafeArea(child: VideoPlayerPage(this))));
     }
   }
 

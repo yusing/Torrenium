@@ -1,6 +1,5 @@
 import 'package:xml/xml.dart';
 
-// TODO: allow adding custom provider
 const List<RSSProvider> kRssProviders = [
   RSSProvider(
       name: '動漫花園',
@@ -21,8 +20,8 @@ const List<RSSProvider> kRssProviders = [
         '其他': '1',
       },
       authorRssMap: {
-        '所有字幕組': '0',
         'ANi': '816',
+        '所有字幕組': '0',
         'NC-Raws': '801',
         '喵萌奶茶屋': '669',
         'Lilith-Raws': '803',
@@ -99,6 +98,7 @@ const List<RSSProvider> kRssProviders = [
         'Alchemist': '818',
         '黑岩射手吧字幕组': '819',
       }),
+  kYouTubeProvider,
   RSSProvider(
       name: 'Bangumi Moe',
       homePageUrl: 'https://bangumi.moe/',
@@ -207,11 +207,13 @@ const List<RSSProvider> kRssProviders = [
         'Real Life - Photobooks and Pictures': '2_1',
         'Real Life - Videos': '2_2',
       }),
-  YouTubeProvider('YouTube', 'UC45ONEZZfMDZCnEhgYmVu-A'),
-  // YouTubeProvider('Ani-One Asia', 'UC0wNSTMWIL3qaorLx0jie6A'),
   RSSHubProvider('U9A9', 'u9a9'),
   RSSHubProvider('U3C3', 'u3c3'),
 ];
+
+// TODO: allow adding custom provider
+const kYouTubeProvider =
+    YouTubeProvider('YouTube', 'UC45ONEZZfMDZCnEhgYmVu-A'); // Ani-One
 
 const _kMonths = {
   'Jan': '01',
@@ -382,10 +384,9 @@ class RSSProvider {
     this.pubDateParser = defaultPubDateParser,
   });
 
-  bool get isYouTube => homePageUrl == 'https://www.youtube.com/';
+  bool get isYouTube => this is YouTubeProvider;
   String get logoUrl => homePageUrl + logoPath;
   String get rssUrl => homePageUrl + rssPath;
-
   String searchUrl({String? query, String? author, String? category}) {
     query = query?.trim();
     if (query != null && query.isEmpty) {

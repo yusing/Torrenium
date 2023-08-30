@@ -1,25 +1,36 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show ValueNotifier;
+import 'package:crypto/crypto.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:logger/logger.dart';
 
 import '/utils/connectivity.dart';
 import '/utils/fetch_rss.dart' show parseRSSForItems;
+import '/utils/string.dart';
 import 'http.dart';
 import 'rss_providers.dart' show RSSProvider, kProvidersDict;
 import 'storage.dart';
 
-SubscriptionManager get gSubscriptionManager => SubscriptionManager.instance;
+part 'subscription.g.dart';
 
+final gSubscriptionManager = SubscriptionManager();
+
+@JsonSerializable()
 class Subscription {
   final String providerName;
   final String keyword;
   final String? category;
   final String? author;
-  late ValueNotifier<DateTime?> lastUpdateNotifier;
-  late ValueNotifier<int?> tasksDoneNotifier;
+  String? _id;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  late final lastUpdateNotifier =
+      StorageValueListener<int>('sublastUpdate:$this');
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  late final tasksDoneNotifier =
+      ContainerListener<void>('subsTasksDone:${toString().b64}');
 
   Subscription(
       {required this.providerName,
@@ -27,23 +38,19 @@ class Subscription {
       this.category,
       this.author});
 
-  factory Subscription.fromStr(String str) {
-    final split = str.split(':');
-    final sub = Subscription(
-      providerName: split[0],
-      keyword: utf8.decode(base64Decode(split[1])),
-      category: split[2] == 'null' ? null : split[2],
-      author: split[3] == 'null' ? null : split[3],
-    );
-    sub.initNotifiers(
-      lastUpdate: kStorage.containsKey('sublastUpdate_$sub')
-          ? DateTime.fromMillisecondsSinceEpoch(
-              Storage.instance.getInt('sublastUpdate_$sub')!)
-          : null,
-      tasksDone: Storage.instance.getStringList('subsTasksDone_$sub')?.length,
-    );
-    return sub;
-  }
+  factory Subscription.fromJson(Map<String, dynamic> json) =>
+      _$SubscriptionFromJson(json);
+
+  // factory Subscription.fromStr(String str) {
+  //   final split =
+  //       str.split(':').map((e) => utf8.decode(base64Decode(e))).toList();
+  //   return Subscription(
+  //     providerName: split[0],
+  //     keyword: split[1],
+  //     category: split[2].isEmpty ? null : split[2],
+  //     author: split[3].isEmpty ? null : split[3],
+  //   );
+  // }
 
   String? get authorName =>
       provider.authorRssMap?.entries.firstWhere((e) => e.value == author).key;
@@ -51,7 +58,6 @@ class Subscription {
   String? get categoryName => provider.categoryRssMap?.entries
       .firstWhere((e) => e.value == category)
       .key;
-
   @override
   int get hashCode =>
       providerName.hashCode ^
@@ -59,7 +65,12 @@ class Subscription {
       category.hashCode ^
       author.hashCode;
 
+  String get id => (_id ??= sha256.convert(utf8.encode('$this')).toString());
+
   RSSProvider get provider => kProvidersDict[providerName]!;
+
+  DateTime get lastUpdated =>
+      DateTime.fromMillisecondsSinceEpoch(lastUpdateNotifier.value ?? 0);
 
   @override
   bool operator ==(Object other) {
@@ -72,95 +83,73 @@ class Subscription {
     return false;
   }
 
-  void initNotifiers({DateTime? lastUpdate, int? tasksDone}) {
-    lastUpdateNotifier = ValueNotifier<DateTime?>(lastUpdate);
-    tasksDoneNotifier = ValueNotifier<int?>(tasksDone);
-  }
+  String searchUrl(RSSProvider provider) =>
+      provider.searchUrl(query: keyword, category: category, author: author);
+
+  Map<String, dynamic> toJson() => _$SubscriptionToJson(this);
 
   @override
   String toString() =>
-      '$providerName:${base64Encode(utf8.encode(keyword))}:${category ?? 'null'}:${author ?? 'null'}';
+      '${providerName.b64}:${keyword.b64}:${category?.b64 ?? ''}:${author?.b64 ?? ''}';
 }
 
 class SubscriptionManager {
-  static late final SubscriptionManager instance;
   // ignore: unused_field
-  final Timer _updateTimer;
-  final List<Subscription> subscriptions;
-  final updateNotifier = ValueNotifier(null);
+  late final Timer _updateTimer;
+  final subscriptions = ContainerListener<Subscription>('subscriptions');
+  final exclusions = ContainerListener<void>('subsExclusions');
 
-  SubscriptionManager()
-      : subscriptions = kStorage
-                .getStringList('subscriptions')
-                ?.map<Subscription>((e) => Subscription.fromStr(e))
-                .toList() ??
-            [],
-        _updateTimer = Timer.periodic(3.seconds, (timer) => update()) {
-    Logger().d('SubscriptionManager initialized');
+  SubscriptionManager() {
+    _updateTimer = Timer.periodic(3.seconds, (timer) => update());
   }
-  List<Subscription> get _subs => subscriptions;
 
-  Future<void> addExclusion(String id) {
-    final exclusions = getExclusions();
-    if (exclusions.contains(id)) {
-      return Future.value();
+  Future<void> addExclusion(String id) async {
+    if (exclusions.hasKey(id)) {
+      return;
     }
-    exclusions.add(id);
-    return Storage.instance.setStringList('subsExclusions', exclusions);
+    await exclusions.write(id, null);
   }
 
-  Future<bool> addSubscription(
-      {required String providerName,
-      required String keyword,
-      required String? author,
-      required String? category}) async {
-    final sub = Subscription(
-        providerName: providerName,
-        keyword: keyword,
-        author: author,
-        category: category);
-    sub.initNotifiers(lastUpdate: null, tasksDone: null);
-    if (_subs.contains(sub)) {
+  Future<bool> addSubscription(Subscription sub) async {
+    if (subscriptions.hasKey(sub.id)) {
       return false;
     }
-    _subs.add(sub);
-    await _saveSubscriptions();
-    updateNotifier.notifyListeners();
+    await subscriptions.write(sub.id, sub);
     return true;
   }
 
-  List<String> getExclusions() {
-    return Storage.instance.getStringList('subsExclusions') ?? [];
+  Future<void> init() async {
+    await GetStorage.init('subscriptions');
+    await GetStorage.init('subsExclusions');
+    Logger().d('SubscriptionManager initialized');
   }
 
   Future<bool> removeSubscription(Subscription sub) async {
-    if (!_subs.contains(sub)) {
+    if (!subscriptions.hasKey(sub.id)) {
       return false;
     }
-    _subs.remove(sub);
-    await kStorage.remove('sublastUpdate_$sub');
-    await kStorage.remove('subsTasksDone_$sub');
-    await _saveSubscriptions();
-    updateNotifier.notifyListeners();
+    await subscriptions.remove(sub.id);
+    await sub.lastUpdateNotifier.clear();
+    await sub.tasksDoneNotifier.clear();
     return true;
+  }
+
+  Future<void> update() async {
+    for (final sub in subscriptions.value) {
+      await updateSub(Subscription.fromJson(sub));
+    }
   }
 
   Future<void> updateSub(Subscription sub, [bool force = false]) async {
     // update every hour
-    if (!force &&
-        DateTime.now().difference(sub.lastUpdateNotifier.value ?? DateTime(0)) <
-            1.hours) {
+    if (!force && DateTime.now().difference(sub.lastUpdated) < 1.hours) {
       return;
     }
     if (await isLimitedConnectivity()) {
       // pause on cellular network or no network
       return;
     }
-    final subsTasksDone = force
-        ? <String>[]
-        : Storage.instance.getStringList('subsTasksDone_$sub') ?? [];
-    subsTasksDone.addAll(getExclusions());
-
+    final subsTasksDone = sub.tasksDoneNotifier.keys..addAll(exclusions.keys);
     final provider = sub.provider;
     final url = provider.searchUrl(
         query: sub.keyword, author: sub.author, category: sub.category);
@@ -172,37 +161,16 @@ class SubscriptionManager {
       final newTasks =
           tasks.keys.where((task) => !subsTasksDone.contains(task));
       for (final task in newTasks) {
-        final item = tasks[task]!;
-        try {
-          await item.startDownload();
-          Logger().i('New task: ${item.name}');
-        } catch (e) {
-          Logger().e(e);
-        }
+        await tasks[task]!
+            .startDownload()
+            .then((_) => Logger().i('New task: ${tasks[task]!.name}'))
+            .onError((e, st) => Logger().e('Error adding task', e, st));
+        sub.tasksDoneNotifier.write(task, null);
+        await Future.delayed(1.seconds);
       }
-      await Storage.instance
-          .setInt('sublastUpdate_$sub', DateTime.now().millisecondsSinceEpoch);
-      await Storage.instance
-          .setStringList('subsTasksDone_$sub', tasks.keys.toList());
-      sub.lastUpdateNotifier.value = DateTime.now();
-      sub.tasksDoneNotifier.value = tasks.length;
+      sub.lastUpdateNotifier.value = DateTime.now().millisecondsSinceEpoch;
     } else {
       Logger().e(resp.statusCode);
-    }
-  }
-
-  Future<void> _saveSubscriptions() async {
-    await Storage.instance.setStringList('subscriptions',
-        _subs.map((e) => e.toString()).toList(growable: false));
-  }
-
-  static void init() {
-    instance = SubscriptionManager();
-  }
-
-  static Future<void> update() async {
-    for (final sub in instance._subs) {
-      await instance.updateSub(sub);
     }
   }
 }

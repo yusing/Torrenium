@@ -45,14 +45,14 @@ class SettingBool extends Setting<bool> {
       {required super.title, required super.defaultValue, super.requireReload});
 
   @override
-  bool get value => kStorage.getBool('settings:$key') ?? defaultValue;
+  bool get value => gStorage.getBool('settings:$key') ?? defaultValue;
 
   @override
   set value(bool newValue) {
     if (value == newValue) {
       return;
     }
-    kStorage.setBool('settings:$key', newValue);
+    gStorage.setBool('settings:$key', newValue);
     notifyListeners();
   }
 

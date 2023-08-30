@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
+import 'package:get/utils.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../pages/settings.dart';
+import '/pages/file_browser.dart';
 import '/pages/item_listview.dart';
 import '/pages/rss_tab.dart';
 import '/pages/subscriptions_dialog.dart';
@@ -34,7 +37,7 @@ class DesktopView extends StatelessWidget {
 class TitleBar extends ToolBar {
   static final _progressUpdateNotifier = ValueNotifier(100.0);
   // ignore: unused_field
-  final _progressUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+  final _progressUpdateTimer = Timer.periodic(1.seconds, (_) {
     final inProgress = gTorrentManager.torrentMap.values
         .reduce((a, b) => [...a, ...b])
         .where((e) => e.progress < 1)
@@ -58,6 +61,15 @@ class TitleBar extends ToolBar {
             actions: [
               CustomToolbarItem(
                   inToolbarBuilder: (context) => AdaptiveTextButton(
+                        onPressed: () => showAdaptivePopup(
+                            builder: (_) => const FileBrowser(
+                                  key: ValueKey('files'),
+                                )),
+                        icon: const MacosIcon(CupertinoIcons.folder),
+                        label: const Text('Files'),
+                      )),
+              CustomToolbarItem(
+                  inToolbarBuilder: (context) => AdaptiveTextButton(
                         label: const Text('Downloads'),
                         // tooltipMessage: '${_progressUpdateNotifier.value.toInt()}%',
                         icon: ValueListenableBuilder(
@@ -66,7 +78,8 @@ class TitleBar extends ToolBar {
                               return _progressUpdateNotifier.value != 100
                                   ? ProgressCircle(
                                       value: _progressUpdateNotifier.value,
-                                      innerColor: MacosColors.appleBlue,
+                                      innerColor: MacosColors.systemBlueColor,
+                                      radius: 8,
                                     )
                                   : const MacosIcon(
                                       CupertinoIcons.cloud_download);
@@ -74,33 +87,39 @@ class TitleBar extends ToolBar {
                         onPressed: () async {
                           if (gTorrentManager.torrentMap.isEmpty) {
                             return await showAdaptiveAlertDialog(
-                                context: context,
                                 title: const Text('Oops'),
                                 content: const Text('Download list is empty'));
                           }
                           await showAdaptivePopup(
                               barrierDismissible: true,
-                              context: context,
-                              builder: (_) => const DownloadsListView());
+                              builder: (_) => const DownloadsListView(
+                                  key: ValueKey('downloads')));
                         },
                       )),
               CustomToolbarItem(
                   inToolbarBuilder: (context) => AdaptiveTextButton(
                         onPressed: () => showAdaptivePopup(
-                            barrierDismissible: true,
-                            context: context,
-                            builder: (_) => const SubscriptionsDialog()),
+                            builder: (_) => const SubscriptionsDialog(
+                                key: ValueKey('subscriptions'))),
                         icon: const MacosIcon(CupertinoIcons.star),
                         label: const Text('Subscriptions'),
                       )),
               CustomToolbarItem(
                   inToolbarBuilder: (context) => AdaptiveTextButton(
                         onPressed: () => showAdaptivePopup(
-                            barrierDismissible: true,
-                            context: context,
-                            builder: (_) => const WatchHistoryPage()),
+                            builder: (_) => const WatchHistoryPage(
+                                key: ValueKey('watch_history'))),
                         icon: const MacosIcon(CupertinoIcons.time),
                         label: const Text('Watch History'),
+                      )),
+              CustomToolbarItem(
+                  inToolbarBuilder: (context) => AdaptiveTextButton(
+                        onPressed: () => showAdaptivePopup(
+                            builder: (_) => const SettingsPage(
+                                  key: ValueKey('settings'),
+                                )),
+                        icon: const MacosIcon(CupertinoIcons.settings),
+                        label: const Text('Settings'),
                       )),
               // CustomToolbarItem(inToolbarBuilder: (context) {
               //   return AdaptiveTextButton(

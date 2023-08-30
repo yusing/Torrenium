@@ -43,13 +43,15 @@ class Groupable {
 
   String? group;
 
+  late final String coverUrlKey = 'cover-${name.b64}';
+
   Groupable({required this.name, this.parent});
 
   factory Groupable.fromJson(Map<String, dynamic> json) =>
       _$GroupableFromJson(json);
 
-  String? get coverUrl => _coverUrl ??=
-      (kStorage.getString('cover-${name.b64}') ?? parent?.coverUrl);
+  String? get coverUrl =>
+      _coverUrl ??= (gStorage.getString(coverUrlKey) ?? parent?.coverUrl);
 
   set coverUrl(String? url) {
     if (url == null) {
@@ -60,7 +62,7 @@ class Groupable {
       return;
     }
     _coverUrl = url;
-    kStorage.setString('cover-${name.b64}', url);
+    gStorage.setString(coverUrlKey, url);
   }
 
   String? get episode {
@@ -74,14 +76,14 @@ class Groupable {
     return e;
   }
 
+  String get id => name.b64;
+
   String get nameCleaned => _nameCleaned ??= Title(name).value;
 
   String get nameCleanedNoNum => _nameCleanedNoNum ??= nameCleaned
       .replaceAll(RegExp(r'\d+'), '')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
-
-  String get id => name.b64;
 
   String get title => name;
 
@@ -206,6 +208,10 @@ class UpdateNotifier extends ValueNotifier<void> {
   }
 }
 
+extension GroupExt<T extends Groupable> on Map<String, List<T>> {
+  List<T> flatten() => values.expand((e) => e).toList();
+}
+
 extension GroupHelpers<T extends Groupable> on List<T> {
   Map<String, List<T>> group() {
     sort((a, b) => a.name.compareTo(b.name));
@@ -273,8 +279,4 @@ extension GroupHelpers<T extends Groupable> on List<T> {
 
     return grouped;
   }
-}
-
-extension GroupExt<T extends Groupable> on Map<String, List<T>> {
-  List<T> flatten() => values.expand((e) => e).toList();
 }

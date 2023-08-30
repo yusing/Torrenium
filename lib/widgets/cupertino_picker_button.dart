@@ -36,8 +36,8 @@ class _CupertinoPickerButtonState<T> extends State<CupertinoPickerButton<T>> {
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: () {
-        _controller = FixedExtentScrollController(
-            initialItem: widget.items!.indexOf(widget.valueGetter()));
+        final initItem = widget.items!.indexOf(widget.valueGetter());
+        _controller = FixedExtentScrollController(initialItem: initItem);
         showPickerDialog(
                 context,
                 widget.valueGetter,
@@ -50,8 +50,11 @@ class _CupertinoPickerButtonState<T> extends State<CupertinoPickerButton<T>> {
                         widget.items!.map(widget.itemBuilder))))
             .then((value) {
           _controller.dispose();
-          if (value == null) return;
-          widget.onPop.call(value);
+          if (value == null) {
+            widget.onSelectedItemChanged?.call(initItem);
+          } else {
+            widget.onPop.call(value);
+          }
         });
       },
       child: Row(

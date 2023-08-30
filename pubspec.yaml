@@ -21,7 +21,6 @@ dependencies:
   path: ^1.8.2
   logger: ^1.1.0
   flutter_cache_manager: ^3.3.0
-  shared_preferences: ^2.2.0
   json_annotation: ^4.8.1
   json_serializable: ^6.7.1
   flutter_offline: ^3.0.0
@@ -43,6 +42,9 @@ dependencies:
   flutter_staggered_grid_view: ^0.7.0
   settings_ui: ^2.0.2
   flutter_animate: ^4.2.0+1
+  get: ^4.6.5
+  get_storage: ^2.1.1
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -97,22 +97,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     });
 
     playbackEndSub = player.stream.completed.listen((event) {
-      if (event) {
-        WatchHistory.notifier.notifyListeners();
-
-        if (item.watchProgress >= .85) {
-          showAdaptiveAlertDialog(
-                  context: context,
-                  title: const Text('Seems like finished watching'),
-                  content: const Text('Delete?'),
-                  confirmLabel: 'YES',
-                  onConfirm: item.delete,
-                  onConfirmStyle:
-                      const TextStyle(color: CupertinoColors.destructiveRed),
-                  cancelLabel: 'NO')
-              .then((_) =>
-                  Navigator.of(context).pop()); // TODO: try play next episode
-        }
+      if (event && item.watchProgress >= .85) {
+        showAdaptiveAlertDialog(
+                title: const Text('Seems like finished watching'),
+                content: const Text('Delete?'),
+                confirmLabel: 'YES',
+                onConfirm: item.delete,
+                onConfirmStyle:
+                    const TextStyle(color: CupertinoColors.destructiveRed),
+                cancelLabel: 'NO')
+            .then((_) => Get.back(closeOverlays: true));
       }
     });
   }

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:get/get.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '/main.dart' show kIsDesktop;
@@ -9,7 +10,6 @@ import '/style.dart';
 import 'cupertino_picker_button.dart';
 
 Future<T?> showAdaptiveAlertDialog<T>({
-  required BuildContext context,
   required Widget title,
   required Widget content,
   VoidCallback? onConfirm,
@@ -18,10 +18,10 @@ Future<T?> showAdaptiveAlertDialog<T>({
   String cancelLabel = 'Cancel',
   TextStyle? onConfirmStyle,
 }) async {
-  onConfirm ?? () => Navigator.of(context).pop();
+  onConfirm ?? () => Get.back(closeOverlays: true);
   if (kIsDesktop) {
     return await showMacosAlertDialog<T?>(
-        context: context,
+        context: Get.context!,
         barrierDismissible: true,
         builder: (context) {
           return BackdropFilter(
@@ -34,7 +34,7 @@ Future<T?> showAdaptiveAlertDialog<T>({
                 controlSize: ControlSize.large,
                 onPressed: () {
                   onConfirm?.call();
-                  Navigator.of(context).pop();
+                  Get.back(closeOverlays: true);
                 },
                 child: Text(confirmLabel, style: onConfirmStyle),
               ),
@@ -44,7 +44,7 @@ Future<T?> showAdaptiveAlertDialog<T>({
                       controlSize: ControlSize.large,
                       onPressed: () {
                         onCancel.call();
-                        Navigator.of(context).pop();
+                        Get.back(closeOverlays: true);
                       },
                       child: Text(cancelLabel),
                     ),
@@ -53,7 +53,7 @@ Future<T?> showAdaptiveAlertDialog<T>({
         });
   }
   return await showCupertinoModalPopup(
-      context: context,
+      context: Get.context!,
       barrierDismissible: true,
       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
       builder: (_) =>
@@ -62,7 +62,7 @@ Future<T?> showAdaptiveAlertDialog<T>({
               padding: EdgeInsets.zero,
               onPressed: () {
                 onConfirm?.call();
-                Navigator.of(context).pop();
+                Get.back(closeOverlays: true);
               },
               child: Text(confirmLabel),
             ),
@@ -70,7 +70,7 @@ Future<T?> showAdaptiveAlertDialog<T>({
               padding: EdgeInsets.zero,
               onPressed: () {
                 onCancel?.call();
-                Navigator.of(context).pop();
+                Get.back(closeOverlays: true);
               },
               child: Text(cancelLabel),
             ),
@@ -78,14 +78,13 @@ Future<T?> showAdaptiveAlertDialog<T>({
 }
 
 Future<T?> showAdaptivePopup<T>({
-  required BuildContext context,
   required WidgetBuilder builder,
   bool barrierDismissible = true,
   bool useRootNavigator = true,
 }) async {
   if (kIsDesktop) {
     return await showMacosSheet<T>(
-        context: context,
+        context: Get.context!,
         barrierDismissible: barrierDismissible,
         useRootNavigator: useRootNavigator,
         builder: (context) {
@@ -99,7 +98,7 @@ Future<T?> showAdaptivePopup<T>({
         });
   }
   return await showCupertinoModalPopup(
-    context: context,
+    context: Get.context!,
     filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
     barrierDismissible: barrierDismissible,
     useRootNavigator: useRootNavigator,
@@ -308,6 +307,45 @@ class AdaptiveProgressBar extends StatelessWidget {
             height: height),
       ),
     );
+  }
+}
+
+class AdaptiveSwitch extends StatelessWidget {
+  final String? label;
+  final TextStyle? labelStyle;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  const AdaptiveSwitch(
+      {this.value = true,
+      this.label,
+      this.labelStyle,
+      this.onChanged,
+      super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (label != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: Text(label!, style: labelStyle),
+          ),
+          buildWidget()
+        ],
+      );
+    }
+
+    return buildWidget();
+  }
+
+  Widget buildWidget() {
+    if (kIsDesktop) {
+      return MacosSwitch(value: value, onChanged: onChanged);
+    }
+    return CupertinoSwitch(value: value, onChanged: onChanged);
   }
 }
 

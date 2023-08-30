@@ -11,6 +11,7 @@ import 'package:path/path.dart' as pathlib;
 import '/interface/download_item.dart';
 import '/interface/resumeable.dart';
 import '/services/storage.dart';
+import '/services/subscription.dart';
 import '/services/torrent_mgr.dart';
 import '/utils/connectivity.dart';
 import 'rss_item.dart';
@@ -18,12 +19,11 @@ import 'torrent_file.dart';
 
 class Torrent extends DownloadItem implements Resumeable {
   static final updateTimerMap = <String, Timer>{};
-  static final _map = <String, Torrent>{};
+  static final map = <String, Torrent>{};
 
   final List<TorrentFile> _files = [];
   String infoHash;
   Pointer<Void> torrentPtr;
-  int bytesDownloadedInitial;
   DateTime? _downloadedTime;
 
   @override
@@ -37,18 +37,16 @@ class Torrent extends DownloadItem implements Resumeable {
       throw ArgumentError.value(json, 'json', 'json cannot be null or empty');
     }
     final infoHash = json['info_hash'];
-    if (_map.containsKey(infoHash)) {
-      return _map[infoHash]!..selfUpdate(json);
+    if (map.containsKey(infoHash)) {
+      return map[infoHash]!..selfUpdate(json);
     }
-    final torrent = _map[infoHash] = Torrent._(
+    final torrent = map[infoHash] = Torrent._(
       name: json['name'],
       infoHash: infoHash,
       size: json['size'],
       torrentPtr: Pointer<Void>.fromAddress(json['ptr']),
       progress: json['progress'],
       bytesDownloaded:
-          json['bytes_downloaded'] ?? json['progress'] * json['size'],
-      bytesDownloadedInitial:
           json['bytes_downloaded'] ?? json['progress'] * json['size'],
     );
     for (final file in json['files']) {
@@ -64,8 +62,7 @@ class Torrent extends DownloadItem implements Resumeable {
         size: 0,
         torrentPtr: nullptr,
         progress: 0,
-        bytesDownloaded: 0,
-        bytesDownloadedInitial: 0);
+        bytesDownloaded: 0);
   }
 
   Torrent._(
@@ -74,8 +71,7 @@ class Torrent extends DownloadItem implements Resumeable {
       required super.size,
       required super.bytesDownloaded,
       required this.infoHash,
-      required this.torrentPtr,
-      required this.bytesDownloadedInitial});
+      required this.torrentPtr});
 
   @override
   String get displayName =>
@@ -109,19 +105,27 @@ class Torrent extends DownloadItem implements Resumeable {
 
   @override
   Future<void> delete() async {
-    gTorrentManager.deleteTorrent(this);
-    await kStorage.remove('cover-$infoHash');
-    _map.remove(infoHash);
+    stopSelfUpdate();
+    go.DeleteTorrent(torrentPtr);
+    gTorrentManager.removeFromMap(this);
+    await gSubscriptionManager.addExclusion(id);
+    await gStorage.remove(coverUrlKey);
+    map.remove(infoHash);
   }
 
   @override
   void pause() {
-    gTorrentManager.pauseTorrent(this);
+    stopSelfUpdate();
+    isPaused = true;
+    go.PauseTorrent(torrentPtr);
   }
 
   @override
   void resume() {
-    gTorrentManager.resumeTorrent(this);
+    isPaused = false;
+    torrentPtr =
+        Pointer<Void>.fromAddress(go.ResumeTorrent.dartStringCall(infoHash));
+    startSelfUpdate();
   }
 
   void selfUpdate(Map tMap) {
@@ -149,8 +153,8 @@ class Torrent extends DownloadItem implements Resumeable {
       if (isComplete && bytesDownloaded > 0) {
         assert(bytesDownloaded == size, '$bytesDownloaded != $size');
         Logger().d('Torrent $name complete, stopping self update');
-        gTorrentManager.removeFromMap(this);
-        go.DeleteMetadata(torrentPtr);
+        // gTorrentManager.removeFromMap(this);
+        // go.DeleteMetadata(torrentPtr);
         stopSelfUpdate();
         return;
       }
@@ -158,18 +162,20 @@ class Torrent extends DownloadItem implements Resumeable {
       if (!isPaused) {
         // pause torrent if limited connectivity, resume when connected
         if (await isLimitedConnectivity()) {
-          gTorrentManager.pauseTorrent(this);
+          pause();
           stopSelfUpdate();
           late StreamSubscription sub;
           sub = Connectivity().onConnectivityChanged.listen((event) async {
             if (!await isLimitedConnectivity()) {
-              gTorrentManager.resumeTorrent(this);
+              resume();
               startSelfUpdate();
               sub.cancel();
             }
           });
         }
-
+        if ((DateTime.now().difference(startTime)) > 5.seconds) {
+          startTime = DateTime.now();
+        }
         Torrent.fromJson(jsonDecode.cStringCall(go.GetTorrentInfo(torrentPtr)));
       }
     });

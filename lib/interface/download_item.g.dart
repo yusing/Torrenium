@@ -11,11 +11,14 @@ DownloadItem _$DownloadItemFromJson(Map<String, dynamic> json) => DownloadItem(
       parent: json['parent'] == null
           ? null
           : Groupable.fromJson(json['parent'] as Map<String, dynamic>),
-    )..coverUrl = json['coverUrl'] as String?;
+    )
+      ..group = json['group'] as String?
+      ..coverUrl = json['coverUrl'] as String?;
 
 Map<String, dynamic> _$DownloadItemToJson(DownloadItem instance) =>
     <String, dynamic>{
       'name': instance.name,
       'parent': instance.parent,
+      'group': instance.group,
       'coverUrl': instance.coverUrl,
     };

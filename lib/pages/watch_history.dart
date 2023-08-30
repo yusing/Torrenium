@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import '/services/settings.dart';
 import '/services/watch_history.dart';
 import '/style.dart';
-import '/utils/open_file.dart';
 import '/utils/string.dart';
 import '/widgets/adaptive.dart';
 
@@ -19,10 +18,10 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ValueListenableBuilder(
-          valueListenable: WatchHistory.notifier,
-          builder: (context, v, _) {
-            if (WatchHistory.histories.map.isEmpty) {
+      child: ListenableBuilder(
+          listenable: WatchHistory.notifier,
+          builder: (context, _) {
+            if (WatchHistory.histories.isEmpty) {
               return const Center(
                 child: Text('No history'),
               );
@@ -31,7 +30,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemCount: WatchHistory.histories.length,
               itemBuilder: (context, index) {
-                final entry = WatchHistory.histories
+                final entry = WatchHistory.histories.values
                     .elementAt(WatchHistory.histories.length - index - 1);
                 return AdaptiveListTile(
                   key: ValueKey(entry.id),
@@ -89,7 +88,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                         icon: const AdaptiveIcon(CupertinoIcons.delete),
                         onPressed: () => WatchHistory.remove(entry.id)),
                   ],
-                  onTap: () => openItem(context, entry),
+                  onTap: entry.open,
                 );
               },
             );

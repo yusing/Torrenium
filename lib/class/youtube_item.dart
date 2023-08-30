@@ -32,10 +32,14 @@ class YouTubeItem extends DownloadItem {
   @override
   Future<void> delete() async => throw UnimplementedError();
 
-  Future<YouTubeItem> init() async {
+  Future<void> play() async {
+    await _init();
+    await showVideoPlayer();
+  }
+
+  Future<void> _init() async {
     final manifest = await YouTube.client.videos.streams.getManifest(videoID);
     videoUrl = manifest.muxed.withHighestBitrate().url.toString();
     // audioUrl = manifest.audioOnly.withHighestBitrate().url.toString();
-    return this;
   }
 }

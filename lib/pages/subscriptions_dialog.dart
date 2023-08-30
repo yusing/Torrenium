@@ -10,17 +10,19 @@ class SubscriptionsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder(
-      valueListenable: gSubscriptionManager.updateNotifier,
-      builder: (context, _, __) {
+      valueListenable: gSubscriptionManager.subscriptions,
+      builder: (context, subs, _) {
         return Padding(
             padding: const EdgeInsets.all(16),
-            child: gSubscriptionManager.subscriptions.isEmpty
+            child: subs.isEmpty
                 ? const Center(
                     child: Text('No subscription'),
                   )
                 : ListView.separated(
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemCount: subs.length,
                     itemBuilder: (context, index) {
-                      final sub = gSubscriptionManager.subscriptions[index];
+                      final sub = Subscription.fromJson(subs[index]);
                       return AdaptiveListTile(
                           key: ObjectKey(sub),
                           title: Text(
@@ -50,16 +52,15 @@ class SubscriptionsDialog extends StatelessWidget {
                                   '${sub.providerName} - ${sub.categoryName ?? "Any"} - ${sub.authorName ?? "Any"}'),
                               ValueListenableBuilder(
                                   valueListenable: sub.lastUpdateNotifier,
-                                  builder: (_, value, __) => Text(
-                                      'Last check: ${value?.toLocal().toString() ?? 'Never'}')),
-                              ValueListenableBuilder(
-                                  valueListenable: sub.tasksDoneNotifier,
-                                  builder: (_, value, __) => Text(
-                                      'Tasks added: ${value ?? "Unknown"}')),
+                                  builder: (_, lastCheckedTs, __) => Text(
+                                      'Last check: ${lastCheckedTs == null ? "Never" : DateTime.fromMillisecondsSinceEpoch(lastCheckedTs).toLocal().toString()}')),
+                              ListenableBuilder(
+                                  listenable: sub.tasksDoneNotifier,
+                                  builder: (_, __) => Text(
+                                      'Tasks added: ${sub.tasksDoneNotifier.keys.length}')),
                             ],
                           ));
                     },
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemCount: gSubscriptionManager.subscriptions.length));
+                  ));
       });
 }

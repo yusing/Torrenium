@@ -33,6 +33,7 @@ List<RSSItem> parseRSSForItems(RSSProvider provider, String body) {
         ? null
         : e.findElements(provider.tags.authorName!).first;
     return RSSItem(
+      source: provider,
       name: e.findElements(provider.tags.title).first.innerText,
       pubDate: provider
           .pubDateParser(e.findElements(provider.tags.pubDate).first.innerText),

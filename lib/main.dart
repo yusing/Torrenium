@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:media_kit/media_kit.dart';
@@ -13,6 +15,7 @@ import 'services/torrent_mgr.dart';
 import 'style.dart';
 import 'view/desktop_view.dart';
 import 'view/mobile_view.dart';
+import 'widgets/get_macos_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,9 +34,9 @@ Future<void> init() async {
   if (_isInitialized) {
     return;
   }
-  await Storage.init();
+  await gStorage.init();
   await TorrentManager.init();
-  SubscriptionManager.init();
+  await gSubscriptionManager.init();
   _isInitialized = true;
 }
 
@@ -47,36 +50,26 @@ class TorreniumApp extends StatefulWidget {
   State<TorreniumApp> createState() => _TorreniumAppState();
 
   static void reload() {
-    _TorreniumAppState.state.reload();
+    Get.reloadAll(force: true);
   }
 }
 
 class _TorreniumAppState extends State<TorreniumApp> {
-  var key = UniqueKey();
-  static late _TorreniumAppState state;
-
-  @override
-  void initState() {
-    super.initState();
-    state = this;
-  }
-
   @override
   Widget build(BuildContext context) {
     return kIsDesktop
-        ? MacosApp(
-            key: key,
+        ? GetMacosApp(
             title: 'Torrenium',
             theme: MacosThemeData.dark(),
             debugShowCheckedModeBanner: false,
             navigatorObservers: [BotToastNavigatorObserver()],
             builder: BotToastInit(),
             home: content())
-        : CupertinoApp(
-            key: key,
+        : GetCupertinoApp(
             title: 'Torrenium',
             theme: kCupertinoThemeData,
             debugShowCheckedModeBanner: false,
+            showPerformanceOverlay: kDebugMode || kProfileMode,
             navigatorObservers: [BotToastNavigatorObserver()],
             builder: BotToastInit(),
             home: content());
@@ -104,11 +97,5 @@ class _TorreniumAppState extends State<TorreniumApp> {
             ],
           ));
         });
-  }
-
-  void reload() {
-    setState(() {
-      key = UniqueKey();
-    });
   }
 }

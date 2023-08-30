@@ -1,5 +1,8 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:get/get.dart';
+import 'package:logger/logger.dart';
 
 import '/class/rss_item.dart';
 import '/class/youtube_item.dart';
@@ -7,9 +10,7 @@ import '/main.dart' show kIsDesktop;
 import '/services/torrent_ext.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
-import '/utils/show_video_player.dart';
 import '/widgets/adaptive.dart';
-import 'rss_tab.dart';
 
 class PlayDownloadButtons extends StatelessWidget {
   final List<RSSItem> results;
@@ -23,30 +24,26 @@ class PlayDownloadButtons extends StatelessWidget {
     }
     return Wrap(
       children: List.unmodifiable(results.map((e) => AdaptiveTextButton(
-          icon: gRssProvider.isYouTube
+          icon: e.source.isYouTube
               ? const AdaptiveIcon(CupertinoIcons.play)
               : const AdaptiveIcon(CupertinoIcons.cloud_download),
-          label:
-              Text(e.episode ?? (gRssProvider.isYouTube ? 'Play' : 'Download')),
-          onPressed: () => openOrDownloadItem(context, e).then((_) {
+          label: Text(e.episode ?? (e.source.isYouTube ? 'Play' : 'Download')),
+          onPressed: () async => await openOrDownloadItem(e).then((_) {
                 if (results.length == 1) {
-                  Navigator.of(context).pop();
+                  Get.back(closeOverlays: true);
                 }
               })))),
     );
   }
 
-  Future<void> openOrDownloadItem(BuildContext context, RSSItem item) async {
-    if (gRssProvider.isYouTube) {
-      await YouTubeItem(item)
-          .init()
-          .then((ytItem) => showVideoPlayer(context, ytItem))
-          .onError((error, st) => showAdaptiveAlertDialog(
-              context: context,
-              title: const Text('Failed to load video'),
-              content: Text(error.toString())));
+  Future<void> openOrDownloadItem(RSSItem item) async {
+    if (item.source.isYouTube) {
+      YouTubeItem(item).play().onError((error, st) async {
+        Logger().e('Failed to load video', error, st);
+        BotToast.showText(text: 'Failed to load video $error');
+      });
     } else {
-      gTorrentManager.download(item, context: context);
+      gTorrentManager.download(item);
     }
   }
 }
@@ -65,7 +62,7 @@ class RssResultDialog extends StatelessWidget {
           style: kItemTitleTextStyle,
         ),
         PlayDownloadButtons(items),
-        gRssProvider.isYouTube
+        items.first.source.isYouTube
             ? Text(items.first.description)
             : Html(
                 data: items.first.description,

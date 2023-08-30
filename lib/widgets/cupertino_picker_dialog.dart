@@ -27,10 +27,9 @@ Future<T?> showPickerDialog<T>(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Expanded(child: child),
           CupertinoButton(
-            padding: EdgeInsets.zero,
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(valueGetter()),
-          ),
+              padding: EdgeInsets.zero,
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(valueGetter())),
         ]),
       ),
     ),

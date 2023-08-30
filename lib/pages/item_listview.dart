@@ -8,29 +8,42 @@ import '/interface/resumeable.dart';
 import '/services/settings.dart';
 import '/services/torrent_mgr.dart';
 import '/style.dart';
-import '/utils/open_file.dart';
 import '/utils/string.dart';
 import '/widgets/adaptive.dart';
 import '/widgets/play_pause_button.dart';
 
-class DownloadsListView extends StatelessWidget {
+class DownloadsListView extends StatefulWidget {
   const DownloadsListView({super.key});
+
+  @override
+  State<DownloadsListView> createState() => _DownloadsListViewState();
+}
+
+class _DownloadsListViewState extends State<DownloadsListView> {
+  var _hideDownloaded = false;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Visibility(
-          visible: Settings.enableGrouping.value,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              AdaptiveTextButton(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            AdaptiveSwitch(
+                label: 'Hide Downloaded',
+                value: _hideDownloaded,
+                onChanged: (v) => setState(() {
+                      gTorrentManager.hideDownload(v);
+                      _hideDownloaded = v;
+                    })),
+            Visibility(
+              visible: Settings.enableGrouping.value,
+              child: AdaptiveTextButton(
                   icon: const Icon(CupertinoIcons.refresh),
                   label: const Text('Regroup'),
                   onPressed: gTorrentManager.regroup),
-            ],
-          ),
+            ),
+          ],
         ),
         Expanded(
           child: StreamBuilder(
@@ -72,9 +85,7 @@ class ItemGroupWidget extends StatelessWidget {
         leading: items.first.coverImageWidget(),
         title: Text(group.key, style: kItemTitleTextStyle),
         subtitle: Text('${items.length} items'),
-        onTap: () => showAdaptivePopup(
-            context: context,
-            builder: (_) {
+        onTap: () => showAdaptivePopup(builder: (_) {
               if (episodes.every((e) => e.isComplete)) {
                 return Wrap(
                     children: List.of(episodes.map((e) => Padding(
@@ -87,7 +98,7 @@ class ItemGroupWidget extends StatelessWidget {
                             color: e.watchProgress > 0
                                 ? CupertinoColors.systemPurple
                                 : null,
-                            onPressed: context.onTapCallback(e),
+                            onPressed: onTapCallback(e),
                           ),
                         ))));
               }
@@ -100,80 +111,73 @@ class ItemGroupWidget extends StatelessWidget {
   }
 }
 
-class ItemListTile extends Builder {
-  ItemListTile(DownloadItem item)
-      : super(
-          key: ValueKey(item),
-          builder: ((context) => Visibility(
-              visible: !item.deleted, child: ItemListTileInner(context, item))),
-        );
-}
-
-class ItemListTileInner extends AdaptiveListTile {
-  final BuildContext context;
+class ItemListTile extends Visibility {
   final DownloadItem item;
 
-  ItemListTileInner(this.context, this.item, {super.key})
+  ItemListTile(this.item)
       : super(
-          leading: item.coverImageWidget(),
-          title: Text(
-            item.episode ?? item.displayName,
-            style: item.watchProgress == 0
-                ? kItemTitleTextStyle
-                : kItemTitleTextStyle.copyWith(
-                    color: MacosColors.systemPurpleColor),
-          ),
-          trailing: item.isPlaceholder
-              ? null
-              : [
-                  if (item is Resumeable && !item.isComplete)
-                    PlayPauseButton(
-                      isPlaying: !(item as Resumeable).isPaused,
-                      play: (item as Resumeable).resume,
-                      pause: (item as Resumeable).pause,
-                    ),
-                  if (!item.isPlaceholder)
-                    AdaptiveIconButton(
-                        padding: const EdgeInsets.all(0),
-                        icon: const AdaptiveIcon(
-                          CupertinoIcons.delete,
-                          color: CupertinoColors.systemRed,
+            key: ValueKey(item),
+            visible: !item.isHidden,
+            child: AdaptiveListTile(
+              leading: item.coverImageWidget(),
+              title: Text(
+                item.episode ?? item.displayName,
+                style: item.watchProgress == 0
+                    ? kItemTitleTextStyle
+                    : kItemTitleTextStyle.copyWith(
+                        color: MacosColors.systemPurpleColor),
+              ),
+              trailing: item.isPlaceholder
+                  ? null
+                  : [
+                      if (item is Resumeable && !item.isComplete)
+                        PlayPauseButton(
+                          isPlaying: !(item as Resumeable).isPaused,
+                          play: (item as Resumeable).resume,
+                          pause: (item as Resumeable).pause,
                         ),
-                        onPressed: item.delete),
-                ],
-          subtitle: item.isComplete
-              ? null
-              : Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(
-                      height: 4,
+                      if (!item.isPlaceholder)
+                        AdaptiveIconButton(
+                            padding: const EdgeInsets.all(0),
+                            icon: const AdaptiveIcon(
+                              CupertinoIcons.delete,
+                              color: CupertinoColors.systemRed,
+                            ),
+                            onPressed: item.delete),
+                    ],
+              subtitle: item.isComplete
+                  ? null
+                  : Column(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(
+                          height: 4,
+                        ),
+                        Builder(builder: (context) {
+                          return ConstrainedBox(
+                              constraints: BoxConstraints(
+                                  minWidth: MediaQuery.of(context).size.width),
+                              child: AdaptiveProgressBar(
+                                value: item.progress.toDouble(),
+                                trackColor: item.isComplete
+                                    ? MacosColors.applePurple
+                                    : null,
+                              ));
+                        }),
+                        const SizedBox(
+                          height: 4,
+                        ),
+                        if (item is Resumeable && (item as Resumeable).isPaused)
+                          const Text('Paused')
+                        else
+                          Text(
+                              '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
+                      ],
                     ),
-                    Builder(builder: (context) {
-                      return ConstrainedBox(
-                          constraints: BoxConstraints(
-                              minWidth: MediaQuery.of(context).size.width),
-                          child: AdaptiveProgressBar(
-                            value: item.progress.toDouble(),
-                            trackColor: item.isComplete
-                                ? MacosColors.applePurple
-                                : null,
-                          ));
-                    }),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    if (item is Resumeable && (item as Resumeable).isPaused)
-                      const Text('Paused')
-                    else
-                      Text(
-                          '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
-                  ],
-                ),
-          onTap: context.onTapCallback(item),
-        );
+              onTap: onTapCallback(item),
+            ));
 }
 
 class ItemListView extends StatelessWidget {
@@ -201,18 +205,18 @@ class ItemListView extends StatelessWidget {
   }
 }
 
-extension _DownloadItemExt on BuildContext {
-  VoidCallback? onTapCallback(DownloadItem item) {
-    return item.isMultiFile
-        ? () => showAdaptivePopup(
-            context: this,
-            builder: (_) => StreamBuilder(
-                stream: Stream.periodic(1.seconds),
-                builder: (context, snapshot) {
-                  return ItemListView(item.files.group());
-                }))
-        : item.isComplete
-            ? () => openItem(this, item)
-            : null;
-  }
+VoidCallback? onTapCallback(DownloadItem item) {
+  return item.isMultiFile
+      ? () {
+          final grouped = item.files.group();
+          showAdaptivePopup(
+              builder: (_) => StreamBuilder(
+                  stream: Stream.periodic(1.seconds),
+                  builder: (context, snapshot) {
+                    return ItemListView(grouped);
+                  }));
+        }
+      : item.isComplete
+          ? item.open
+          : null;
 }

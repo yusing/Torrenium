@@ -7,18 +7,14 @@ import 'torrent_mgr.dart';
 
 extension TorrentManagerExtension on TorrentManager {
   // TODO: youtube download
-  void download(RSSItem item,
-      {required BuildContext context, bool pop = false}) {
-    item.startDownload().onError((error, stackTrace) async {
+  Future<void> download(RSSItem item) async {
+    await item.startDownload().onError((error, stackTrace) async {
       Logger().e(error);
 
       await showAdaptiveAlertDialog(
-        context: context,
         title: const Text('Error'),
         content: const Text('No torrent link found'),
       );
-    }).then((value) {
-      if (pop) Navigator.pop(context);
     });
   }
 
