@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -79,11 +78,12 @@ class DownloadItem extends Groupable {
     // TODO: handle for different file type
     if (!isUrl) {
       if (!(File(videoPath).existsSync())) {
-        BotToast.showText(text: 'File not found');
+        Get.snackbar('File not found', videoPath);
         return;
       }
       if (FileTypeExt.from(videoPath) != FileType.video) {
-        BotToast.showText(text: 'File type not supported');
+        Get.snackbar(
+            'File type not supported', FileTypeExt.from(videoPath).name);
         return;
       }
     }

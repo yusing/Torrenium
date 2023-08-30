@@ -1,29 +1,64 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:logger/logger.dart';
 
-final gStorage = Storage(GetStorage());
+import '/utils/string.dart';
+import 'torrent_mgr.dart';
+
+Storage? _storage;
+Storage get gStorage =>
+    _storage ??= Storage(GetStorage('global_gs', gTorrentManager.dataDir));
+
+typedef ContainerEntry<T> = MapEntry<String, T>;
+typedef JsonValueDecoder<T> = T Function(dynamic);
+typedef JsonValueEncoder<T> = dynamic Function(T);
+typedef JsonValueMap<T> = Map<String, T>;
 
 class ContainerListener<T> extends ChangeNotifier
-    implements ValueListenable<List<Map<String, dynamic>>> {
+    implements ValueListenable<List<ContainerEntry<T>>> {
   final String container;
-  final GetStorage gs;
+  late final GetStorage _gs;
+  final JsonValueDecoder<T> decoder;
+  final JsonValueEncoder<T> encoder;
 
-  ContainerListener(this.container) : gs = GetStorage(container);
+  ContainerListener(String containerName,
+      {required this.decoder, required this.encoder})
+      : container = containerName.sha256 {
+    _gs = GetStorage(container, gTorrentManager.dataDir);
+    Logger().d('ContainerListener: $containerName initialized');
+  }
 
-  List<String> get keys => List<String>.from(gs.getKeys());
+  List<String> get keys => List<String>.from(_gs.getKeys());
 
   @override
-  List<Map<String, dynamic>> get value => List.from(gs.getValues());
+  List<ContainerEntry<T>> get value {
+    final keys = this.keys, values = this.values;
+    return List.generate(keys.length, (i) => MapEntry(keys[i], values[i]));
+  }
 
-  Future<void> clear() async => await gs.erase();
+  List<T> get values => List<T>.from(_gs.getValues().map((e) => decoder(e)));
 
-  bool hasKey(String key) => gs.hasData(key);
+  Future<void> clear() async {
+    await _gs.erase();
+    notifyListeners();
+  }
 
-  Future<bool> init() async => await GetStorage.init(container);
+  bool hasKey(String key) => _gs.hasData(key);
 
-  Future<void> remove(String key) async => await gs.remove(key);
+  Future<void> init() async {
+    await _gs.initStorage;
+    notifyListeners();
+  }
 
-  Future<void> write(String key, T value) async => await gs.write(key, value);
+  Future<void> remove(String key) async {
+    await _gs.remove(key);
+    notifyListeners();
+  }
+
+  Future<void> write(String key, T value) async {
+    await _gs.write(key, encoder(value));
+    notifyListeners();
+  }
 }
 
 class Storage {
@@ -41,7 +76,7 @@ class Storage {
 
   List<String>? getStringList(String key) => gs.read(key);
 
-  Future<bool> init() async => await GetStorage.init();
+  Future<bool> init() async => await gs.initStorage;
 
   Future<void> remove(String key) async => await gs.remove(key);
 
@@ -63,7 +98,8 @@ class StorageValueListener<T> extends ChangeNotifier
   final String key;
   ReadWriteValue<T?> rwv;
 
-  StorageValueListener(this.key) : rwv = ReadWriteValue(key, null);
+  StorageValueListener(this.key)
+      : rwv = ReadWriteValue(key, null, () => gStorage.gs);
 
   @override
   T? get value => rwv.val;
@@ -77,4 +113,11 @@ class StorageValueListener<T> extends ChangeNotifier
   }
 
   Future<void> clear() async => await gStorage.remove(key);
+}
+
+class StringListListener extends ContainerListener<void> {
+  StringListListener(String container)
+      : super(container, encoder: (e) {}, decoder: (e) {});
+
+  Future<void> add(String key) async => await write(key, null);
 }

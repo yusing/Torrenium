@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:logger/logger.dart';
 
@@ -26,31 +25,17 @@ class Subscription {
   final String? author;
   String? _id;
   @JsonKey(includeFromJson: false, includeToJson: false)
-  late final lastUpdateNotifier =
-      StorageValueListener<int>('sublastUpdate:$this');
+  StorageValueListener<int>? _lastUpdateNotifier;
   @JsonKey(includeFromJson: false, includeToJson: false)
-  late final tasksDoneNotifier =
-      ContainerListener<void>('subsTasksDone:${toString().b64}');
+  StringListListener? _tasksDoneNotifier;
 
   Subscription(
       {required this.providerName,
       required this.keyword,
       this.category,
       this.author});
-
   factory Subscription.fromJson(Map<String, dynamic> json) =>
       _$SubscriptionFromJson(json);
-
-  // factory Subscription.fromStr(String str) {
-  //   final split =
-  //       str.split(':').map((e) => utf8.decode(base64Decode(e))).toList();
-  //   return Subscription(
-  //     providerName: split[0],
-  //     keyword: split[1],
-  //     category: split[2].isEmpty ? null : split[2],
-  //     author: split[3].isEmpty ? null : split[3],
-  //   );
-  // }
 
   String? get authorName =>
       provider.authorRssMap?.entries.firstWhere((e) => e.value == author).key;
@@ -58,6 +43,7 @@ class Subscription {
   String? get categoryName => provider.categoryRssMap?.entries
       .firstWhere((e) => e.value == category)
       .key;
+
   @override
   int get hashCode =>
       providerName.hashCode ^
@@ -66,11 +52,16 @@ class Subscription {
       author.hashCode;
 
   String get id => (_id ??= sha256.convert(utf8.encode('$this')).toString());
+  DateTime get lastUpdated =>
+      DateTime.fromMillisecondsSinceEpoch(lastUpdateNotifier.value ?? 0);
+
+  StorageValueListener<int> get lastUpdateNotifier =>
+      _lastUpdateNotifier ??= StorageValueListener<int>('sublastUpdate:$this');
 
   RSSProvider get provider => kProvidersDict[providerName]!;
 
-  DateTime get lastUpdated =>
-      DateTime.fromMillisecondsSinceEpoch(lastUpdateNotifier.value ?? 0);
+  StringListListener get tasksDoneNotifier =>
+      _tasksDoneNotifier ??= StringListListener('subsTasksDone:$this');
 
   @override
   bool operator ==(Object other) {
@@ -96,18 +87,17 @@ class Subscription {
 class SubscriptionManager {
   // ignore: unused_field
   late final Timer _updateTimer;
-  final subscriptions = ContainerListener<Subscription>('subscriptions');
-  final exclusions = ContainerListener<void>('subsExclusions');
+  final subscriptions = ContainerListener<Subscription>('subscriptions',
+      decoder: (e) => Subscription.fromJson(e), encoder: (e) => e.toJson());
+  final exclusionIds = StringListListener('subsExclusions');
 
-  SubscriptionManager() {
-    _updateTimer = Timer.periodic(3.seconds, (timer) => update());
-  }
+  SubscriptionManager();
 
   Future<void> addExclusion(String id) async {
-    if (exclusions.hasKey(id)) {
+    if (exclusionIds.hasKey(id)) {
       return;
     }
-    await exclusions.write(id, null);
+    await exclusionIds.write(id, null);
   }
 
   Future<bool> addSubscription(Subscription sub) async {
@@ -119,8 +109,10 @@ class SubscriptionManager {
   }
 
   Future<void> init() async {
-    await GetStorage.init('subscriptions');
-    await GetStorage.init('subsExclusions');
+    await gStorage.init();
+    await subscriptions.init();
+    await exclusionIds.init();
+    _updateTimer = Timer.periodic(3.seconds, (timer) => update());
     Logger().d('SubscriptionManager initialized');
   }
 
@@ -135,8 +127,8 @@ class SubscriptionManager {
   }
 
   Future<void> update() async {
-    for (final sub in subscriptions.value) {
-      await updateSub(Subscription.fromJson(sub));
+    for (final sub in subscriptions.values) {
+      await updateSub(sub);
     }
   }
 
@@ -149,12 +141,14 @@ class SubscriptionManager {
       // pause on cellular network or no network
       return;
     }
-    final subsTasksDone = sub.tasksDoneNotifier.keys..addAll(exclusions.keys);
+    final subsTasksDone = sub.tasksDoneNotifier.keys..addAll(exclusionIds.keys);
     final provider = sub.provider;
     final url = provider.searchUrl(
         query: sub.keyword, author: sub.author, category: sub.category);
     final resp = await http.get(url);
     if (resp.statusCode == 200) {
+      sub.lastUpdateNotifier.value = DateTime.now().millisecondsSinceEpoch;
+
       final items = parseRSSForItems(provider, await resp.body());
       final tasks = Map.fromEntries(items.map((e) => MapEntry(e.id, e)));
       // start new tasks
@@ -165,10 +159,8 @@ class SubscriptionManager {
             .startDownload()
             .then((_) => Logger().i('New task: ${tasks[task]!.name}'))
             .onError((e, st) => Logger().e('Error adding task', e, st));
-        sub.tasksDoneNotifier.write(task, null);
-        await Future.delayed(1.seconds);
+        await sub.tasksDoneNotifier.add(task);
       }
-      sub.lastUpdateNotifier.value = DateTime.now().millisecondsSinceEpoch;
     } else {
       Logger().e(resp.statusCode);
     }

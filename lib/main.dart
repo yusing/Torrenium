@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -12,6 +11,7 @@ import 'services/http.dart';
 import 'services/storage.dart';
 import 'services/subscription.dart';
 import 'services/torrent_mgr.dart';
+import 'services/watch_history.dart';
 import 'style.dart';
 import 'view/desktop_view.dart';
 import 'view/mobile_view.dart';
@@ -34,8 +34,9 @@ Future<void> init() async {
   if (_isInitialized) {
     return;
   }
-  await gStorage.init();
   await TorrentManager.init();
+  await gStorage.init();
+  await WatchHistory.init();
   await gSubscriptionManager.init();
   _isInitialized = true;
 }
@@ -50,28 +51,29 @@ class TorreniumApp extends StatefulWidget {
   State<TorreniumApp> createState() => _TorreniumAppState();
 
   static void reload() {
-    Get.reloadAll(force: true);
+    _TorreniumAppState.state.reload();
   }
 }
 
 class _TorreniumAppState extends State<TorreniumApp> {
+  static late _TorreniumAppState state;
+  var key = UniqueKey();
+
   @override
   Widget build(BuildContext context) {
     return kIsDesktop
         ? GetMacosApp(
             title: 'Torrenium',
+            key: key,
             theme: MacosThemeData.dark(),
             debugShowCheckedModeBanner: false,
-            navigatorObservers: [BotToastNavigatorObserver()],
-            builder: BotToastInit(),
             home: content())
         : GetCupertinoApp(
             title: 'Torrenium',
+            key: key,
             theme: kCupertinoThemeData,
             debugShowCheckedModeBanner: false,
             showPerformanceOverlay: kDebugMode || kProfileMode,
-            navigatorObservers: [BotToastNavigatorObserver()],
-            builder: BotToastInit(),
             home: content());
   }
 
@@ -97,5 +99,17 @@ class _TorreniumAppState extends State<TorreniumApp> {
             ],
           ));
         });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    state = this;
+  }
+
+  void reload() {
+    setState(() {
+      key = UniqueKey();
+    });
   }
 }

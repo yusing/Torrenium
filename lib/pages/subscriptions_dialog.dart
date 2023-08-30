@@ -22,7 +22,7 @@ class SubscriptionsDialog extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemCount: subs.length,
                     itemBuilder: (context, index) {
-                      final sub = Subscription.fromJson(subs[index]);
+                      final sub = subs[index].value;
                       return AdaptiveListTile(
                           key: ObjectKey(sub),
                           title: Text(
@@ -54,9 +54,9 @@ class SubscriptionsDialog extends StatelessWidget {
                                   valueListenable: sub.lastUpdateNotifier,
                                   builder: (_, lastCheckedTs, __) => Text(
                                       'Last check: ${lastCheckedTs == null ? "Never" : DateTime.fromMillisecondsSinceEpoch(lastCheckedTs).toLocal().toString()}')),
-                              ListenableBuilder(
-                                  listenable: sub.tasksDoneNotifier,
-                                  builder: (_, __) => Text(
+                              ValueListenableBuilder(
+                                  valueListenable: sub.tasksDoneNotifier,
+                                  builder: (_, tasksDone, __) => Text(
                                       'Tasks added: ${sub.tasksDoneNotifier.keys.length}')),
                             ],
                           ));

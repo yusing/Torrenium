@@ -1,8 +1,8 @@
-import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_offline/flutter_offline.dart';
+import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -313,7 +313,7 @@ class RSSTab extends StatelessWidget {
     return GestureDetector(
       onLongPress: () async {
         await Clipboard.setData(ClipboardData(text: url))
-            .then((value) => BotToast.showText(text: 'Copied to clipboard'));
+            .then((value) => Get.snackbar('Copied to clipboard', url));
       },
       child: urlBarInner(url),
     );

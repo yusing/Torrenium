@@ -18,20 +18,21 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListenableBuilder(
-          listenable: WatchHistory.notifier,
-          builder: (context, _) {
-            if (WatchHistory.histories.isEmpty) {
+      child: ValueListenableBuilder(
+          valueListenable: WatchHistory.notifier,
+          builder: (context, histories, _) {
+            histories.sort((a, b) => a.value.lastWatchedTimestamp
+                .compareTo(b.value.lastWatchedTimestamp));
+            if (histories.isEmpty) {
               return const Center(
                 child: Text('No history'),
               );
             }
             return ListView.separated(
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemCount: WatchHistory.histories.length,
+              itemCount: histories.length,
               itemBuilder: (context, index) {
-                final entry = WatchHistory.histories.values
-                    .elementAt(WatchHistory.histories.length - index - 1);
+                final entry = histories[index].value;
                 return AdaptiveListTile(
                   key: ValueKey(entry.id),
                   leading: ClipRRect(

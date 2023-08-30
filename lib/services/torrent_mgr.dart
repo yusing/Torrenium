@@ -12,7 +12,6 @@ import '/class/rss_item.dart';
 import '/class/torrent.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
-import '/main.dart' show kIsDesktop;
 import '/utils/fs.dart';
 import 'go_torrent.dart';
 import 'storage.dart';
@@ -47,6 +46,8 @@ class TorrentManager {
   };
 
   late String saveDir;
+  late String dataDir;
+
   bool get isEmpty => torrentMap.entries
       .every((e) => e.value.isEmpty || e.value.every((t) => t.isHidden));
 
@@ -127,14 +128,10 @@ class TorrentManager {
     }
     Logger().d('docDir: ${docDir.path}');
 
-    if (kIsDesktop) {
-      instance.saveDir = gStorage.getString('savePath') ??
-          pathlib.join(docDir.path, 'Torrenium');
-      await pathlib.join(instance.saveDir, 'data').createDir();
-    } else {
-      instance.saveDir = pathlib.join(docDir.path, 'Torrenium');
-      await instance.saveDir.createDir();
-    }
+    instance.saveDir = pathlib.join(docDir.path, 'Torrenium');
+    instance.dataDir = pathlib.join(instance.saveDir, 'data');
+    await instance.saveDir.createDir();
+    await instance.dataDir.createDir();
 
     if (!await Directory(instance.saveDir).exists()) {
       await gStorage.remove('savePath');

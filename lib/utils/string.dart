@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart' as crypto;
+
 extension DateTimeExt on DateTime {
   String get relative {
     final now = DateTime.now();
@@ -99,6 +101,7 @@ extension NumExt on num {
 
 extension StringExt on String {
   String get b64 => base64Encode(utf8.encode(this));
+  String get sha256 => crypto.sha256.convert(utf8.encode(this)).toString();
 
   String removeDelimiters(String delimiters) {
     String s = this;

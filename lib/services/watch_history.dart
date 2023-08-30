@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:json_annotation/json_annotation.dart';
 
 import '/interface/download_item.dart';
@@ -9,28 +7,24 @@ import 'torrent_mgr.dart';
 
 part 'watch_history.g.dart';
 
-List<String> watchHistoryEntryTypeStringKey = [
-  'anime',
-  'comics',
-  'music',
-  'all',
-];
-
 typedef WatchHistories = Map<String, WatchHistoryEntry>;
 
 class WatchHistory {
-  static final _container = ContainerListener<String>('watch_histories');
+  static final _container = ContainerListener<WatchHistoryEntry>(
+      'watch_histories',
+      decoder: (e) => WatchHistoryEntry.fromJson(e),
+      encoder: (e) => e.toJson());
+
   static WatchHistories? _histories;
 
-  static WatchHistories get histories => _histories ??= Map.fromIterables(
-      WatchHistory._container.keys,
-      WatchHistory._container.value.map((e) => WatchHistoryEntry.fromJson(e)));
+  static WatchHistories get histories =>
+      _histories ??= Map.fromEntries(_container.value);
 
-  static ContainerListener<String> get notifier => _container;
+  static ContainerListener<WatchHistoryEntry> get notifier => _container;
 
   static Future<void> add(WatchHistoryEntry entry) async {
     histories[entry.id] = entry;
-    await _container.write(entry.id, jsonEncode(entry.toJson()));
+    await _container.write(entry.id, entry);
   }
 
   static Duration getDuration(String id) {
@@ -58,6 +52,10 @@ class WatchHistory {
     return histories.containsKey(id);
   }
 
+  static Future<void> init() async {
+    await _container.init();
+  }
+
   static Future<void> remove(String id) async {
     histories.remove(id);
     await _container.remove(id);
@@ -69,7 +67,7 @@ class WatchHistory {
   }
 
   static Future<void> updateHistory(String id) async {
-    await _container.write(id, jsonEncode(histories[id]?.toJson()));
+    await _container.write(id, histories[id]!);
   }
 
   /* Image */

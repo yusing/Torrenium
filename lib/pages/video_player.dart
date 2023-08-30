@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -80,8 +79,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         .then((_) async {
       if (WatchHistory.has(item.id)) {
         await player.seek(item.lastPosition);
-        BotToast.showText(
-            text: 'Resuming from ${item.lastPosition.toStringNoMs()}');
+        Get.snackbar('Resuming from ${item.lastPosition.toStringNoMs()}', '');
         Logger().d('Restoring position to ${item.lastPosition}');
       }
       // add even if already exists to push to top

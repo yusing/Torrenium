@@ -5,10 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:get/utils.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../pages/settings.dart';
 import '/pages/file_browser.dart';
 import '/pages/item_listview.dart';
 import '/pages/rss_tab.dart';
+import '/pages/settings.dart';
 import '/pages/subscriptions_dialog.dart';
 import '/pages/watch_history.dart';
 import '/services/torrent_mgr.dart';

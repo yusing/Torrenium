@@ -1,4 +1,3 @@
-import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:get/get.dart';
@@ -40,7 +39,7 @@ class PlayDownloadButtons extends StatelessWidget {
     if (item.source.isYouTube) {
       YouTubeItem(item).play().onError((error, st) async {
         Logger().e('Failed to load video', error, st);
-        BotToast.showText(text: 'Failed to load video $error');
+        Get.snackbar('Failed to load video', error.toString());
       });
     } else {
       gTorrentManager.download(item);
