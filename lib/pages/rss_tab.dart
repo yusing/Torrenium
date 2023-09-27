@@ -10,93 +10,85 @@ import '/main.dart' show kIsDesktop;
 import '/services/rss_providers.dart';
 import '/services/subscription.dart';
 import '/style.dart';
-import '/utils/fetch_rss.dart';
 import '/utils/show_snackbar.dart';
 import '/view/rss_result_view.dart';
 import '/widgets/adaptive.dart';
 import '/widgets/cupertino_picker_button.dart';
 
-var gAuthorIndex = 0;
-var gCategoryIndex = 0;
-var gQuery = '';
-
-final searchController = TextEditingController(text: gQuery)
-  ..addListener(searchBarListener); // shared across all tabs (RSSProvider)
-
-final scrollController = ScrollController()
-  ..addListener(() {
-    focusNode.unfocus();
-  });
-
-final focusNode = FocusNode();
-
-final urlListenable = ValueNotifier(_rssProvider.searchUrl(
-    query: gQuery, author: gSelectedAuthor, category: gSelectedCategory));
+var _authorIndex = 0;
+var _categoryIndex = 0;
+var _query = '';
 
 var _rssProvider = kRssProviders.first;
 
-String? get gSelectedAuthor =>
-    _rssProvider.authorRssMap?.values.elementAt(gAuthorIndex);
+final _searchController = TextEditingController(text: _query)
+  ..addListener(_searchBarListener); // shared across all tabs (RSSProvider)
 
-String? get gSelectedCategory =>
-    _rssProvider.categoryRssMap?.values.elementAt(gCategoryIndex);
+final _urlListenable = ValueNotifier(_rssProvider.searchUrl(
+    query: _query, author: _selectedAuthor, category: _selectedCategory));
 
-void searchBarListener() {
-  if (gQuery == searchController.text) {
+String? get _selectedAuthor =>
+    _rssProvider.authorRssMap?.values.elementAt(_authorIndex);
+
+String? get _selectedCategory =>
+    _rssProvider.categoryRssMap?.values.elementAt(_categoryIndex);
+
+void _searchBarListener() {
+  if (_query == _searchController.text) {
     return;
   }
-  gQuery = searchController.text;
+  _query = _searchController.text;
   // clear button workaround
-  if (gQuery.isEmpty) {
-    updateUrl();
+  if (_query.isEmpty) {
+    _updateUrl();
   }
 }
 
-void updateUrl() {
+void _updateUrl() {
   if (_rssProvider.authorRssMap != null &&
-      gAuthorIndex >= _rssProvider.authorRssMap!.length) {
-    gAuthorIndex = 0;
+      _authorIndex >= _rssProvider.authorRssMap!.length) {
+    _authorIndex = 0;
   }
   if (_rssProvider.categoryRssMap != null &&
-      gCategoryIndex >= _rssProvider.categoryRssMap!.length) {
-    gCategoryIndex = 0;
+      _categoryIndex >= _rssProvider.categoryRssMap!.length) {
+    _categoryIndex = 0;
   }
-  urlListenable.value = _rssProvider.searchUrl(
-      query: gQuery, author: gSelectedAuthor, category: gSelectedCategory);
+  _urlListenable.value = _rssProvider.searchUrl(
+      query: _query, author: _selectedAuthor, category: _selectedCategory);
 }
 
 typedef KV = MapEntry<String, String?>;
 
 class RSSTab extends StatelessWidget {
-  const RSSTab({super.key});
-
   static final MacosTabController? tabControllerDesktop = kIsDesktop
       ? (MacosTabController(length: kRssProviders.length)
         ..addListener(() {
           _rssProvider = kRssProviders[tabControllerDesktop!.index];
-          updateUrl();
+          _updateUrl();
         }))
       : null;
+
+  const RSSTab({super.key});
 
   List<Widget> get buttons => [
         AdaptiveTextButton(
             icon: const AdaptiveIcon(CupertinoIcons.star),
             label: const Text('Subscribe'),
             onPressed: () async {
-              if (gQuery.trim().isEmpty) {
+              if (_query.trim().isEmpty) {
                 return;
               }
               await gSubscriptionManager
                   .addSubscription(Subscription(
                       providerName: _rssProvider.name,
-                      keyword: gQuery,
-                      category: gSelectedCategory,
-                      author: gSelectedAuthor))
+                      keyword: _query,
+                      category: _selectedCategory,
+                      author: _selectedAuthor))
                   .then((value) => showAdaptiveAlertDialog(
                         title:
                             value ? const Text('Success') : const Text('Error'),
                         content: Text(value
-                            ? 'Subscription added $gQuery from ${_rssProvider.name}'
+                            ? 'Subscription added $_query from ${_rssProvider.name}'
                             : 'Subscription already exists'),
                       ));
             })
@@ -105,7 +97,7 @@ class RSSTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-        valueListenable: urlListenable,
+        valueListenable: _urlListenable,
         builder: (context, url, _) {
           if (kIsDesktop) {
             return Column(children: [
@@ -152,67 +144,29 @@ class RSSTab extends StatelessWidget {
               : (_rssProvider.detailGetter.getCoverUrl == null
                   ? RssResultListView(
                       snapshot.data!,
-                      controller: scrollController,
                     )
                   : RssResultGridView(
                       _rssProvider,
                       snapshot.data!,
-                      controller: scrollController,
                     ));
 
   Widget content(String url) => FutureBuilder(
-        future: getRSSResults(_rssProvider,
-            query: gQuery,
-            author: gSelectedAuthor,
-            category: gSelectedCategory),
+        future: _rssProvider.getRSSResults(
+            query: _query,
+            author: _selectedAuthor,
+            category: _selectedCategory),
         builder: (_, snapshot) {
           if (snapshot.hasError) {
             Logger().e(snapshot.stackTrace, snapshot.error);
           }
 
-          return Column(
-            children: [
-              if (kIsDesktop)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: urlBar(url),
-                ),
-              if (!kIsDesktop) ...[
-                Row(
-                  children: [
-                    Expanded(child: searchBar(snapshot.data)),
-                    ...buttons
-                  ],
-                ),
+          if (kIsDesktop) {
+            return Column(
+              children: [
                 urlBar(url),
                 Row(
                   children: [
-                    Expanded(
-                      child: CupertinoPickerButton(
-                          valueGetter: () => _rssProvider,
-                          items: kRssProviders,
-                          itemBuilder: (e) =>
-                              Text(e.name, style: kItemTitleTextStyle),
-                          onSelectedItemChanged: (value) =>
-                              _rssProvider = kRssProviders[value],
-                          onPop: (value) {
-                            _rssProvider = value;
-                            updateUrl();
-                          }),
-                    ),
-                    Expanded(child: pickerCategory()),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    Expanded(child: pickerAuthor())
-                  ],
-                )
-              ] else
-                Row(
-                  children: [
-                    Expanded(
-                      child: searchBar(snapshot.data),
-                    ),
+                    Expanded(child: searchBar(snapshot.data)),
                     const SizedBox(
                       width: 4,
                     ),
@@ -224,6 +178,46 @@ class RSSTab extends StatelessWidget {
                     ...buttons
                   ],
                 ),
+                const SizedBox(
+                  height: 8,
+                ),
+                Expanded(
+                  child: Builder(builder: (_) => builder(snapshot)),
+                ),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: searchBar(snapshot.data)),
+                  ...buttons
+                ],
+              ),
+              urlBar(url),
+              Row(
+                children: [
+                  Expanded(
+                    child: CupertinoPickerButton(
+                        valueGetter: () => _rssProvider,
+                        items: kRssProviders,
+                        itemBuilder: (e) =>
+                            Text(e.name, style: kItemTitleTextStyle),
+                        onSelectedItemChanged: (value) =>
+                            _rssProvider = kRssProviders[value],
+                        onPop: (value) {
+                          _rssProvider = value;
+                          _updateUrl();
+                        }),
+                  ),
+                  Expanded(child: pickerCategory()),
+                  const SizedBox(
+                    width: 4,
+                  ),
+                  Expanded(child: pickerAuthor())
+                ],
+              ),
               const SizedBox(
                 height: 8,
               ),
@@ -236,43 +230,43 @@ class RSSTab extends StatelessWidget {
       );
 
   Widget pickerAuthor() {
-    final enabled = gQuery.isNotEmpty
+    final enabled = _query.isNotEmpty
         ? _rssProvider.supportAdvancedSearch
             ? (_rssProvider.authorRssMap?.isNotEmpty ?? false)
             : false
         : _rssProvider.authorRssMap != null;
     return enabled
         ? AdaptiveDropDown(
-            value: gAuthorIndex,
+            value: _authorIndex,
             items: _rssProvider.authorRssMap!.entries,
             textGetter: (entry) => entry.key,
             onChange: (int e) {
-              gAuthorIndex = e;
+              _authorIndex = e;
               if (!_rssProvider.supportAdvancedSearch) {
-                searchController.clear();
+                _searchController.clear();
               }
-              updateUrl();
+              _updateUrl();
             })
         : const SizedBox.shrink();
   }
 
   Widget pickerCategory() {
-    final enabled = gQuery.isNotEmpty
+    final enabled = _query.isNotEmpty
         ? _rssProvider.supportAdvancedSearch
             ? (_rssProvider.categoryRssMap?.isNotEmpty ?? false)
             : false
         : _rssProvider.categoryRssMap != null;
     return enabled
         ? AdaptiveDropDown(
-            value: gCategoryIndex,
+            value: _categoryIndex,
             items: _rssProvider.categoryRssMap!.entries,
             textGetter: (entry) => entry.key,
             onChange: (int e) {
-              gCategoryIndex = e;
+              _categoryIndex = e;
               if (!_rssProvider.supportAdvancedSearch) {
-                searchController.clear();
+                _searchController.clear();
               }
-              updateUrl();
+              _updateUrl();
             })
         : const SizedBox.shrink();
   }
@@ -280,33 +274,30 @@ class RSSTab extends StatelessWidget {
   Widget searchBar(List<RssResultGroup>? results) {
     if (!kIsDesktop) {
       return CupertinoSearchTextField(
+          key: const ValueKey('searchBar'),
           autofocus: false,
           autocorrect: false,
-          controller: searchController,
-          focusNode: focusNode,
+          controller: _searchController,
           placeholder: 'Search for something...',
-          onSubmitted: (_) => updateUrl(),
+          onSubmitted: (_) => _updateUrl(),
           onChanged: (v) {
             // called only on clear button
             if (v.isEmpty) {
-              updateUrl();
+              _updateUrl();
             }
           });
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: MacosSearchField(
-          autofocus: false,
-          autocorrect: false,
-          maxLines: 1,
-          controller: searchController,
-          focusNode: focusNode,
-          placeholder: 'Search for something...',
-          maxResultsToShow: kIsDesktop ? 10 : 4,
-          results: results?.map((e) => SearchResultItem(e.key)).toList(),
-          onChanged: (_) => updateUrl(),
-          onResultSelected: (e) => (e.child as RssResultGroup).showDialog()),
-    );
+    return MacosSearchField(
+        key: const ValueKey('searchBar'),
+        autofocus: false,
+        autocorrect: false,
+        maxLines: 1,
+        controller: _searchController,
+        placeholder: 'Search for something...',
+        maxResultsToShow: kIsDesktop ? 10 : 4,
+        results: results?.map((e) => SearchResultItem(e.key)).toList(),
+        onChanged: (_) => _updateUrl(),
+        onResultSelected: (e) => (e.child as RssResultGroup).showDialog());
   }
 
   Widget urlBar(String url) {

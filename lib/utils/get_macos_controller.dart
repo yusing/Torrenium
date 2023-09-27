@@ -9,7 +9,7 @@ class GetMacosController extends SuperController {
   MacosThemeData? darkTheme;
   ThemeMode? themeMode;
 
-  bool defaultPopGesture = GetPlatform.isIOS;
+  bool defaultPopGesture = false;
   bool defaultOpaqueRoute = true;
 
   Transition? defaultTransition;
@@ -49,6 +49,9 @@ class GetMacosController extends SuperController {
 
   @override
   void onDetached() {}
+
+  @override
+  void onHidden() {}
 
   @override
   void onInactive() {}

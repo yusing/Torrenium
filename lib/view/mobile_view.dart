@@ -17,8 +17,6 @@ class MobileTab {
 }
 
 class MobileView extends StatelessWidget {
-  // TODO: fix download, subs, files tab not updating
-
   static final _tabController = CupertinoTabController();
   static const kPages = [
     MobileTab('Home', CupertinoIcons.home, RSSTab(key: ValueKey('home'))),

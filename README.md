@@ -8,8 +8,6 @@
 *** Thanks again! Now go create something AMAZING! :D
 -->
 
-
-
 <!-- PROJECT SHIELDS -->
 <!--
 *** I'm using markdown "reference style" links for readability.
@@ -24,8 +22,6 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 <!-- [![LinkedIn][linkedin-shield]][linkedin-url] -->
-
-
 
 <!-- PROJECT LOGO -->
 <br />
@@ -49,8 +45,6 @@
     <a href="https://github.com/yusing/torrenium/issues">Request Feature</a> -->
   </p>
 </div>
-
-
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -80,15 +74,12 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
 Torrenium is an app that fetch resources from different rss providers.
-
 
 ### Built With
 
@@ -100,18 +91,16 @@ Torrenium is an app that fetch resources from different rss providers.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Features
+
 - Get latest content or search from different rss providers and YouTube
 - Results grouped and sorted by title
-- Direct playback for YouTube content
+- Direct playback for YouTube / Torrent content (WebTorrent Server required)
 - Download torrent/magnet from rss providers
 - Subscribe to keywords, authors and categories and automatically download new content (updated hourly or manually)
-- Video playback on Android/iOS
-- Watch history and resume last watched position on Android/iOS
+- Watch history and resume last watched position
 - Automatically pause download on cellular network, and resume on WiFi/ethernet
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -132,23 +121,20 @@ To get a local copy up and running follow these simple example steps.
 - Clone the repo `git clone https://github.com/yusing/torrenium --recursive`
 - Install [Flutter][Flutter-url] if not already
 - Install [Go][Go-url] if not already
-- *(Android build only)* Install [Android Studio](https://developer.android.com/studio) if not 
+- *(Android build only)* Install [Android Studio](https://developer.android.com/studio) if not
 - *(iOS and MacOS build only)* Install [XCode](https://developer.apple.com/xcode/) if not already
 - *(Windows build only)* Install [Visual Studio](https://visualstudio.microsoft.com/) if not already
 - change directory to `go_torrent` and run the build script for your platform
-    - `cd go_torrent`
-    - `./build_ios.sh` for iOS
-    - `build_windows.bat` for Windows
-    - `build_android.bat` for Android (Build on Windows)
+  - `cd go_torrent`
+  - `./build_ios.sh` for iOS
+  - `build_windows.bat` for Windows
+  - `build_android.bat` for Android (Build on Windows)
 - Build the app
-    - `flutter build [windows|apk|ios|macos|linux] --release` for Windows
-
+  - `flutter build [windows|apk|ios|macos|linux] --release` for Windows
 
 ### Installation
 
 Download the release from [here][Release-url]
-
-
 
 <!-- USAGE EXAMPLES -->
 ## Usage
@@ -160,34 +146,31 @@ Simply install the app and start using it.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- ROADMAP -->
 ## Roadmap
+
 - [x] Things listed in [Features](#features)
 - [x] Windows and Android build
+- [x] iOS build
+- [x] Watch History On Windows
 - [ ] YouTube Video Download
-- [ ] Watch History On Windows
 - [ ] Play next episode when video ends (if available)
-- [ ] iOS build *(WIP)*
 - [ ] Linux and MacOS build
 - [ ] Limit concurrent downloads
 - [ ] Custom RSS Provider Support
 - [ ] Manual add torrent/magnet to torrent client by link
-- [ ] Ability to decompress downloaded files (i.e. *.zip, *.rar, *.7z, etc.)
+- [ ] Ability to decompress downloaded files (i.e. *.zip,*.rar, *.7z, etc.)
 - [ ] Manga reader (for contents that extracts into images, or epub, etc.)
 - [ ] Music player (for contents that extracts into audio files)
 - [ ] Background services
-    - [ ] Subscription / Download
-    - [ ] Picture in Picture (PiP) support
-    - [ ] Download status in Notification
-    - [ ] Media controls in notification
+  - [ ] Subscription / Download
+  - [ ] Picture in Picture (PiP) support
+  - [ ] Download status in Notification
+  - [ ] Media controls in notification
 
 See the [open issues](https://github.com/yusing/torrenium/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -204,8 +187,6 @@ Don't forget to give the project a star! Thanks again!
 5. Open a Pull Request
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- LICENSE -->
 ## License

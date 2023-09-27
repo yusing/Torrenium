@@ -42,8 +42,7 @@ Future<void> init() async {
 }
 
 class TorreniumApp extends StatefulWidget {
-  static Widget get view =>
-      kIsDesktop ? const DesktopView() : const MobileView();
+  static Widget get view => kIsDesktop ? DesktopView() : const MobileView();
 
   const TorreniumApp({super.key});
 
@@ -67,13 +66,14 @@ class _TorreniumAppState extends State<TorreniumApp> {
             key: key,
             theme: MacosThemeData.dark(),
             debugShowCheckedModeBanner: false,
+            showPerformanceOverlay: kProfileMode,
             home: content())
         : GetCupertinoApp(
             title: 'Torrenium',
             key: key,
             theme: kCupertinoThemeData,
             debugShowCheckedModeBanner: false,
-            showPerformanceOverlay: kDebugMode || kProfileMode,
+            showPerformanceOverlay: kProfileMode,
             home: content());
   }
 

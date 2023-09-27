@@ -13,7 +13,7 @@ Future<T?> showAdaptiveAlertDialog<T>({
   required Widget title,
   required Widget content,
   VoidCallback? onConfirm,
-  String confirmLabel = 'Dismiss',
+  String confirmLabel = 'Confirm',
   VoidCallback? onCancel,
   String cancelLabel = 'Cancel',
   TextStyle? onConfirmStyle,
@@ -54,20 +54,19 @@ Future<T?> showAdaptiveAlertDialog<T>({
   }
   return await showCupertinoModalPopup(
       context: Get.context!,
-      barrierDismissible: true,
       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
       builder: (_) =>
           CupertinoActionSheet(title: title, message: content, actions: [
-            CupertinoButton(
-              padding: EdgeInsets.zero,
+            CupertinoActionSheetAction(
+              isDefaultAction: true,
               onPressed: () {
                 onConfirm?.call();
                 Get.back(closeOverlays: true);
               },
               child: Text(confirmLabel),
             ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
               onPressed: () {
                 onCancel?.call();
                 Get.back(closeOverlays: true);
@@ -91,9 +90,12 @@ Future<T?> showAdaptivePopup<T>({
           return BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: MacosSheet(
-                  child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: builder(context),
+                  child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: builder(context),
+                ),
               )));
         });
   }
@@ -354,11 +356,13 @@ class AdaptiveTextButton extends StatelessWidget {
   final Widget label;
   final VoidCallback? onPressed;
   final Color? color;
+  final double hPadding;
 
   const AdaptiveTextButton(
       {super.key,
       this.icon,
       this.color,
+      this.hPadding = 6,
       required this.label,
       required this.onPressed});
 
@@ -368,20 +372,21 @@ class AdaptiveTextButton extends StatelessWidget {
         ? label
         : Row(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               color != null
                   ? IconTheme(data: IconThemeData(color: color), child: icon!)
                   : icon!,
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               DefaultTextStyle(
-                  style: kItemTitleTextStyle.copyWith(color: color),
-                  child: label)
+                style: kItemTitleTextStyle.copyWith(color: color),
+                overflow: TextOverflow.ellipsis,
+                child: label,
+              )
             ],
           );
     if (kIsDesktop) {
       return PushButton(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+          padding: EdgeInsets.symmetric(horizontal: hPadding),
           onPressed: onPressed,
           controlSize: ControlSize.regular,
           color: const Color.fromARGB(0, 0, 0, 0),
@@ -389,14 +394,62 @@ class AdaptiveTextButton extends StatelessWidget {
     }
     if (icon == null) {
       return CupertinoButton.filled(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+          padding: EdgeInsets.symmetric(horizontal: hPadding),
           onPressed: onPressed,
           child: child);
     }
     return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: EdgeInsets.symmetric(horizontal: hPadding),
       onPressed: onPressed,
       child: child,
+    );
+  }
+}
+
+class AdaptiveTextField extends StatelessWidget {
+  final bool autofocus;
+  final TextEditingController? controller;
+  final String? placeholder;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+
+  const AdaptiveTextField(
+      {super.key,
+      this.autofocus = false,
+      this.controller,
+      this.placeholder,
+      this.onChanged,
+      this.onSubmitted});
+
+  _decoration() {
+    // bottom only border
+    return BoxDecoration(
+        border: Border(
+            bottom: BorderSide(
+                color:
+                    CupertinoColors.placeholderText.resolveFrom(Get.context!),
+                width: 1)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsDesktop) {
+      return MacosTextField(
+        decoration: _decoration(),
+        controller: controller,
+        placeholder: placeholder,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        autofocus: autofocus,
+      );
+    }
+    return CupertinoTextField(
+      decoration: _decoration(),
+      controller: controller,
+      placeholder: placeholder,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+      autofocus: autofocus,
     );
   }
 }

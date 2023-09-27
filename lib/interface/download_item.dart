@@ -1,131 +1,112 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '/main.dart' show kIsDesktop;
-import '/pages/video_player.dart';
-import '/services/watch_history.dart';
+import '/pages/document_viewer.dart';
 import '/utils/file_types.dart';
 import '/utils/fs.dart';
 import '/utils/show_snackbar.dart';
 import '/widgets/adaptive.dart';
 import 'groupable.dart';
+import 'playable.dart';
 
 part 'download_item.g.dart';
 
 @JsonSerializable()
-class DownloadItem extends Groupable {
+class DownloadItem extends Groupable with ChangeNotifier, Playable {
   @JsonKey(includeToJson: false, includeFromJson: false)
   int bytesDownloaded, size;
   @JsonKey(includeToJson: false, includeFromJson: false)
-  num progress;
+  num _progress;
   @JsonKey(includeToJson: false, includeFromJson: false)
   bool isHidden = false;
+
   @JsonKey(includeToJson: false, includeFromJson: false)
-  DateTime startTime;
+  @protected
+  DateTime timeStarted;
+
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  @protected
+  num progressInitial;
 
   DownloadItem(
-      {required super.name,
+      {num progress = 0.0,
+      required super.name,
       super.parent,
-      this.progress = 0.0,
       this.bytesDownloaded = 0,
       this.size = 0})
-      : startTime = DateTime.now();
+      : timeStarted = DateTime.now(),
+        _progress = progress,
+        progressInitial = progress;
 
   factory DownloadItem.fromJson(Map<String, dynamic> json) =>
       _$DownloadItemFromJson(json);
 
-  String? get audioTrackPath => null;
+  @override
+  String get displayName {
+    return isMultiFile ? '$nameCleaned (${files.length} items)' : nameCleaned;
+  }
 
-  String get displayName =>
-      isMultiFile ? '$nameCleaned (${files.length} items)' : nameCleaned;
+  double get etaSecs {
+    return progress == 0
+        ? double.infinity
+        : (DateTime.now().difference(timeStarted).inSeconds /
+            (progress - progressInitial));
+  }
 
-  double get etaSecs => progress == 0
-      ? double.infinity
-      : (DateTime.now()
-                  .difference((parent as DownloadItem?)?.startTime ?? startTime)
-                  .inSeconds *
-              (1 - progress) /
-              progress)
-          .toDouble();
+  bool get exists => isMultiFile
+      ? Directory(fullPath).existsSync()
+      : File(fullPath).existsSync();
 
-  bool get exists => File(videoPath).existsSync();
-  Map<String, String> get externalSubtitlePaths => {}; // TODO: test
-
-  String? get externalSubtitltFontPath => null; // TODO: test
   List<DownloadItem> get files => throw UnimplementedError();
-  // IconData get icon => getPathIcon(videoPath);
-  bool get isComplete => progress == 1.0;
+  bool get isComplete => progress == 1.0 && bytesDownloaded == size;
+
   bool get isMultiFile => false;
   bool get isPlaceholder => false;
-  bool get isUrl => videoPath.startsWith('https://');
-  Duration get lastPosition => WatchHistory.getPosition(id);
+  bool get isUrl => fullPath.startsWith('https://');
 
-  double get watchProgress => WatchHistory.getProgress(id);
+  num get progress => _progress;
+  set progress(num value) {
+    if (value == _progress) return;
+    _progress = value;
+    notifyListeners();
+  }
 
+  @override
   Future<void> delete() async {
     isHidden = true;
-
+    notifyListeners();
     if (isMultiFile) {
-      await videoPath.deleteDir();
+      await fullPath.deleteDir();
     } else {
-      await videoPath.deleteFile();
+      await fullPath.deleteFile();
     }
   }
 
   Future<void> open() async {
     // TODO: handle for different file type
     if (!isUrl) {
-      if (!(File(videoPath).existsSync())) {
-        showSnackBar('File not found', videoPath);
+      if (!(File(fullPath).existsSync())) {
+        showSnackBar('File not found', fullPath);
         return;
       }
-      if (FileTypeExt.from(videoPath) != FileType.video) {
-        showSnackBar(
-            'File type not supported', FileTypeExt.from(videoPath).name);
-        return;
+      switch (FileTypeExt.from(fullPath)) {
+        case FileType.video:
+          await showVideoPlayer();
+          break;
+        case FileType.document:
+        case FileType.subtitle:
+          await showAdaptivePopup(
+              builder: (context) => DocumentViewer(path: fullPath));
+          break;
+        default:
+          showSnackBar(
+              'File type not supported', FileTypeExt.from(fullPath).name);
       }
-    }
-
-    await showVideoPlayer();
-  }
-
-  Future<void> showVideoPlayer() async {
-    if (kIsDesktop) {
-      await showAdaptivePopup(builder: (context) => VideoPlayerPage(this));
-    } else {
-      Get.to(() => CupertinoPageScaffold(
-          navigationBar: CupertinoNavigationBar(
-            middle: Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-              maxLines: 2,
-            ),
-          ),
-          child: SafeArea(child: VideoPlayerPage(this))));
     }
   }
 
   @override
   Map<String, dynamic> toJson() => _$DownloadItemToJson(this);
-
-  Future<void> updateWatchPosition(Duration pos) async =>
-      await WatchHistory.updatePosition(id, pos);
-}
-
-extension SortHelper<T extends DownloadItem> on Map<String, List<T>> {
-  List<MapEntry<String, List<T>>> sortedGroup() =>
-      entries.toList(growable: false)
-        ..sort((a, b) {
-          if (a.value.length == 1 && a.value.first.isMultiFile) {
-            return -1;
-          }
-          if (b.value.length == 1 && b.value.first.isMultiFile) {
-            return 1;
-          }
-          return a.key.compareTo(b.key);
-        });
 }

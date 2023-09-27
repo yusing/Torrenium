@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 
 import '/interface/download_item.dart';
@@ -40,5 +41,14 @@ class GroupableFileSystemEntity extends DownloadItem {
   int get size => linked?.size ?? 0;
 
   @override
-  String get videoPath => entity.path;
+  String get fullPath => entity.path;
+
+  @override
+  Future<void> delete() async {
+    if (linked == null) {
+      Logger().i('File ${entity.path} not found in torrentMap');
+      return await super.delete();
+    }
+    await linked!.delete();
+  }
 }

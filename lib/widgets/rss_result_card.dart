@@ -34,8 +34,10 @@ class RSSResultCard extends StatelessWidget {
                   if (result.value.length > 1) '${result.value.length} Items',
                   if (result.value.first.author != null)
                     result.value.first.author,
-                  if (result.value.last.pubDate != null)
-                    result.value.last.pubDate!.relative,
+                  if (result.value.last.pubDate is String)
+                    result.value.last.pubDate
+                  else
+                    (result.value.last.pubDate as DateTime).relative,
                   if (result.value.last.viewCount != null)
                     '${result.value.last.viewCount!.countUnit} Views',
                   if (result.value.last.likeCount != null)

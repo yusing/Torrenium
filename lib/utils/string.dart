@@ -80,7 +80,7 @@ extension NumExt on num {
     if (this < 60) {
       return '${floor()} seconds';
     }
-    if (this == double.infinity) {
+    if (isInfinite || isNaN || isNegative) {
       return '∞ s';
     }
     if (this < 60 * 60) {

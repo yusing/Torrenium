@@ -7,9 +7,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:logger/logger.dart';
 
 import '/utils/connectivity.dart';
-import '/utils/fetch_rss.dart' show parseRSSForItems;
 import '/utils/string.dart';
-import 'http.dart';
 import 'rss_providers.dart' show RSSProvider, kProvidersDict;
 import 'storage.dart';
 
@@ -143,26 +141,24 @@ class SubscriptionManager {
     }
     final subsTasksDone = sub.tasksDoneNotifier.keys..addAll(exclusionIds.keys);
     final provider = sub.provider;
-    final url = provider.searchUrl(
-        query: sub.keyword, author: sub.author, category: sub.category);
-    final resp = await http.get(url);
-    if (resp.statusCode == 200) {
+    try {
+      final items = await provider.parseUrlForItems(provider.searchUrl(
+          query: sub.keyword, author: sub.author, category: sub.category));
       sub.lastUpdateNotifier.value = DateTime.now().millisecondsSinceEpoch;
 
-      final items = parseRSSForItems(provider, await resp.body());
       final tasks = Map.fromEntries(items.map((e) => MapEntry(e.id, e)));
       // start new tasks
       final newTasks =
-          tasks.keys.where((task) => !subsTasksDone.contains(task));
+          tasks.entries.where((task) => !subsTasksDone.contains(task.key));
       for (final task in newTasks) {
-        await tasks[task]!
+        await task.value
             .startDownload()
             .then((_) => Logger().i('New task: ${tasks[task]!.name}'))
             .onError((e, st) => Logger().e('Error adding task', e, st));
-        await sub.tasksDoneNotifier.add(task);
+        await sub.tasksDoneNotifier.add(task.key);
       }
-    } else {
-      Logger().e(resp.statusCode);
+    } catch (e, st) {
+      Logger().e('Error updating subscription', e, st);
     }
   }
 }

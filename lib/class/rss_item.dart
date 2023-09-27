@@ -1,33 +1,29 @@
 import '/interface/groupable.dart';
 import '/services/rss_providers.dart';
-import '/services/torrent_mgr.dart';
 
-class RSSItem extends Groupable {
+abstract class RSSItem extends Groupable {
   final RSSProvider source;
   final String description;
-  final String? torrentUrl;
-  final DateTime? pubDate;
-  final String? category, author, size;
+  final Object pubDate;
+  final String? category, author;
   final int? viewCount, likeCount;
+  final String? size;
 
   RSSItem(
-      {String? coverUrl,
+      {required String? coverUrl,
       required super.name,
       required this.source,
       required this.description,
-      required this.torrentUrl,
       required this.pubDate,
-      this.category,
-      this.author,
-      this.size,
-      this.viewCount,
-      this.likeCount}) {
+      required this.category,
+      required this.author,
+      required this.size,
+      required this.viewCount,
+      required this.likeCount}) {
     if (coverUrl != null) {
       this.coverUrl = coverUrl;
     }
   }
 
-  Future<void> startDownload() async {
-    await gTorrentManager.downloadItem(this);
-  }
+  String get displayName => super.name;
 }

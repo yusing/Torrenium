@@ -14,7 +14,8 @@ const kCupertinoThemeData = CupertinoThemeData(
     primaryColor: CupertinoColors.activeOrange,
     scaffoldBackgroundColor: CupertinoColors.black,
     applyThemeToAll: true);
-const kItemTitleTextStyle = TextStyle(fontSize: kItemTextSize);
+const kItemTitleTextStyle =
+    TextStyle(fontSize: kItemTextSize, color: CupertinoColors.white);
 const kItemSubtitleTextStyle =
     TextStyle(fontSize: kSubtitleTextSize, color: CupertinoColors.systemGrey);
 const kMonoTextStyle = TextStyle(

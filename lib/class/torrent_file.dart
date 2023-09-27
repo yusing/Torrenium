@@ -44,7 +44,7 @@ class TorrentFile extends DownloadItem {
   bool get isPlaceholder => false;
 
   @override
-  String get videoPath => pathlib.join(gTorrentManager.saveDir, relativePath);
+  String get fullPath => pathlib.join(gTorrentManager.saveDir, relativePath);
 
   @override
   String toString() {

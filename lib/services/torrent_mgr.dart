@@ -3,13 +3,15 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:collection/collection.dart';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as pathlib;
 import 'package:path_provider/path_provider.dart';
 
-import '/class/rss_item.dart';
 import '/class/torrent.dart';
+import '/class/torrent_rss_item.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/utils/fs.dart';
@@ -37,27 +39,48 @@ class TorrentManager {
   static late final TorrentManager instance;
   static final recvPort = ReceivePort()..listen(onMetadataLoaded);
 
-  final placeholders = <Torrent>[];
   var ungrouped = <Torrent>[];
 
-  late var torrentMap = <String, List<Torrent>>{
-    'Downloading metadata...': placeholders,
+  final hideDownloaded = ValueNotifier(false);
+
+  late final _torrentMap = <String, List<Torrent>>{
     'Ungrouped': ungrouped,
   };
 
   late String saveDir;
+
   late String dataDir;
 
-  bool get isEmpty => torrentMap.entries
-      .every((e) => e.value.isEmpty || e.value.every((t) => t.isHidden));
+  bool get isEmpty {
+    return TorrentPlaceHolder.map.isEmpty &&
+        _torrentMap.entries
+            .every((e) => e.value.isEmpty || e.value.every((t) => t.isHidden));
+  }
 
-  Future<void> downloadItem(RSSItem item) async {
+  Map<String, List<Torrent>> get torrentMap {
+    return {
+      ..._torrentMap,
+      'Downloading metadata...:':
+          List.unmodifiable(TorrentPlaceHolder.map.values)
+    };
+  }
+
+  double get totalProgress {
+    final inProgress =
+        Torrent.map.values.where((e) => e.progress < 1).map((e) => e.progress);
+
+    return inProgress.isEmpty
+        ? 100
+        : inProgress.average.clamp(0.0, 1.0) * 100.0;
+  }
+
+  Future<void> downloadItem(TorrentRSSItem item) async {
     if (item.torrentUrl == null) {
       throw Exception('Item has no torrent url');
     }
     final url = item.torrentUrl!;
-    final placeholder = Torrent.placeholder(item)..coverUrl = item.coverUrl;
-    placeholders.add(placeholder);
+    final placeholder = TorrentPlaceHolder.create(item)
+      ..coverUrl = item.coverUrl;
 
     await Isolate.spawn((message) {
       // spawn in isolate to avoid blocking main thread
@@ -72,47 +95,51 @@ class TorrentManager {
   }
 
   DownloadItem? findItem(String id) {
-    for (final group in torrentMap.values) {
-      for (final torrent in group) {
-        if (torrent.isMultiFile) {
-          for (final file in torrent.files) {
-            if (file.id == id) {
-              return file;
-            }
+    for (final t in Torrent.map.values) {
+      if (t.isMultiFile) {
+        for (final file in t.files) {
+          if (file.id == id) {
+            return file;
           }
         }
-        if (torrent.id == id) {
-          return torrent;
-        }
+      }
+      if (t.id == id) {
+        return t;
       }
     }
 
     return null;
   }
 
-  void hideDownload(bool hideDownloaded) {
-    for (var t in Torrent.map.values) {
-      t.isHidden = t.isComplete && hideDownloaded;
-      Logger().d('${t.name} hidden? ${t.isHidden}');
-    }
-  }
-
   void regroup() {
-    torrentMap.remove('Downloading metadata...');
-    final flattened = torrentMap.flatten();
-    torrentMap = {
-      'Downloading metadata...': placeholders,
-      'Ungrouped': ungrouped..clear(),
-      ...flattened.group(),
-    };
+    _torrentMap.remove('Downloading metadata...');
+    ungrouped.clear();
+    _torrentMap.clear();
+    _torrentMap['Ungrouped'] = ungrouped;
+    _torrentMap.addAll(Torrent.map.values.toList(growable: false).group());
   }
 
   void removeFromMap(Torrent t) {
+    assert(t is! TorrentPlaceHolder);
+
     if (t.group == null || torrentMap[t.group]?.remove(t) != true) {
       if (!ungrouped.remove(t)) {
         Logger().e('Torrent ${t.name} not found in torrentMap or ungrouped');
+        return;
       }
     }
+
+    if (torrentMap[t.group]?.isEmpty == true) {
+      torrentMap.remove(t.group);
+    }
+  }
+
+  void setDownloadedHidden(bool hideDownloaded) {
+    for (var t in Torrent.map.values) {
+      t.isHidden = t.isComplete && hideDownloaded;
+      // Logger().d('${t.name} hidden? ${t.isHidden}');
+    }
+    this.hideDownloaded.value = hideDownloaded;
   }
 
   static Future<void> init() async {
@@ -151,23 +178,20 @@ class TorrentManager {
     // load last session
     final session = Torrent.listFromJson(
         await initClientIsolate.firstWhere((e) => e is String));
-    for (var t in session) {
-      go.DeleteMetadata(t.torrentPtr);
+    instance.ungrouped.addAll(session..forEach((t) => t.startSelfUpdate()));
+    if (instance.hideDownloaded.value) {
+      instance.setDownloadedHidden(true);
     }
-    instance.torrentMap
-        .addAll(session.where((t) => !t.isComplete).toList().group());
+    instance.regroup();
 
     Logger().d('TorrentManager initialized');
   }
 
   static onMetadataLoaded(dynamic message) {
-    instance.placeholders.removeWhere((t) => t.infoHash == message['infoHash']);
+    TorrentPlaceHolder.map.remove(message['infoHash']);
     instance.ungrouped.add(Torrent.fromJson(message['torrent'])
       ..startSelfUpdate()
       ..coverUrl = message['coverUrl']);
-    if (instance.placeholders.isEmpty) {
-      instance.regroup();
-    }
   }
 }
 

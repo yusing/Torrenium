@@ -1,4 +1,17 @@
+import 'dart:convert';
+
+import 'package:html/parser.dart' as html;
 import 'package:xml/xml.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+
+import '../class/anime1_item.dart';
+import '/class/rss_item.dart';
+import '/class/rss_result_group.dart';
+import '/class/torrent_rss_item.dart';
+import '/class/youtube_item.dart';
+import '/interface/groupable.dart';
+import 'http.dart';
+import 'settings.dart';
 
 const List<RSSProvider> kRssProviders = [
   RSSProvider(
@@ -20,8 +33,8 @@ const List<RSSProvider> kRssProviders = [
         '其他': '1',
       },
       authorRssMap: {
-        'ANi': '816',
         '所有字幕組': '0',
+        'ANi': '816',
         'NC-Raws': '801',
         '喵萌奶茶屋': '669',
         'Lilith-Raws': '803',
@@ -40,65 +53,66 @@ const List<RSSProvider> kRssProviders = [
         '爱恋字幕社': '47',
         'DBD制作组': '805',
         'c.c动漫': '604',
-        '萝莉社活动室': '550',
-        '千夏字幕组': '283',
-        'IET字幕組': '772',
-        '诸神kamigami字幕组': '288',
-        '霜庭云花Sub': '804',
-        'GMTeam': '755',
-        '风车字幕组': '454',
-        '雪飄工作室(FLsnow)': '37',
-        'MCE汉化组': '764',
-        '丸子家族': '488',
-        '星空字幕组': '731',
-        '梦蓝字幕组': '574',
-        'LoveEcho!': '504',
-        'SweetSub': '650',
-        '枫叶字幕组': '630',
-        'Little Subbers!': '479',
-        '轻之国度': '321',
-        '云光字幕组': '649',
-        '豌豆字幕组': '520',
-        '驯兽师联盟': '626',
-        '中肯字幕組': '666',
-        'SW字幕组': '781',
-        '银色子弹字幕组': '576',
-        '风之圣殿': '434',
-        'YWCN字幕组': '665',
-        'KRL字幕组': '228',
-        '华盟字幕社': '49',
-        '波洛咖啡厅': '627',
-        '动音漫影': '88',
-        'VCB-Studio': '581',
-        'DHR動研字幕組': '407',
-        '80v08': '719',
-        '肥猫压制': '732',
-        'Little字幕组': '680',
-        'AI-Raws': '613',
-        '离谱Sub': '806',
-        '虹咲学园烤肉同好会': '812',
-        'ARIA吧汉化组': '636',
-        '百冬練習組': '821',
-        '柯南事务所': '75',
-        '冷番补完字幕组': '641',
-        '極彩字幕组': '822',
-        '爱咕字幕组': '765',
-        'AQUA工作室': '217',
-        '未央阁联盟': '592',
-        '届恋字幕组': '703',
-        '夜莺家族': '808',
-        'TD-RAWS': '734',
-        '夢幻戀櫻': '447',
-        'WBX-SUB': '790',
-        'Liella!の烧烤摊': '807',
-        'Amor字幕组': '814',
-        'MingYSub': '813',
-        'Sakura': '832',
-        'EMe': '817',
-        'Alchemist': '818',
-        '黑岩射手吧字幕组': '819',
+        // '萝莉社活动室': '550',
+        // '千夏字幕组': '283',
+        // 'IET字幕組': '772',
+        // '诸神kamigami字幕组': '288',
+        // '霜庭云花Sub': '804',
+        // 'GMTeam': '755',
+        // '风车字幕组': '454',
+        // '雪飄工作室(FLsnow)': '37',
+        // 'MCE汉化组': '764',
+        // '丸子家族': '488',
+        // '星空字幕组': '731',
+        // '梦蓝字幕组': '574',
+        // 'LoveEcho!': '504',
+        // 'SweetSub': '650',
+        // '枫叶字幕组': '630',
+        // 'Little Subbers!': '479',
+        // '轻之国度': '321',
+        // '云光字幕组': '649',
+        // '豌豆字幕组': '520',
+        // '驯兽师联盟': '626',
+        // '中肯字幕組': '666',
+        // 'SW字幕组': '781',
+        // '银色子弹字幕组': '576',
+        // '风之圣殿': '434',
+        // 'YWCN字幕组': '665',
+        // 'KRL字幕组': '228',
+        // '华盟字幕社': '49',
+        // '波洛咖啡厅': '627',
+        // '动音漫影': '88',
+        // 'VCB-Studio': '581',
+        // 'DHR動研字幕組': '407',
+        // '80v08': '719',
+        // '肥猫压制': '732',
+        // 'Little字幕组': '680',
+        // 'AI-Raws': '613',
+        // '离谱Sub': '806',
+        // '虹咲学园烤肉同好会': '812',
+        // 'ARIA吧汉化组': '636',
+        // '百冬練習組': '821',
+        // '柯南事务所': '75',
+        // '冷番补完字幕组': '641',
+        // '極彩字幕组': '822',
+        // '爱咕字幕组': '765',
+        // 'AQUA工作室': '217',
+        // '未央阁联盟': '592',
+        // '届恋字幕组': '703',
+        // '夜莺家族': '808',
+        // 'TD-RAWS': '734',
+        // '夢幻戀櫻': '447',
+        // 'WBX-SUB': '790',
+        // 'Liella!の烧烤摊': '807',
+        // 'Amor字幕组': '814',
+        // 'MingYSub': '813',
+        // 'Sakura': '832',
+        // 'EMe': '817',
+        // 'Alchemist': '818',
+        // '黑岩射手吧字幕组': '819',
       }),
-  kYouTubeProvider,
+  YouTubeProvider(),
+  // Anime1Provider(), // TODO: fix (Cloudflare protected)
   RSSProvider(
       name: 'Bangumi Moe',
       homePageUrl: 'https://bangumi.moe/',
@@ -212,8 +226,6 @@ const List<RSSProvider> kRssProviders = [
 ];
 
 // TODO: allow adding custom provider
-const kYouTubeProvider =
-    YouTubeProvider('YouTube', 'UC45ONEZZfMDZCnEhgYmVu-A'); // Ani-One
 
 const _kMonths = {
   'Jan': '01',
@@ -296,6 +308,69 @@ String? youTubeViewsGetter(XmlElement e) => e
 typedef PubDateParser = DateTime Function(String);
 typedef UrlParamGetter = String Function(String);
 typedef XMLValueGetter = String? Function(XmlElement);
+
+class Anime1Provider extends RSSProvider {
+  static const kLatestItemsUrl = 'https://d1zquzjgwo9yb.cloudfront.net/';
+
+  const Anime1Provider()
+      : super(
+          name: 'Anime1.me',
+          homePageUrl: 'https://anime1.me/',
+          rssPath: '',
+          searchParams: '?s=%q',
+          supportTitleGroup: true,
+          supportAdvancedSearch: false,
+        );
+
+  @override
+  bool get isDescriptionInHTML => false;
+
+  @override
+  Future<List<RssResultGroup>> getRSSResults(
+      {required String query, String? author, String? category}) async {
+    assert(author == null && category == null);
+
+    if (query.trim().isEmpty) {
+      final jsonData =
+          await body(kLatestItemsUrl).then((value) => jsonDecode(value));
+      return asGroup(List.from(jsonData.map((e) => Anime1Item(
+          name: e.sublist(1, 3).join(' - '),
+          source: this,
+          description: e.sublist(1).join(' '),
+          catId: e.first.toString(),
+          episodeNumber: getEpisodeNumber(e[2])))));
+    }
+    final doc = html.parse(await body('https://anime1.me/?s=$query'));
+    final articles = doc.querySelectorAll('article');
+    return articles
+        .map((e) {
+          // <article ... class="... category-$CAT_ID ..."
+          // <a ... rel="bookmark">$NAME [$EPISODE]</a>
+          // <time ... datetime="$PUBDATE_ISO">$PUBDATE_REPR</time>
+          final title = e.querySelector('a')!.text;
+          return Anime1Item(
+              name: title,
+              source: this,
+              description: '',
+              catId: e.className
+                  .split(' ')
+                  .lastWhere((e) => e.startsWith('category-'))
+                  .substring(9),
+              episodeNumber: getEpisodeNumber(title));
+        })
+        .toList()
+        .group()
+        .entries
+        .toList(growable: false);
+  }
+
+  static String getEpisodeNumber(String title) {
+    var episodeNumber = int.tryParse(
+            RegExp(r'\((\d+)\)').firstMatch(title)?.group(1) ?? '') ??
+        int.tryParse(RegExp(r'\d+\-(\d+)').firstMatch(title)?.group(1) ?? '');
+    return episodeNumber != null ? '${episodeNumber}b' : '1';
+  }
+}
 
 class RSSDetailGetter {
   static const RSSDetailGetter youTube = RSSDetailGetter(
@@ -384,22 +459,63 @@ class RSSProvider {
     this.pubDateParser = defaultPubDateParser,
   });
 
-  bool get isYouTube => this is YouTubeProvider;
+  bool get isDescriptionInHTML => true;
+  // bool get isYouTube => this is YouTubeProvider;
   String get logoUrl => homePageUrl + logoPath;
+
   String get rssUrl => homePageUrl + rssPath;
-  String searchUrl({String? query, String? author, String? category}) {
-    query = query?.trim();
-    if (query != null && query.isEmpty) {
-      query = null;
-    }
 
-    if (isYouTube) {
-      return query == null || query.isEmpty
-          ? (homePageUrl + rssPath)
-          : (homePageUrl + searchParams.replaceAll('%q', query));
-    }
+  List<RssResultGroup> asGroup(List<RSSItem> items) {
+    return items
+        .map((e) => RssResultGroup(e.name, [e]))
+        .toList(growable: false);
+  }
 
-    if (query == null) {
+  Future<String> body(String url) async =>
+      await gCacheManagerShortTerm.getSingleFile(url, headers: {
+        'Encoding': 'UTF-8',
+      }).then((value) => value.readAsString());
+
+  Future<List<RssResultGroup>> getRSSResults(
+      {required String query, String? author, String? category}) async {
+    final items = await parseUrlForItems(
+        searchUrl(query: query, author: author, category: category));
+
+    if (supportTitleGroup && Settings.enableGrouping.value) {
+      return items.group().entries.toList(growable: false);
+    }
+    return asGroup(items);
+  }
+
+  Future<List<TorrentRSSItem>> parseUrlForItems(String url) async {
+    assert(url.startsWith('http'));
+    final doc = XmlDocument.parse(await body(url));
+    return doc.findAllElements(tags.item).map((e) {
+      final authorElement = tags.authorName == null
+          ? null
+          : e.findElements(tags.authorName!).first;
+      return TorrentRSSItem(
+        source: this,
+        name: e.findElements(tags.title).first.innerText,
+        pubDate: pubDateParser(e.findElements(tags.pubDate).first.innerText),
+        description: detailGetter.getDescription.call(e) ?? '',
+        torrentUrl: detailGetter.getMagnetUrl?.call(e),
+        coverUrl: detailGetter.getCoverUrl?.call(e),
+        viewCount: int.tryParse(detailGetter.getViews?.call(e) ?? ''),
+        likeCount: int.tryParse(detailGetter.getLikes?.call(e) ?? ''),
+        author: authorElement?.innerText,
+        category: tags.category == null
+            ? null
+            : e.findElements(tags.category!).first.innerText,
+        size: tags.fileSize == null
+            ? null
+            : e.findElements(tags.fileSize!).first.innerText,
+      );
+    }).toList(growable: false);
+  }
+
+  String searchUrl({required String query, String? author, String? category}) {
+    if (query.trim().isEmpty) {
       if (!supportAdvancedSearch) {
         if (author != null) {
           return homePageUrl + rssPath + author;
@@ -411,7 +527,6 @@ class RSSProvider {
       if (author == null && category == null) {
         return homePageUrl + (mainPagePath ?? rssPath);
       }
-      query = '';
     }
     return homePageUrl +
         rssPath +
@@ -423,15 +538,44 @@ class RSSProvider {
 }
 
 class YouTubeProvider extends RSSProvider {
-  const YouTubeProvider(String name, String channelId)
+  static final client = YoutubeExplode();
+
+  const YouTubeProvider()
       : super(
-            name: name,
-            homePageUrl: 'https://www.youtube.com/',
-            rssPath: 'feeds/videos.xml?channel_id=$channelId',
-            searchParams: 'results?search_query=%q',
-            tags: RSSItemTags.youTube,
-            detailGetter: RSSDetailGetter.youTube,
-            supportTitleGroup: false,
-            supportAdvancedSearch: false,
-            pubDateParser: youTubePubDateParser);
+          name: 'YouTube',
+          homePageUrl: 'https://www.youtube.com/',
+          rssPath: 'results?search_query=Ani-One',
+          searchParams: 'results?search_query=%q',
+          // tags: RSSItemTags.youTube,
+          // detailGetter: RSSDetailGetter.youTube,
+          // supportTitleGroup: false,
+          // supportAdvancedSearch: false,
+          // pubDateParser: youTubePubDateParser
+        );
+
+  @override
+  bool get isDescriptionInHTML => false;
+
+  @override
+  Future<List<RssResultGroup>> getRSSResults(
+      {required String query, String? author, String? category}) async {
+    assert(author == null && category == null);
+
+    if (query.trim().isEmpty) {
+      query = 'Ani-One';
+    }
+    var searchResult = await client.search.search(query.trim());
+    return List.unmodifiable(searchResult.map((e) => MapEntry(e.title, [
+          YouTubeItem(
+              name: e.title,
+              description: e.description,
+              videoId: e.id.value,
+              pubDate: e.publishDate ?? e.uploadDateRaw ?? 'Unknown date',
+              author: e.author,
+              coverUrl: e.thumbnails.mediumResUrl,
+              viewCount: e.engagement.viewCount,
+              likeCount: e.engagement.likeCount,
+              source: this)
+        ])));
+  }
 }

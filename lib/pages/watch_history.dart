@@ -16,8 +16,8 @@ class WatchHistoryPage extends StatelessWidget {
       child: ValueListenableBuilder(
           valueListenable: WatchHistory.notifier,
           builder: (context, histories, _) {
-            histories.sort((a, b) => a.value.lastWatchedTimestamp
-                .compareTo(b.value.lastWatchedTimestamp));
+            histories.sort((a, b) => b.value.lastWatchedTimestamp
+                .compareTo(a.value.lastWatchedTimestamp));
             if (histories.isEmpty) {
               return const Center(
                 child: Text('No history'),

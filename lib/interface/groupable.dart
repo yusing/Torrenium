@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as pathlib;
 
 import '/services/settings.dart';
 import '/services/storage.dart';
+import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/utils/file_types.dart';
 import '/utils/string.dart';
@@ -76,6 +78,8 @@ class Groupable {
     return e;
   }
 
+  String get fullPath => throw UnimplementedError();
+
   String get id => name.b64;
 
   String get nameCleaned => _nameCleaned ??= Title(name).value;
@@ -85,9 +89,9 @@ class Groupable {
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
+  String get relPath =>
+      pathlib.relative(fullPath, from: gTorrentManager.saveDir);
   String get title => name;
-
-  String get videoPath => throw UnimplementedError();
 
   Widget coverImageWidget([BoxFit fit = BoxFit.contain]) {
     final fType = FileTypeExt.from(name);
@@ -99,7 +103,7 @@ class Groupable {
           );
         }
         return Image.file(
-          File(videoPath),
+          File(fullPath),
           key: ValueKey(id),
           width: kListTileThumbnailWidth,
           fit: fit,
@@ -217,13 +221,15 @@ extension GroupHelpers<T extends Groupable> on List<T> {
     sort((a, b) => a.name.compareTo(b.name));
 
     if (!Settings.enableGrouping.value) {
-      return {'Ungrouped': this};
+      return {
+        for (var e in this) e.nameCleaned: [e]
+      };
     }
     final grouped = <String, List<T>>{};
     int i = 0;
 
     final splitted =
-        List.of(map((e) => e.nameCleaned.split(RegExp(r'(\.|\s)'))));
+        map((e) => e.nameCleaned.split(RegExp(r'(\.|\s)'))).toList();
 
     List<String> root;
     int rootIndex;
@@ -233,9 +239,9 @@ extension GroupHelpers<T extends Groupable> on List<T> {
       this[rootIndex].group ??= this[rootIndex].nameCleanedNoNum;
       grouped[this[rootIndex].group!] = [this[rootIndex]];
 
-      if (!RegExp(r'\d+').hasMatch(this[rootIndex].name)) {
-        continue;
-      }
+      // if (!RegExp(r'\d+').hasMatch(this[rootIndex].name)) {
+      //   continue;
+      // }
       Iterable<int>? diffIndexes;
       while (i < splitted.length) {
         if (this[i].group != null) {

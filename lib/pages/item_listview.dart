@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:get/get.dart';
 import 'package:macos_ui/macos_ui.dart' show MacosColors;
 
+import '/class/fs_entity.dart';
 import '/interface/download_item.dart';
 import '/interface/groupable.dart';
 import '/interface/resumeable.dart';
@@ -11,51 +12,49 @@ import '/style.dart';
 import '/utils/string.dart';
 import '/widgets/adaptive.dart';
 import '/widgets/play_pause_button.dart';
+import 'file_browser.dart';
 
-class DownloadsListView extends StatefulWidget {
+class DownloadsListView extends StatelessWidget {
   const DownloadsListView({super.key});
 
   @override
-  State<DownloadsListView> createState() => _DownloadsListViewState();
-}
-
-class _DownloadsListViewState extends State<DownloadsListView> {
-  var _hideDownloaded = false;
-
-  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            AdaptiveSwitch(
-                label: 'Hide Downloaded',
-                value: _hideDownloaded,
-                onChanged: (v) => setState(() {
-                      gTorrentManager.hideDownload(v);
-                      _hideDownloaded = v;
-                    })),
-            Visibility(
-              visible: Settings.enableGrouping.value,
-              child: AdaptiveTextButton(
+    return ValueListenableBuilder(
+      valueListenable: gTorrentManager.hideDownloaded,
+      builder: (context, hideDownloaded, _) => Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Visibility(
+                visible: Settings.enableGrouping.value,
+                child: AdaptiveTextButton(
                   icon: const Icon(CupertinoIcons.refresh),
                   label: const Text('Regroup'),
-                  onPressed: gTorrentManager.regroup),
+                  onPressed: gTorrentManager.regroup,
+                ),
+              ),
+              AdaptiveSwitch(
+                  label: 'Hide Downloaded',
+                  value: hideDownloaded,
+                  onChanged: gTorrentManager.setDownloadedHidden),
+            ],
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: StreamBuilder(
+                  stream: Stream.periodic(1.seconds),
+                  builder: (context, snapshot) {
+                    if (gTorrentManager.isEmpty) {
+                      return const Center(child: Text('Nothing Here...'));
+                    }
+                    return ItemListView(gTorrentManager.torrentMap);
+                  }),
             ),
-          ],
-        ),
-        Expanded(
-          child: StreamBuilder(
-              stream: Stream.periodic(1.seconds),
-              builder: (context, snapshot) {
-                if (gTorrentManager.isEmpty) {
-                  return const Center(child: Text('Nothing Here...'));
-                }
-                return ItemListView(gTorrentManager.torrentMap);
-              }),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -86,27 +85,7 @@ class ItemGroupWidget extends StatelessWidget {
         title: Text(group.key, style: kItemTitleTextStyle),
         subtitle: Text('${items.length} items'),
         onTap: () => showAdaptivePopup(builder: (_) {
-              if (episodes.every((e) => e.isComplete)) {
-                return Wrap(
-                    children: List.of(episodes.map((e) => Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: AdaptiveTextButton(
-                            icon: const AdaptiveIcon(CupertinoIcons.play_arrow),
-                            label: Text(
-                              e.episode ?? e.nameCleaned,
-                            ),
-                            color: e.watchProgress > 0
-                                ? CupertinoColors.systemPurple
-                                : null,
-                            onPressed: onTapCallback(e),
-                          ),
-                        ))));
-              }
-              return ListView.separated(
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemCount: episodes.length,
-                itemBuilder: (context, i) => ItemListTile(episodes[i]),
-              );
+              return ItemListView({group.key: episodes});
             }));
   }
 }
@@ -117,106 +96,113 @@ class ItemListTile extends Visibility {
   ItemListTile(this.item)
       : super(
             key: ValueKey(item),
-            visible: !item.isHidden,
-            child: AdaptiveListTile(
-              leading: item.coverImageWidget(),
-              title: Text(
-                item.episode ?? item.displayName,
-                style: item.watchProgress == 0
-                    ? kItemTitleTextStyle
-                    : kItemTitleTextStyle.copyWith(
-                        color: MacosColors.systemPurpleColor),
-              ),
-              trailing: item.isPlaceholder
-                  ? null
-                  : [
-                      if (item is Resumeable && !item.isComplete)
-                        PlayPauseButton(
-                          isPlaying: !(item as Resumeable).isPaused,
-                          play: (item as Resumeable).resume,
-                          pause: (item as Resumeable).pause,
-                        ),
-                      if (!item.isPlaceholder)
-                        AdaptiveIconButton(
-                            padding: const EdgeInsets.all(0),
-                            icon: const AdaptiveIcon(
-                              CupertinoIcons.delete,
-                              color: CupertinoColors.systemRed,
-                            ),
-                            onPressed: item.delete),
-                    ],
-              subtitle: item.isComplete
-                  ? null
-                  : Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(
-                          height: 4,
-                        ),
-                        Builder(builder: (context) {
-                          return ConstrainedBox(
-                              constraints: BoxConstraints(
-                                  minWidth: MediaQuery.of(context).size.width),
-                              child: AdaptiveProgressBar(
-                                value: item.progress.toDouble(),
-                                trackColor: item.isComplete
-                                    ? MacosColors.applePurple
-                                    : null,
-                              ));
-                        }),
-                        const SizedBox(
-                          height: 4,
-                        ),
-                        if (item is Resumeable && (item as Resumeable).isPaused)
-                          const Text('Paused')
-                        else
-                          Text(
-                              '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
-                      ],
+            visible: !item.isHidden && item.exists,
+            child: ListenableBuilder(
+                listenable: item,
+                builder: (context, _) {
+                  return AdaptiveListTile(
+                    leading: item.coverImageWidget(),
+                    title: Text(
+                      item.episode ?? item.displayName,
+                      style: item.watchProgress == 0
+                          ? kItemTitleTextStyle
+                          : kItemTitleTextStyle.copyWith(
+                              color: MacosColors.systemPurpleColor),
                     ),
-              onTap: onTapCallback(item),
-            ));
+                    trailing: item.isPlaceholder
+                        ? null
+                        : [
+                            if (item is Resumeable && !item.isComplete)
+                              PlayPauseButton(
+                                isPlaying: !(item as Resumeable).isPaused,
+                                play: (item as Resumeable).resume,
+                                pause: (item as Resumeable).pause,
+                              ),
+                            if (!item.isPlaceholder)
+                              AdaptiveIconButton(
+                                  padding: const EdgeInsets.all(0),
+                                  icon: const AdaptiveIcon(
+                                    CupertinoIcons.delete,
+                                    color: CupertinoColors.systemRed,
+                                  ),
+                                  onPressed: item.delete),
+                          ],
+                    subtitle: item.isComplete
+                        ? null
+                        : Column(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(
+                                height: 4,
+                              ),
+                              Builder(builder: (context) {
+                                return ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                        minWidth:
+                                            MediaQuery.of(context).size.width),
+                                    child: AdaptiveProgressBar(
+                                      value: item.progress.toDouble(),
+                                      trackColor: item.isComplete
+                                          ? MacosColors.applePurple
+                                          : null,
+                                    ));
+                              }),
+                              const SizedBox(
+                                height: 4,
+                              ),
+                              if (item is Resumeable &&
+                                  (item as Resumeable).isPaused)
+                                const Text('Paused')
+                              else
+                                Text(
+                                    '${item.bytesDownloaded.sizeUnit} of ${item.size.sizeUnit}\n${item.etaSecs.timeUnit} remaining')
+                            ],
+                          ),
+                    onTap: onTapCallback(item),
+                  );
+                }));
 }
 
 class ItemListView extends StatelessWidget {
-  final List<MapEntry<String, List<DownloadItem>>> groups;
+  final Map<String, List<DownloadItem>> groups;
 
-  ItemListView(Map<String, List<DownloadItem>> map, {super.key})
-      : groups = map.sortedGroup();
+  const ItemListView(this.groups, {super.key});
 
   @override
   Widget build(BuildContext context) {
     if (groups.isEmpty) {
       return const Center(child: Text('Nothing Here...'));
     }
-    if (groups.length == 1) {
+    if (groups.values.length == 1) {
       return ListView.separated(
+          addAutomaticKeepAlives: false,
           separatorBuilder: (_, index) => const SizedBox(height: 24),
-          itemCount: groups.first.value.length,
-          itemBuilder: ((_, index) => ItemListTile(groups.first.value[index])));
+          itemCount: groups.values.first.length,
+          itemBuilder: ((_, index) =>
+              ItemListTile(groups.values.first[index])));
     }
     return ListView.separated(
+      addAutomaticKeepAlives: false,
       separatorBuilder: (_, index) => const SizedBox(height: 24),
       itemCount: groups.length,
-      itemBuilder: ((_, index) => ItemGroupWidget(groups[index])),
+      itemBuilder: ((_, index) =>
+          ItemGroupWidget(groups.entries.elementAt(index))),
     );
   }
 }
 
 VoidCallback? onTapCallback(DownloadItem item) {
-  return item.isMultiFile
-      ? () {
-          final grouped = item.files.group();
-          showAdaptivePopup(
-              builder: (_) => StreamBuilder(
-                  stream: Stream.periodic(1.seconds),
-                  builder: (context, snapshot) {
-                    return ItemListView(grouped);
-                  }));
-        }
-      : item.isComplete
-          ? item.open
-          : null;
+  if (item.isMultiFile) {
+    if (item is GroupableFileSystemEntity) {
+      return () =>
+          showAdaptivePopup(builder: (_) => FileBrowser(path: item.fullPath));
+    }
+    return () {
+      final grouped = item.files.group();
+      showAdaptivePopup(builder: (_) => ItemListView(grouped));
+    };
+  }
+  return item.isComplete ? item.open : null;
 }

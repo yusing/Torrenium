@@ -1,13 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:get/get.dart';
-import 'package:logger/logger.dart';
 
 import '/class/rss_item.dart';
-import '/class/youtube_item.dart';
+import '/interface/downloadable.dart';
+import '/interface/playable.dart';
 import '/main.dart' show kIsDesktop;
-import '/services/torrent_ext.dart';
-import '/services/torrent_mgr.dart';
 import '/style.dart';
 import '/utils/show_snackbar.dart';
 import '/widgets/adaptive.dart';
@@ -17,34 +15,50 @@ class PlayDownloadButtons extends StatelessWidget {
 
   const PlayDownloadButtons(this.results, {super.key});
 
+  Widget builder(RSSItem e) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (e is Playable)
+          AdaptiveTextButton(
+              icon: const AdaptiveIcon(CupertinoIcons.play_arrow),
+              label: const Text('Play'),
+              onPressed: () {
+                (e as Playable)
+                    .showVideoPlayer()
+                    .then((_) => Get.back(closeOverlays: true))
+                    .onError((e, st) {
+                  showSnackBar('Failed to load video', e.toString());
+                });
+              }),
+        if (e is Downloadable)
+          AdaptiveTextButton(
+              icon: const AdaptiveIcon(CupertinoIcons.cloud_download),
+              label: const Text('Download'),
+              onPressed: () {
+                (e as Downloadable).startDownload(true).onError((e, st) {
+                  showSnackBar('Failed to download', e.toString());
+                }).then((value) => Get.back(closeOverlays: true));
+              })
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (results.isEmpty) {
       return const SizedBox.shrink();
     }
+    if (results.length == 1) {
+      return builder(results.first);
+    }
     return Wrap(
       children: List.unmodifiable(results.map((e) => AdaptiveTextButton(
-          icon: e.source.isYouTube
-              ? const AdaptiveIcon(CupertinoIcons.play)
-              : const AdaptiveIcon(CupertinoIcons.cloud_download),
-          label: Text(e.episode ?? (e.source.isYouTube ? 'Play' : 'Download')),
-          onPressed: () async => await openOrDownloadItem(e).then((_) {
-                if (results.length == 1) {
-                  Get.back(closeOverlays: true);
-                }
-              })))),
+          icon: const AdaptiveIcon(CupertinoIcons.videocam),
+          label: Text(e.episode ?? e.nameCleaned),
+          onPressed: () async =>
+              await showAdaptivePopup(builder: (_) => builder(e))))),
     );
-  }
-
-  Future<void> openOrDownloadItem(RSSItem item) async {
-    if (item.source.isYouTube) {
-      YouTubeItem(item).play().onError((error, st) async {
-        Logger().e('Failed to load video', error, st);
-        showSnackBar('Failed to load video', error.toString());
-      });
-    } else {
-      gTorrentManager.download(item);
-    }
   }
 }
 
@@ -62,10 +76,10 @@ class RssResultDialog extends StatelessWidget {
           style: kItemTitleTextStyle,
         ),
         PlayDownloadButtons(items),
-        items.first.source.isYouTube
-            ? Text(items.first.description)
-            : Html(
+        items.first.source.isDescriptionInHTML
+            ? Html(
                 data: items.first.description,
-              ),
+              )
+            : Text(items.first.description),
       ]));
 }

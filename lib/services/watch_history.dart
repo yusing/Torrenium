@@ -109,6 +109,12 @@ class WatchHistoryEntry extends DownloadItem
   String? get audioTrackPath => audioPath;
 
   @override
+  String get displayName => name;
+
+  @override
+  String get fullPath => path ?? gTorrentManager.findItem(id)?.fullPath ?? '';
+
+  @override
   bool get isComplete => true;
 
   @override
@@ -127,9 +133,6 @@ class WatchHistoryEntry extends DownloadItem
     }
     return position! / duration!;
   }
-
-  @override
-  String get videoPath => path ?? gTorrentManager.findItem(id)?.videoPath ?? '';
 
   @override
   int compareTo(WatchHistoryEntry other) {

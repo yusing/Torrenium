@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -14,17 +13,17 @@ import '/services/storage.dart';
 import '/services/subscription.dart';
 import '/services/torrent_mgr.dart';
 import '/utils/connectivity.dart';
+import '/utils/string.dart';
 import 'rss_item.dart';
 import 'torrent_file.dart';
 
 class Torrent extends DownloadItem implements Resumeable {
-  static final updateTimerMap = <String, Timer>{};
+  static final watcherMap = <String, StreamSubscription>{};
   static final map = <String, Torrent>{};
 
   final List<TorrentFile> _files = [];
   String infoHash;
   Pointer<Void> torrentPtr;
-  DateTime? _downloadedTime;
 
   @override
   bool isPaused = false;
@@ -55,16 +54,6 @@ class Torrent extends DownloadItem implements Resumeable {
     return torrent;
   }
 
-  factory Torrent.placeholder(RSSItem item) {
-    return Torrent._(
-        name: 'Downloading metadata...: ${item.nameCleaned}',
-        infoHash: 'placeholder:${item.nameCleaned.hashCode}',
-        size: 0,
-        torrentPtr: nullptr,
-        progress: 0,
-        bytesDownloaded: 0);
-  }
-
   Torrent._(
       {required super.name,
       required super.progress,
@@ -77,11 +66,11 @@ class Torrent extends DownloadItem implements Resumeable {
   String get displayName =>
       isMultiFile ? '$nameCleaned (${files.length} files)' : name;
 
-  DateTime get downloadedTime =>
-      _downloadedTime ??= FileStat.statSync(videoPath).modified;
-
   @override
   List<TorrentFile> get files => _files;
+
+  @override
+  String get fullPath => pathlib.join(gTorrentManager.saveDir, name);
 
   @override
   int get hashCode => infoHash.hashCode;
@@ -90,10 +79,7 @@ class Torrent extends DownloadItem implements Resumeable {
   bool get isMultiFile => files.length > 1;
 
   @override
-  bool get isPlaceholder => infoHash.startsWith('placeholder:');
-
-  @override
-  String get videoPath => pathlib.join(gTorrentManager.saveDir, name);
+  bool get isPlaceholder => this is TorrentPlaceHolder;
 
   @override
   bool operator ==(Object other) {
@@ -106,17 +92,21 @@ class Torrent extends DownloadItem implements Resumeable {
   @override
   Future<void> delete() async {
     stopSelfUpdate();
-    go.DeleteTorrent(torrentPtr);
-    gTorrentManager.removeFromMap(this);
-    await gSubscriptionManager.addExclusion(id);
-    await gStorage.remove(coverUrlKey);
-    map.remove(infoHash);
+    if (!isPlaceholder) {
+      go.DeleteTorrent(torrentPtr);
+      gTorrentManager.removeFromMap(this);
+      await gSubscriptionManager.addExclusion(id);
+      await gStorage.remove(coverUrlKey);
+    }
+    assert(map.remove(infoHash) != null);
+    Logger().d('Torrent $name deleted');
   }
 
   @override
   void pause() {
     stopSelfUpdate();
     isPaused = true;
+    notifyListeners();
     go.PauseTorrent(torrentPtr);
   }
 
@@ -125,36 +115,37 @@ class Torrent extends DownloadItem implements Resumeable {
     isPaused = false;
     torrentPtr =
         Pointer<Void>.fromAddress(go.ResumeTorrent.dartStringCall(infoHash));
+    timeStarted = DateTime.now();
+    progressInitial = progress;
     startSelfUpdate();
+    notifyListeners();
   }
 
   void selfUpdate(Map tMap) {
-    progress = tMap['progress'];
+    // TODO: maybe can get bytesDownloaded from FileStat.size?
     size = tMap['size'];
     bytesDownloaded =
         tMap['bytes_downloaded'] ?? tMap['progress'] * tMap['size'];
     torrentPtr = Pointer<Void>.fromAddress(tMap['ptr']);
-    _downloadedTime = DateTime.now();
     for (var i = 0; i < tMap['files'].length; i++) {
       files[i].selfUpdate(tMap['files'][i]);
     }
+    progress = tMap['progress'];
   }
 
   void startSelfUpdate() {
     if (isPlaceholder) {
       return;
     }
-    if (updateTimerMap.containsKey(infoHash)) {
-      Logger()
-          .e('Timer already exists for $infoHash but startSelfUpdate() called');
+    if (watcherMap.containsKey(infoHash)) {
+      Logger().e(
+          'Watcher already exists for $infoHash but startSelfUpdate() called');
       return;
     }
-    updateTimerMap[infoHash] = Timer.periodic(1.seconds, (_) async {
-      if (isComplete && bytesDownloaded > 0) {
-        assert(bytesDownloaded == size, '$bytesDownloaded != $size');
+    final watcher = Stream.periodic(1.seconds);
+    watcherMap[infoHash] = watcher.listen((event) async {
+      if (isComplete) {
         Logger().d('Torrent $name complete, stopping self update');
-        // gTorrentManager.removeFromMap(this);
-        // go.DeleteMetadata(torrentPtr);
         stopSelfUpdate();
         return;
       }
@@ -163,31 +154,26 @@ class Torrent extends DownloadItem implements Resumeable {
         // pause torrent if limited connectivity, resume when connected
         if (await isLimitedConnectivity()) {
           pause();
-          stopSelfUpdate();
           late StreamSubscription sub;
           sub = Connectivity().onConnectivityChanged.listen((event) async {
             if (!await isLimitedConnectivity()) {
               resume();
-              startSelfUpdate();
               sub.cancel();
             }
           });
         }
-        if ((DateTime.now().difference(startTime)) > 5.seconds) {
-          startTime = DateTime.now();
-        }
         Torrent.fromJson(jsonDecode.cStringCall(go.GetTorrentInfo(torrentPtr)));
       }
-    });
+    }, cancelOnError: false);
   }
 
   void stopSelfUpdate() {
-    final timer = updateTimerMap.remove(infoHash);
-    if (timer == null) {
-      Logger().e('Timer not found for $infoHash but stopSelfUpdate() called');
+    final watcher = watcherMap.remove(infoHash);
+    if (watcher == null) {
+      Logger().e('Watcher not found for $infoHash but stopSelfUpdate() called');
       return;
     }
-    timer.cancel();
+    watcher.cancel();
   }
 
   static List<Torrent> listFromJson(String jsonStr) {
@@ -197,5 +183,20 @@ class Torrent extends DownloadItem implements Resumeable {
     }
     return json.map<Torrent>((e) => Torrent.fromJson(e)).toList(growable: false)
       ..sort((a, b) => a.name.compareTo(b.name));
+  }
+}
+
+class TorrentPlaceHolder extends Torrent {
+  static final map = <String, TorrentPlaceHolder>{};
+
+  TorrentPlaceHolder.create(RSSItem item)
+      : super._(
+            name: item.name,
+            infoHash: item.name.b64,
+            size: 0,
+            torrentPtr: nullptr,
+            progress: 0,
+            bytesDownloaded: 0) {
+    map[infoHash] = this;
   }
 }
